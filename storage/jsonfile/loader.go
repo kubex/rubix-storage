@@ -26,7 +26,7 @@ func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 	return "", errors.New("not found")
 }
 
-func (p Provider) GetUserWorkspaceAliases(userId string) ([]string, error) {
+func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	var ids []string
 	err := json.Unmarshal(p.fileData(p.filePath("user", userId+".workspaces")), &ids)
 	return ids, err
@@ -58,10 +58,17 @@ func (p Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, er
 	}
 }
 
-func (p Provider) GetAuthData(lookup rubix.Lookup) (map[string]string, error) {
-	data := map[string]string{}
-	err := json.Unmarshal(p.fileData(p.filePath("auth", lookup.String())), &data)
-	return data, err
+func (p Provider) GetAuthData(lookups ...rubix.Lookup) (map[string]string, error) {
+	var err error
+	merged := map[string]string{}
+	for _, lookup := range lookups {
+		data := map[string]string{}
+		err = json.Unmarshal(p.fileData(p.filePath("auth", lookup.String())), &data)
+		for k, v := range data {
+			merged[k] = v
+		}
+	}
+	return merged, err
 }
 
 func (p Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error) {

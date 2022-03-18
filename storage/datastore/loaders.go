@@ -25,17 +25,43 @@ func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 	return "", errors.New("no workspace found")
 }
 
-func (p Provider) GetUserWorkspaceAliases(userId string) ([]string, error) {
-	return []string{}, nil
+func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
+	q := datastore.NewQuery(kindMembership).
+		Filter("IdentityID = ", userId).
+		KeysOnly()
+
+	wsuuids := []string{}
+	if keys, err := p.client.GetAll(context.Background(), q, nil); err != nil {
+		return nil, err
+	} else {
+		for _, key := range keys {
+			if key.Parent != nil {
+				wsuuids = append(wsuuids, key.Parent.Name)
+			}
+		}
+	}
+	return wsuuids, nil
 }
 
 func (p Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
-	return []string{}, nil
+	q := datastore.NewQuery(kindMembership).
+		Ancestor(workspaceStore{Uuid: workspaceUuid}.dsID()).
+		KeysOnly()
+
+	members := []string{}
+	if keys, err := p.client.GetAll(context.Background(), q, nil); err != nil {
+		return nil, err
+	} else {
+		for _, key := range keys {
+			members = append(members, key.Name)
+		}
+	}
+	return members, nil
 }
 
 func (p Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error) {
-	ws := &workspaceStore{}
-	if readErr := p.client.Get(context.Background(), datastore.NameKey(kindWorkspace, workspaceUuid, nil), ws); readErr != nil {
+	ws := &workspaceStore{Uuid: workspaceUuid}
+	if readErr := p.client.Get(context.Background(), ws.dsID(), ws); readErr != nil {
 		if errors.Is(readErr, datastore.ErrNoSuchEntity) {
 			return nil, ErrNotFound
 		}
@@ -53,7 +79,7 @@ func (p Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, err
 	return workspace, err
 }
 
-func (p Provider) GetAuthData(lookup rubix.Lookup) (map[string]string, error) {
+func (p Provider) GetAuthData(lookups ...rubix.Lookup) (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
@@ -63,17 +89,4 @@ func (p Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...ap
 
 func (p Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error) {
 	return true, nil
-}
-
-func (p Provider) StoreWorkspace(w *rubix.Workspace) error {
-	ws := &workspaceStore{
-		Uuid:   w.Uuid,
-		Alias:  w.Alias,
-		Name:   w.Name,
-		Domain: w.Domain,
-	}
-	ws.InstalledApplications, _ = json.Marshal(w.InstalledApplications)
-
-	_, err := p.client.Put(context.Background(), datastore.NameKey(kindWorkspace, ws.Uuid, nil), ws)
-	return err
 }

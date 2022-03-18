@@ -9,7 +9,7 @@ func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 	panic("implement me")
 }
 
-func (p Provider) GetUserWorkspaceAliases(userId string) ([]string, error) {
+func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	panic("implement me")
 }
 
@@ -21,7 +21,7 @@ func (p Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, er
 	panic("implement me")
 }
 
-func (p Provider) GetAuthData(lookup rubix.Lookup) (map[string]string, error) {
+func (p Provider) GetAuthData(lookups ...rubix.Lookup) (map[string]string, error) {
 	panic("implement me")
 }
 

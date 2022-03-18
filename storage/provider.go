@@ -7,10 +7,10 @@ import (
 
 type Provider interface {
 	GetWorkspaceUUIDByAlias(alias string) (string, error)
-	GetUserWorkspaceAliases(userId string) ([]string, error)
+	GetUserWorkspaceUUIDs(userId string) ([]string, error)
 	GetWorkspaceUserIDs(workspaceUuid string) ([]string, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
-	GetAuthData(lookup rubix.Lookup) (map[string]string, error)
+	GetAuthData(lookups ...rubix.Lookup) (map[string]string, error)
 	GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error)
 	UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error)
 }

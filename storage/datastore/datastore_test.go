@@ -12,13 +12,18 @@ func TestDataStore(t *testing.T) {
 	p.Init()
 
 	log.Println(p.GetWorkspaceUUIDByAlias("alias"))
-
+	log.Println(p.GetUserWorkspaceUUIDs("anonymous"))
+	log.Println(p.GetWorkspaceUserIDs("random-workspace"))
+	uuid := "rumble-uuid"
+	alias := "rumble"
 	w := &rubix.Workspace{
-		Uuid:   "random-workspace",
-		Alias:  "alias",
-		Domain: "alias.cubex-local.com",
-		Name:   "Alias",
+		Uuid:   uuid,
+		Alias:  alias,
+		Domain: alias + ".cubex-local.com",
+		Name:   alias + " WorkSpace",
 	}
 	p.StoreWorkspace(w)
+
+	p.AddMembership(uuid, "anonymous", rubix.MembershipRoleOwner)
 
 }
