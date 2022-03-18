@@ -6,6 +6,7 @@ import (
 )
 
 type Provider interface {
+	GetWorkspaceUUIDByAlias(alias string) (string, error)
 	GetUserWorkspaceAliases(userId string) ([]string, error)
 	GetWorkspaceUserIDs(workspaceUuid string) ([]string, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)

@@ -5,10 +5,26 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
 )
+
+func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
+	if files, err := ioutil.ReadDir(p.dataDirectory); err == nil {
+		for _, file := range files {
+			if strings.HasSuffix(file.Name(), ".json") && strings.HasPrefix(file.Name(), "workspace.") {
+				workspace := rubix.Workspace{}
+				_ = json.Unmarshal(p.fileData(p.dataDirectory+"/"+file.Name()), &workspace)
+				if workspace.Alias == alias {
+					return workspace.Uuid, nil
+				}
+			}
+		}
+	}
+	return "", errors.New("not found")
+}
 
 func (p Provider) GetUserWorkspaceAliases(userId string) ([]string, error) {
 	var ids []string

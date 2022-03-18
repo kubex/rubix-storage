@@ -5,6 +5,10 @@ import (
 	"github.com/kubex/rubix-storage/rubix"
 )
 
+func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
+	panic("implement me")
+}
+
 func (p Provider) GetUserWorkspaceAliases(userId string) ([]string, error) {
 	panic("implement me")
 }
