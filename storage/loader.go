@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/kubex/rubix-storage/rubix"
 	"github.com/kubex/rubix-storage/storage/cassandra"
 	"github.com/kubex/rubix-storage/storage/datastore"
 	"github.com/kubex/rubix-storage/storage/jsonfile"
 )
 
-func Load(jsonBytes []byte) (rubix.Provider, error) {
+func Load(jsonBytes []byte) (Provider, error) {
 
 	loader := struct {
 		Provider      string
