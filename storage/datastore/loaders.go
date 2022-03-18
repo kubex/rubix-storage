@@ -13,16 +13,14 @@ import (
 func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 	q := datastore.NewQuery(kindWorkspace).
 		Filter("Alias =", alias).
-		Limit(1)
+		Limit(1).KeysOnly()
 
-	var err error
-	var workspaces []*workspaceStore
-	if _, err = p.client.GetAll(context.Background(), q, &workspaces); err != nil {
+	if keys, err := p.client.GetAll(context.Background(), q, nil); err != nil {
 		return "", err
-	}
-
-	if len(workspaces) > 0 {
-		return workspaces[0].Uuid, nil
+	} else {
+		if len(keys) > 0 {
+			return keys[0].Name, nil
+		}
 	}
 	return "", errors.New("no workspace found")
 }
