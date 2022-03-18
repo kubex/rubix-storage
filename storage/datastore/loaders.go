@@ -1,12 +1,30 @@
 package datastore
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+
+	"cloud.google.com/go/datastore"
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
 )
 
 func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
-	panic("implement me")
+	q := datastore.NewQuery(kindWorkspace).
+		Filter("Alias =", alias).
+		Limit(1)
+
+	var err error
+	var workspaces []*workspaceStore
+	if _, err = p.client.GetAll(context.Background(), q, &workspaces); err != nil {
+		return "", err
+	}
+
+	if len(workspaces) > 0 {
+		return workspaces[0].Uuid, nil
+	}
+	return "", errors.New("no workspace found")
 }
 
 func (p Provider) GetUserWorkspaceAliases(userId string) ([]string, error) {
@@ -17,8 +35,24 @@ func (p Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
 	panic("implement me")
 }
 
-func (p Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, error) {
-	panic("implement me")
+func (p Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error) {
+	ws := &workspaceStore{}
+	if readErr := p.client.Get(context.Background(), datastore.NameKey(kindWorkspace, workspaceUuid, nil), ws); readErr != nil {
+		if errors.Is(readErr, datastore.ErrNoSuchEntity) {
+			return nil, ErrNotFound
+		}
+		return nil, readErr
+	}
+
+	workspace := &rubix.Workspace{
+		Uuid:   ws.Uuid,
+		Alias:  ws.Alias,
+		Name:   ws.Name,
+		Domain: ws.Domain,
+	}
+
+	err := json.Unmarshal(ws.InstalledApplications, &workspace.InstalledApplications)
+	return workspace, err
 }
 
 func (p Provider) GetAuthData(lookup rubix.Lookup) (map[string]string, error) {
@@ -33,10 +67,15 @@ func (p Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Scop
 	panic("implement me")
 }
 
-type workspaceStore struct {
-	Uuid                  string
-	Alias                 string
-	Name                  string
-	Domain                string
-	InstalledApplications []byte
+func (p Provider) StoreWorkspace(w *rubix.Workspace) error {
+	ws := &workspaceStore{
+		Uuid:   w.Uuid,
+		Alias:  w.Alias,
+		Name:   w.Name,
+		Domain: w.Domain,
+	}
+	ws.InstalledApplications, _ = json.Marshal(w.InstalledApplications)
+
+	_, err := p.client.Put(context.Background(), datastore.NameKey(kindWorkspace, ws.Uuid, nil), ws)
+	return err
 }
