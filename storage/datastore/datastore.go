@@ -28,8 +28,7 @@ func FromJson(data []byte) (*Provider, error) {
 
 	if err := json.Unmarshal(data, &cfg); err == nil {
 		p := &Provider{}
-		p.Init()
-		return p, nil
+		return p, p.Init()
 	} else {
 		return nil, err
 	}
