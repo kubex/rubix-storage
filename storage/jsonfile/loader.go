@@ -23,7 +23,7 @@ func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 			}
 		}
 	}
-	return "", errors.New("not found")
+	return "", nil
 }
 
 func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
@@ -41,14 +41,10 @@ func (p Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
 func (p Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, error) {
 	jsonPath := p.filePath("workspace", workspaceAlias)
 	f, err := os.Open(jsonPath)
-	var bytes []byte
-	if err == nil {
-		bytes, err = ioutil.ReadAll(f)
-	}
 	if err != nil {
 		return nil, errors.New("unable to load workspace.json @ " + jsonPath)
 	}
-
+	bytes, err := ioutil.ReadAll(f)
 	if ws, err := rubix.WorkspaceFromJson(bytes); err != nil {
 		return nil, err
 	} else if ws.Alias != workspaceAlias && ws.Uuid != workspaceAlias {

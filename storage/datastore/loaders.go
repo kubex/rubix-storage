@@ -22,7 +22,7 @@ func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 			return keys[0].Name, nil
 		}
 	}
-	return "", errors.New("no workspace found")
+	return "", nil
 }
 
 func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
