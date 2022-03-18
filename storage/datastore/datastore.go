@@ -24,10 +24,8 @@ type Provider struct {
 }
 
 func FromJson(data []byte) (*Provider, error) {
-	cfg := struct{}{}
-
-	if err := json.Unmarshal(data, &cfg); err == nil {
-		p := &Provider{}
+	p := &Provider{}
+	if err := json.Unmarshal(data, &p); err == nil {
 		return p, p.Init()
 	} else {
 		return nil, err
