@@ -1,0 +1,10 @@
+{
+  "ID": {
+    "VendorID": "pass",
+    "AppID": "valid"
+  },
+  "Name": {
+    "Fallback": "Valid App"
+  },
+  "UIMode": "full"
+}
