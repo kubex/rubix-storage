@@ -28,11 +28,11 @@ func (p Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 }
 
 func (p Provider) GetUserWorkspaceAliases(userId string) ([]string, error) {
-	panic("implement me")
+	return []string{}, nil
 }
 
 func (p Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
-	panic("implement me")
+	return []string{}, nil
 }
 
 func (p Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error) {
@@ -56,15 +56,15 @@ func (p Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, err
 }
 
 func (p Provider) GetAuthData(lookup rubix.Lookup) (map[string]string, error) {
-	panic("implement me")
+	return map[string]string{}, nil
 }
 
 func (p Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error) {
-	panic("implement me")
+	return []app.PermissionStatement{}, nil
 }
 
 func (p Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error) {
-	panic("implement me")
+	return true, nil
 }
 
 func (p Provider) StoreWorkspace(w *rubix.Workspace) error {
