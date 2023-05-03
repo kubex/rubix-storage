@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"encoding/json"
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
 )
@@ -47,7 +48,12 @@ func (p *Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
 }
 
 func (p *Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, error) {
-	panic("implement me")
+	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, installedApplications FROM workspaces WHERE alias = ?", workspaceAlias)
+	located := rubix.Workspace{}
+	installedApplicationsJson := ""
+	err := q.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &installedApplicationsJson)
+	json.Unmarshal([]byte(installedApplicationsJson), &located.InstalledApplications)
+	return &located, err
 }
 
 func (p *Provider) GetAuthData(lookups ...rubix.Lookup) (map[string]string, error) {
