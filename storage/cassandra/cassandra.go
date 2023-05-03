@@ -11,6 +11,9 @@ type Provider struct {
 	Keyspace string
 }
 
+func (p *Provider) Close() error   { return nil }
+func (p *Provider) Connect() error { return nil }
+
 func FromJson(data []byte) (*Provider, error) {
 	cfg := struct {
 		Hosts    []string `json:"hosts"`

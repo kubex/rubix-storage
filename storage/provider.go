@@ -13,4 +13,7 @@ type Provider interface {
 	GetAuthData(lookups ...rubix.Lookup) (map[string]string, error)
 	GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error)
 	UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error)
+
+	Connect() error
+	Close() error
 }

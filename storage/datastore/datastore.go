@@ -26,6 +26,9 @@ type Provider struct {
 	ProjectID string `json:"projectId"`
 }
 
+func (p *Provider) Close() error   { return nil }
+func (p *Provider) Connect() error { return nil }
+
 func FromJson(data []byte) (*Provider, error) {
 	p := &Provider{}
 	if err := json.Unmarshal(data, &p); err == nil {

@@ -12,6 +12,9 @@ type Provider struct {
 	dataDirectory string
 }
 
+func (p *Provider) Close() error   { return nil }
+func (p *Provider) Connect() error { return nil }
+
 func FromJson(data []byte) (*Provider, error) {
 	cfg := struct {
 		DataDirectory string `json:"dataDirectory"`
