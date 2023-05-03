@@ -3,10 +3,10 @@ package storage
 import (
 	"encoding/json"
 	"errors"
-
 	"github.com/kubex/rubix-storage/storage/cassandra"
 	"github.com/kubex/rubix-storage/storage/datastore"
 	"github.com/kubex/rubix-storage/storage/jsonfile"
+	"github.com/kubex/rubix-storage/storage/mysql"
 )
 
 func Load(jsonBytes []byte) (Provider, error) {
@@ -28,6 +28,8 @@ func Load(jsonBytes []byte) (Provider, error) {
 		return cassandra.FromJson(*loader.Configuration)
 	case datastore.ProviderKey:
 		return datastore.FromJson(*loader.Configuration)
+	case mysql.ProviderKey:
+		return mysql.FromJson(*loader.Configuration)
 	}
 
 	return nil, errors.New("unable to load provider '" + loader.Provider + "'")
