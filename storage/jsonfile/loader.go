@@ -3,6 +3,7 @@ package jsonfile
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -44,7 +45,7 @@ func (p Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, er
 	if err != nil {
 		return nil, errors.New("unable to load workspace.json @ " + jsonPath)
 	}
-	bytes, err := ioutil.ReadAll(f)
+	bytes, err := io.ReadAll(f)
 	if ws, err := rubix.WorkspaceFromJson(bytes); err != nil {
 		return nil, err
 	} else if ws.Alias != workspaceAlias && ws.Uuid != workspaceAlias {

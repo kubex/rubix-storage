@@ -57,13 +57,13 @@ func (p *Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, er
 }
 
 func (p *Provider) GetAuthData(lookups ...rubix.Lookup) (map[string]string, error) {
-	panic("implement me")
+	return nil, nil
 }
 
 func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error) {
-	panic("implement me")
+	return nil, nil
 }
 
 func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error) {
-	panic("implement me")
+	return true, nil
 }
