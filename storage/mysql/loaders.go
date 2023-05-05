@@ -69,7 +69,8 @@ func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.Glo
 	}
 	subQuery += ")"
 
-	rows, err := p.primaryConnection.Query("SELECT `vendor`, `app`, `key`, `value` FROM auth_data WHERE workspace = ? AND (user = ? OR user IS NULL) "+subQuery, workspaceUuid, userUuid)
+	order := "ORDER BY user ASC, app ASC, `key` ASC"
+	rows, err := p.primaryConnection.Query("SELECT `vendor`, `app`, `key`, `value` FROM auth_data WHERE workspace = ? AND (user = ? OR user IS NULL) "+subQuery+order, workspaceUuid, userUuid)
 	if err != nil {
 		return nil, err
 	}
