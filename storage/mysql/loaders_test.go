@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"github.com/kubex/definitions-go/app"
 	"log"
 	"testing"
 )
@@ -16,4 +17,5 @@ func TestDataStore(t *testing.T) {
 	defer prov.Close()
 
 	log.Println(prov.GetUserWorkspaceUUIDs("abc"))
+	log.Println(prov.GetAuthData("abc", "user", app.NewID("ven", "app")))
 }

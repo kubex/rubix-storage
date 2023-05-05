@@ -23,7 +23,7 @@ create index workspaces_alias on rubix.workspaces (alias);
 
 create table if not exists rubix.auth_data (
     workspace varchar(64) not null,
-    user      varchar(64) not null,
+    user      varchar(64) null,
     vendor    varchar(64) not null,
     app       varchar(64) null,
     `key`     varchar(64) not null,

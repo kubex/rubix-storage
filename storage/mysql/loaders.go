@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"database/sql"
 	"encoding/json"
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
@@ -57,29 +58,32 @@ func (p *Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, er
 }
 
 func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error) {
-	subQuery := ""
+	subQuery := " AND ("
 	for i, appID := range appIDs {
 		if i == 0 {
-			subQuery += " AND ("
+			subQuery += ""
 		} else {
 			subQuery += " OR "
 		}
-		subQuery += "(`vendor` = '" + appID.VendorID + "' AND `app` = '" + appID.AppID + "')"
+		subQuery += "(`vendor` = '" + appID.VendorID + "' AND (`app` = '" + appID.AppID + "' OR `app` IS NULL))"
 	}
-	rows, err := p.primaryConnection.Query("SELECT `vendor`, `app`, `key`, `value` FROM auth_data WHERE workspace = ? AND user = ?"+subQuery, workspaceUuid, userUuid)
+	subQuery += ")"
+
+	rows, err := p.primaryConnection.Query("SELECT `vendor`, `app`, `key`, `value` FROM auth_data WHERE workspace = ? AND (user = ? OR user IS NULL) "+subQuery, workspaceUuid, userUuid)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var result []rubix.DataResult
 	for rows.Next() {
-		var vendor, app, key, value string
+		var vendor, key, value string
+		var app sql.NullString
 		if err := rows.Scan(&vendor, &app, &key, &value); err != nil {
 			return nil, err
 		}
 		result = append(result, rubix.DataResult{
 			VendorID: vendor,
-			AppID:    app,
+			AppID:    app.String,
 			Key:      key,
 			Value:    value,
 		})
