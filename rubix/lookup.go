@@ -8,6 +8,13 @@ type Lookup struct {
 	AppID         app.GlobalAppID
 }
 
+type DataResult struct {
+	VendorID string
+	AppID    string
+	Key      string
+	Value    string
+}
+
 func NewLookup(WorkspaceUUID, UserUUID string, AppID app.GlobalAppID) Lookup {
 	return Lookup{WorkspaceUUID: WorkspaceUUID, UserUUID: UserUUID, AppID: AppID}
 }

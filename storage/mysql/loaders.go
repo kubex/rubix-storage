@@ -56,8 +56,35 @@ func (p *Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, er
 	return &located, err
 }
 
-func (p *Provider) GetAuthData(lookups ...rubix.Lookup) (map[string]string, error) {
-	return nil, nil
+func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error) {
+	subQuery := ""
+	for i, appID := range appIDs {
+		if i == 0 {
+			subQuery += " AND ("
+		} else {
+			subQuery += " OR "
+		}
+		subQuery += "(`vendor` = '" + appID.VendorID + "' AND `app` = '" + appID.AppID + "')"
+	}
+	rows, err := p.primaryConnection.Query("SELECT `vendor`, `app`, `key`, `value` FROM auth_data WHERE workspace = ? AND user = ?"+subQuery, workspaceUuid, userUuid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []rubix.DataResult
+	for rows.Next() {
+		var vendor, app, key, value string
+		if err := rows.Scan(&vendor, &app, &key, &value); err != nil {
+			return nil, err
+		}
+		result = append(result, rubix.DataResult{
+			VendorID: vendor,
+			AppID:    app,
+			Key:      key,
+			Value:    value,
+		})
+	}
+	return result, nil
 }
 
 func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error) {

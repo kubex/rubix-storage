@@ -21,7 +21,7 @@ func (p Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, er
 	panic("implement me")
 }
 
-func (p Provider) GetAuthData(lookups ...rubix.Lookup) (map[string]string, error) {
+func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error) {
 	panic("implement me")
 }
 

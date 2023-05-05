@@ -10,7 +10,7 @@ type Provider interface {
 	GetUserWorkspaceUUIDs(userId string) ([]string, error)
 	GetWorkspaceUserIDs(workspaceUuid string) ([]string, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
-	GetAuthData(lookups ...rubix.Lookup) (map[string]string, error)
+	GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error)
 	GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error)
 	UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error)
 

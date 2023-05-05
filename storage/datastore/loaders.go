@@ -79,8 +79,8 @@ func (p Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, err
 	return workspace, err
 }
 
-func (p Provider) GetAuthData(lookups ...rubix.Lookup) (map[string]string, error) {
-	return map[string]string{}, nil
+func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error) {
+	return nil, nil
 }
 
 func (p Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error) {

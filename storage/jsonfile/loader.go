@@ -55,17 +55,23 @@ func (p Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, er
 	}
 }
 
-func (p Provider) GetAuthData(lookups ...rubix.Lookup) (map[string]string, error) {
+func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error) {
 	var err error
-	merged := map[string]string{}
-	for _, lookup := range lookups {
+	var result []rubix.DataResult
+	for _, aid := range appIDs {
+		lookup := rubix.NewLookup(workspaceUuid, userUuid, aid)
 		data := map[string]string{}
 		err = json.Unmarshal(p.fileData(p.filePath("auth", lookup.String())), &data)
 		for k, v := range data {
-			merged[k] = v
+			result = append(result, rubix.DataResult{
+				VendorID: lookup.AppID.VendorID,
+				AppID:    lookup.AppID.AppID,
+				Key:      k,
+				Value:    v,
+			})
 		}
 	}
-	return merged, err
+	return result, err
 }
 
 func (p Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error) {
