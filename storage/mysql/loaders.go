@@ -158,7 +158,7 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 
 	requireAll := make(map[string]bool)
 	for _, s := range statements {
-		requireAll[s.Permission.String()] = s.Effect == app.PermissionEffectDeny
+		requireAll[s.Permission.String()] = s.Effect != app.PermissionEffectDeny
 	}
 
 	for _, perm := range permissions {
