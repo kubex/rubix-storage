@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
+	"log"
+	"strings"
 )
 
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
@@ -93,9 +95,77 @@ func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.Glo
 }
 
 func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error) {
-	return nil, nil
+	if len(permissions) == 0 {
+		return nil, nil
+	}
+
+	params := []interface{}{lookup.UserUUID, lookup.WorkspaceUUID}
+	for _, perm := range permissions {
+		params = append(params, perm.String())
+	}
+
+	query := "SELECT rp.permission,rp.resource, rp.allow" +
+		" FROM user_roles AS ur" +
+		" INNER JOIN roles AS r ON ur.role = r.role AND ur.workspace = r.workspace" +
+		" INNER JOIN role_permissions AS rp ON rp.role = r.role AND rp.workspace = r.workspace" +
+		" WHERE rp.resource = '' " + // Resource not supported in query
+		" AND ur.user = ? AND ur.workspace = ?" +
+		" AND rp.permission IN (?" + strings.Repeat(",?", len(permissions)-1) + ")"
+
+	rows, err := p.primaryConnection.Query(query, params...)
+	if err != nil {
+		log.Println(err)
+		panic(err)
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[string]permissionResult)
+	for rows.Next() {
+		newResult := permissionResult{}
+		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow); err != nil {
+			return nil, err
+		}
+		if _, ok := result[newResult.PermissionKey]; !ok || !newResult.Allow {
+			result[newResult.PermissionKey] = newResult
+		}
+	}
+
+	var statements []app.PermissionStatement
+	for _, res := range result {
+		effect := app.PermissionEffectAllow
+		if !res.Allow {
+			effect = app.PermissionEffectDeny
+		}
+		statements = append(statements, app.PermissionStatement{
+			Effect:     effect,
+			Permission: app.ScopedKeyFromString(res.PermissionKey),
+			Resource:   "",
+		})
+	}
+
+	return statements, nil
 }
 
 func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error) {
+	if len(permissions) == 0 {
+		return true, nil
+	}
+
+	statements, err := p.GetPermissionStatements(lookup, permissions...)
+	if err != nil {
+		return false, err
+	}
+
+	requireAll := make(map[string]bool)
+	for _, s := range statements {
+		requireAll[s.Permission.String()] = s.Effect == app.PermissionEffectDeny
+	}
+
+	for _, perm := range permissions {
+		if allow, has := requireAll[perm.String()]; !allow || !has {
+			return false, nil
+		}
+	}
+
 	return true, nil
 }
