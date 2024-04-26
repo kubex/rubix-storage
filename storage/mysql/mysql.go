@@ -26,7 +26,7 @@ func (p *Provider) Connect() error {
 	if p.primaryConnection == nil {
 
 		var err error
-		p.primaryConnection, err = sql.Open("mysql", p.PrimaryDSN+"/"+p.Database)
+		p.primaryConnection, err = sql.Open("mysql", p.PrimaryDSN+"/"+p.Database+"?parseTime=true")
 
 		// Handle any errors that may occur during connection
 		if err != nil {
