@@ -12,12 +12,12 @@ const (
 )
 
 type UserStatus struct {
-	Name              string
-	Icon              string
-	State             UserState
-	ExtendedState     string
-	ExpiryTime        time.Time
-	ClearAfterSeconds int32
-	ClearEndOfDay     bool
-	ClearOnLogout     bool
+	Name              string    `json:"name"`
+	Icon              string    `json:"icon"`
+	State             UserState `json:"state"`
+	ExtendedState     string    `json:"extendedState"`
+	ExpiryTime        time.Time `json:"expiryTime,omitempty"`
+	ClearAfterSeconds int32     `json:"clearAfterSeconds,omitempty"`
+	ClearEndOfDay     bool      `json:"clearEndOfDay,omitempty"`
+	ClearOnLogout     bool      `json:"clearOnLogout,omitempty"`
 }
