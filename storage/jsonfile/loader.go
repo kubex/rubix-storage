@@ -114,3 +114,11 @@ func (p Provider) userPermissionStatements(lookup rubix.Lookup) []app.Permission
 	err = json.Unmarshal(bytes, &statements)
 	return statements
 }
+
+func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
+	panic("implement me")
+}
+
+func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
+	panic("implement me")
+}

@@ -90,3 +90,11 @@ func (p Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...ap
 func (p Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error) {
 	return true, nil
 }
+
+func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
+	panic("implement me")
+}
+
+func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
+	panic("implement me")
+}

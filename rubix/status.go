@@ -1,5 +1,7 @@
 package rubix
 
+import "time"
+
 type UserState string
 
 const (
@@ -14,6 +16,7 @@ type UserStatus struct {
 	Icon              string
 	State             UserState
 	ExtendedState     string
+	ExpiryTime        time.Time
 	ClearAfterSeconds int32
 	ClearEndOfDay     bool
 	ClearOnLogout     bool

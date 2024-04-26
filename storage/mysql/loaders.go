@@ -7,6 +7,7 @@ import (
 	"github.com/kubex/rubix-storage/rubix"
 	"log"
 	"strings"
+	"time"
 )
 
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
@@ -168,4 +169,23 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	}
 
 	return true, nil
+}
+
+func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
+	res, err := p.primaryConnection.Exec("INSERT INTO user_status (workspace, user, state, extendedState, expiry, applied) "+
+		"VALUES (?, ?, ?, ?, ?, ?) "+
+		"ON DUPLICATE KEY UPDATE "+
+		"state = ?, extendedState = ?, expiry = ?, applied = ?",
+		workspaceUuid, userUuid, status.State, status.ExtendedState, status.ExpiryTime, time.Now(), status.State, status.ExtendedState, status.ExpiryTime, time.Now())
+	if err != nil {
+		return false, err
+	}
+	impact, err := res.RowsAffected()
+	return impact > 0, err
+}
+
+func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
+	status := rubix.UserStatus{}
+	q := p.primaryConnection.QueryRow("SELECT state, extendedState,expiry FROM user_status WHERE workspace = ? AND user = ?", workspaceUuid, userUuid)
+	return status, q.Scan(&status.State, &status.ExtendedState, &status.ExpiryTime)
 }
