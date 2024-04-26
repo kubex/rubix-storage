@@ -172,11 +172,15 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 }
 
 func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
+	var expiry *time.Time
+	if !status.ExpiryTime.IsZero() {
+		expiry = &status.ExpiryTime
+	}
 	res, err := p.primaryConnection.Exec("INSERT INTO user_status (workspace, user, state, extendedState, expiry, applied) "+
 		"VALUES (?, ?, ?, ?, ?, ?) "+
 		"ON DUPLICATE KEY UPDATE "+
 		"state = ?, extendedState = ?, expiry = ?, applied = ?",
-		workspaceUuid, userUuid, status.State, status.ExtendedState, status.ExpiryTime, time.Now(), status.State, status.ExtendedState, status.ExpiryTime, time.Now())
+		workspaceUuid, userUuid, status.State, status.ExtendedState, expiry, time.Now(), status.State, status.ExtendedState, expiry, time.Now())
 	if err != nil {
 		return false, err
 	}
@@ -186,6 +190,12 @@ func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Use
 
 func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
 	status := rubix.UserStatus{}
+	var expiry *time.Time
 	q := p.primaryConnection.QueryRow("SELECT state, extendedState,expiry FROM user_status WHERE workspace = ? AND user = ?", workspaceUuid, userUuid)
-	return status, q.Scan(&status.State, &status.ExtendedState, &status.ExpiryTime)
+	readErr := q.Scan(&status.State, &status.ExtendedState, &expiry)
+	if readErr == nil && expiry != nil {
+		status.ExpiryTime = *expiry
+	}
+
+	return status, readErr
 }
