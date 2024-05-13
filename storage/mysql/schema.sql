@@ -68,5 +68,6 @@ CREATE TABLE rubix.`user_status` (
     `id`            varchar(64) NOT NULL DEFAULT '',
     `afterId`       varchar(64)          DEFAULT NULL,
     `duration`      int(11)     NOT NULL DEFAULT 0,
+    `clearOnLogout` tinyint(1)  NOT NULL DEFAULT 0,
     PRIMARY KEY (`workspace`, `user`, `id`)
 )
