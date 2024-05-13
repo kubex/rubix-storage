@@ -178,10 +178,6 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 		expiry = &status.ExpiryTime
 		duration = int32(status.ExpiryTime.Sub(time.Now()).Seconds())
 	}
-	var id *string
-	if status.ID != "" {
-		id = &status.ID
-	}
 	var afterId *string
 	if status.AfterID != "" {
 		afterId = &status.AfterID
@@ -199,7 +195,8 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "+
 		"ON DUPLICATE KEY UPDATE "+
 		"state = ?, extendedState = ?, expiry = ?, applied = ?, id = ?, afterId = ?, duration = ?, clearOnLogout = ?",
-		workspaceUuid, userUuid, status.State, status.ExtendedState, expiry, time.Now(), id, afterId, duration, status.ClearOnLogout, status.State, status.ExtendedState, expiry, time.Now(), id, afterId, duration, status.ClearOnLogout)
+		workspaceUuid, userUuid, status.State, status.ExtendedState, expiry, time.Now(), status.ID, afterId, duration, status.ClearOnLogout,
+		status.State, status.ExtendedState, expiry, time.Now(), status.ID, afterId, duration, status.ClearOnLogout)
 	if err != nil {
 		return false, err
 	}
