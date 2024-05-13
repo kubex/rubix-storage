@@ -232,7 +232,7 @@ func (p *Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) e
 func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
 	status := rubix.UserStatus{}
 	var expiry *time.Time
-	rows, err := p.primaryConnection.Query("SELECT state, extendedState, expiry, id, afterId FROM user_status WHERE workspace = ? AND user = ? AND expiry > ?", workspaceUuid, userUuid, time.Now())
+	rows, err := p.primaryConnection.Query("SELECT state, extendedState, applied, expiry, id, afterId FROM user_status WHERE workspace = ? AND user = ? AND expiry > ?", workspaceUuid, userUuid, time.Now())
 	if err != nil {
 		return status, err
 	}
@@ -241,17 +241,19 @@ func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStat
 	for rows.Next() {
 		newResult := rubix.UserStatus{}
 		afterId := sql.NullString{}
-		if scanErr := rows.Scan(&newResult.State, &newResult.ExtendedState, &expiry, &newResult.ID, &afterId); scanErr != nil {
+		if scanErr := rows.Scan(&newResult.State, &newResult.ExtendedState, &newResult.AppliedTime, &expiry, &newResult.ID, &afterId); scanErr != nil {
 			return status, scanErr
 		}
 		if afterId.Valid {
 			newResult.AfterID = afterId.String
 		}
+
 		if expiry != nil {
 			newResult.ExpiryTime = *expiry
 		}
 
 		if newResult.ID == "" {
+			status.AppliedTime = newResult.AppliedTime
 			status.ExpiryTime = newResult.ExpiryTime
 			status.State = newResult.State
 			status.ExtendedState = newResult.ExtendedState

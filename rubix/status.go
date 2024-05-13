@@ -17,6 +17,7 @@ type UserStatus struct {
 	Icon              string    `json:"icon"`
 	State             UserState `json:"state"`
 	ExtendedState     string    `json:"extendedState"`
+	AppliedTime       time.Time `json:"appliedTime,omitempty"`
 	ExpiryTime        time.Time `json:"expiryTime,omitempty"`
 	ClearAfterSeconds int32     `json:"clearAfterSeconds,omitempty"`
 	ClearEndOfDay     bool      `json:"clearEndOfDay,omitempty"`
