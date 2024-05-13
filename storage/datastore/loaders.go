@@ -98,3 +98,6 @@ func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Use
 func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
 	panic("implement me")
 }
+func (p Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) error {
+	panic("implement me")
+}

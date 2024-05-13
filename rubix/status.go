@@ -9,6 +9,7 @@ const (
 	UserStateOffline UserState = "offline"
 	UserStateAway    UserState = "away"
 	UserStateBusy    UserState = "busy"
+	UserStateHiatus  UserState = "hiatus"
 )
 
 type UserStatus struct {
@@ -20,4 +21,8 @@ type UserStatus struct {
 	ClearAfterSeconds int32     `json:"clearAfterSeconds,omitempty"`
 	ClearEndOfDay     bool      `json:"clearEndOfDay,omitempty"`
 	ClearOnLogout     bool      `json:"clearOnLogout,omitempty"`
+	ID                string    `json:"id,omitempty"`
+	AfterID           string    `json:"afterId,omitempty"`
+
+	Overlays []UserStatus `json:"overlays,omitempty"`
 }

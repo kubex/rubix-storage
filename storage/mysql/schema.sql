@@ -62,7 +62,10 @@ CREATE TABLE rubix.`user_status` (
     `user`          varchar(64) NOT NULL,
     `state`         varchar(10) NOT NULL,
     `extendedState` varchar(50) NOT NULL,
-    `expiry`        datetime DEFAULT NULL,
+    `expiry`        datetime             DEFAULT NULL,
     `applied`       datetime    NOT NULL,
-    PRIMARY KEY (`workspace`, `user`)
+    `id`            varchar(64) NOT NULL DEFAULT '',
+    `afterId`       varchar(64)          DEFAULT NULL,
+    `duration`      int(11)     NOT NULL DEFAULT 0,
+    PRIMARY KEY (`workspace`, `user`, `id`)
 )

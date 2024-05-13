@@ -17,6 +17,7 @@ type Provider interface {
 
 	SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error)
 	GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error)
+	ClearUserStatusID(workspaceUuid, userUuid, statusID string) error
 
 	Connect() error
 	Close() error

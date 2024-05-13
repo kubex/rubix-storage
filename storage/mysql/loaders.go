@@ -171,16 +171,26 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	return true, nil
 }
 
-func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
+func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
 	var expiry *time.Time
+	duration := 0
 	if !status.ExpiryTime.IsZero() {
 		expiry = &status.ExpiryTime
+		duration = int(status.ExpiryTime.Sub(time.Now()).Seconds())
 	}
-	res, err := p.primaryConnection.Exec("INSERT INTO user_status (workspace, user, state, extendedState, expiry, applied) "+
-		"VALUES (?, ?, ?, ?, ?, ?) "+
+	var id *string
+	if status.ID != "" {
+		id = &status.ID
+	}
+	var afterId *string
+	if status.AfterID != "" {
+		afterId = &status.AfterID
+	}
+	res, err := p.primaryConnection.Exec("INSERT INTO user_status (workspace, user, state, extendedState, expiry, applied, id, afterId, duration) "+
+		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "+
 		"ON DUPLICATE KEY UPDATE "+
-		"state = ?, extendedState = ?, expiry = ?, applied = ?",
-		workspaceUuid, userUuid, status.State, status.ExtendedState, expiry, time.Now(), status.State, status.ExtendedState, expiry, time.Now())
+		"state = ?, extendedState = ?, expiry = ?, applied = ?, id = ?, afterId = ?, duration = ?",
+		workspaceUuid, userUuid, status.State, status.ExtendedState, expiry, time.Now(), id, afterId, duration, status.State, status.ExtendedState, expiry, time.Now(), id, afterId, duration)
 	if err != nil {
 		return false, err
 	}
@@ -188,14 +198,39 @@ func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Use
 	return impact > 0, err
 }
 
-func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
-	status := rubix.UserStatus{}
-	var expiry *time.Time
-	q := p.primaryConnection.QueryRow("SELECT state, extendedState,expiry FROM user_status WHERE workspace = ? AND user = ?", workspaceUuid, userUuid)
-	readErr := q.Scan(&status.State, &status.ExtendedState, &expiry)
-	if readErr == nil && expiry != nil {
-		status.ExpiryTime = *expiry
+func (p *Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) error {
+	_, updateErr := p.primaryConnection.Exec("UPDATE user_status SET expiry = DATE_ADD(expiry,INTERVAL duration SECOND) WHERE workspace = ? AND user = ? AND expiry > ? AND afterId = ? AND duration > 0", workspaceUuid, userUuid, time.Now(), statusID)
+	if updateErr != nil {
+		return updateErr
 	}
 
-	return status, readErr
+	_, deleteErr := p.primaryConnection.Exec("DELETE FROM user_status  WHERE workspace = ? AND user = ? AND id = ?", workspaceUuid, userUuid, statusID)
+	return deleteErr
+}
+
+func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
+	status := rubix.UserStatus{}
+	var expiry *time.Time
+	rows, err := p.primaryConnection.Query("SELECT state, extendedState, expiry, id, afterId FROM user_status WHERE workspace = ? AND user = ? AND expiry > ?", workspaceUuid, userUuid, time.Now())
+	if err != nil {
+		return status, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		newResult := rubix.UserStatus{}
+		if scanErr := rows.Scan(&newResult.State, &newResult.ExtendedState, &expiry, &newResult.ID, &newResult.AfterID); scanErr != nil {
+			return status, scanErr
+		}
+
+		if newResult.ID == "" {
+			status.ExpiryTime = newResult.ExpiryTime
+			status.State = newResult.State
+			status.ExtendedState = newResult.ExtendedState
+		} else {
+			status.Overlays = append(status.Overlays, newResult)
+		}
+	}
+
+	return status, nil
 }
