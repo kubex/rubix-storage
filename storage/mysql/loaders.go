@@ -178,12 +178,17 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 		expiry = &status.ExpiryTime
 		duration = int32(status.ExpiryTime.Sub(time.Now()).Seconds())
 	}
+
+	if status.AfterID == status.ID {
+		status.AfterID = ""
+	}
+
 	var afterId *string
 	if status.AfterID != "" {
 		afterId = &status.AfterID
 
 		var parentExpiry *time.Time
-		qu := p.primaryConnection.QueryRow("SELECT expiry FROM user_status WHERE workspace = ? AND user = ? AND id = ?", workspaceUuid, userUuid, status.AfterID)
+		qu := p.primaryConnection.QueryRow("SELECT expiry FROM user_status WHERE workspace = ? AND user = ? AND id = ?", workspaceUuid, userUuid, status.ID)
 		err := qu.Scan(&parentExpiry)
 		if err == nil && parentExpiry != nil && parentExpiry.After(time.Now()) && duration > 0 {
 			parentExpiry.Add(time.Duration(duration) * time.Second)
