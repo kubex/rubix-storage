@@ -173,10 +173,10 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 
 func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
 	var expiry *time.Time
-	duration := 0
+	duration := status.ClearAfterSeconds
 	if !status.ExpiryTime.IsZero() {
 		expiry = &status.ExpiryTime
-		duration = int(status.ExpiryTime.Sub(time.Now()).Seconds())
+		duration = int32(status.ExpiryTime.Sub(time.Now()).Seconds())
 	}
 	var id *string
 	if status.ID != "" {
@@ -185,7 +185,16 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 	var afterId *string
 	if status.AfterID != "" {
 		afterId = &status.AfterID
+
+		var parentExpiry *time.Time
+		qu := p.primaryConnection.QueryRow("SELECT expiry FROM user_status WHERE workspace = ? AND user = ? AND id = ?", workspaceUuid, userUuid, status.AfterID)
+		err := qu.Scan(&parentExpiry)
+		if err == nil && parentExpiry != nil && parentExpiry.After(time.Now()) && duration > 0 {
+			parentExpiry.Add(time.Duration(duration) * time.Second)
+			expiry = parentExpiry
+		}
 	}
+
 	res, err := p.primaryConnection.Exec("INSERT INTO user_status (workspace, user, state, extendedState, expiry, applied, id, afterId, duration) "+
 		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "+
 		"ON DUPLICATE KEY UPDATE "+
