@@ -198,8 +198,8 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 			queryAppend += "AND id = ?"
 			args = append(args, status.AfterID)
 		}
-		qu := p.primaryConnection.QueryRow("SELECT expiry FROM user_status WHERE workspace = ? AND user = ? "+queryAppend+" LIMIT 1", args...)
-		err := qu.Scan(&parentExpiry)
+		qu := p.primaryConnection.QueryRow("SELECT expiry, id FROM user_status WHERE workspace = ? AND user = ? "+queryAppend+" LIMIT 1", args...)
+		err := qu.Scan(&parentExpiry, &status.AfterID)
 		if err == nil && parentExpiry != nil && parentExpiry.After(time.Now()) && duration > 0 {
 			parentExpiry.Add(time.Duration(duration) * time.Second)
 			expiry = parentExpiry
