@@ -240,8 +240,12 @@ func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStat
 
 	for rows.Next() {
 		newResult := rubix.UserStatus{}
-		if scanErr := rows.Scan(&newResult.State, &newResult.ExtendedState, &expiry, &newResult.ID, &newResult.AfterID); scanErr != nil {
+		afterId := sql.NullString{}
+		if scanErr := rows.Scan(&newResult.State, &newResult.ExtendedState, &expiry, &newResult.ID, &afterId); scanErr != nil {
 			return status, scanErr
+		}
+		if afterId.Valid {
+			newResult.AfterID = afterId.String
 		}
 
 		if newResult.ID == "" {
