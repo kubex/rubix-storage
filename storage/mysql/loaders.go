@@ -247,6 +247,9 @@ func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStat
 		if afterId.Valid {
 			newResult.AfterID = afterId.String
 		}
+		if expiry != nil {
+			newResult.ExpiryTime = *expiry
+		}
 
 		if newResult.ID == "" {
 			status.ExpiryTime = newResult.ExpiryTime
