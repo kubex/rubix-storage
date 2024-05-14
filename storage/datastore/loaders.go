@@ -91,7 +91,7 @@ func (p Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Scop
 	return true, nil
 }
 
-func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
+func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (rubix.UserStatus, bool, error) {
 	panic("implement me")
 }
 

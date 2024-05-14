@@ -171,7 +171,7 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	return true, nil
 }
 
-func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
+func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (rubix.UserStatus, bool, error) {
 	var expiry *time.Time
 	duration := status.ClearAfterSeconds
 	if !status.ExpiryTime.IsZero() {
@@ -203,6 +203,7 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 		if err == nil && parentExpiry != nil && parentExpiry.After(time.Now()) && duration > 0 {
 			newExp := parentExpiry.Add(time.Duration(duration) * time.Second)
 			expiry = &newExp
+			status.ExpiryTime = newExp
 		}
 	}
 
@@ -213,10 +214,10 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 		workspaceUuid, userUuid, status.State, status.ExtendedState, expiry, time.Now(), status.ID, afterId, duration, status.ClearOnLogout,
 		status.State, status.ExtendedState, expiry, time.Now(), afterId, duration, status.ClearOnLogout)
 	if err != nil {
-		return false, err
+		return status, false, err
 	}
 	impact, err := res.RowsAffected()
-	return impact > 0, err
+	return status, impact > 0, err
 }
 
 func (p *Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) error {
