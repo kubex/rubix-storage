@@ -193,7 +193,7 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 		queryAppend := ""
 		var parentExpiry *time.Time
 		if status.AfterID == "latest" {
-			queryAppend += "AND id != \"\" AND id != \"?\" ORDER BY expiry DESC"
+			queryAppend += "AND id != \"\" AND id != ? ORDER BY expiry DESC"
 			args = append(args, status.ID)
 		} else {
 			queryAppend += "AND id = ?"
