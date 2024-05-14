@@ -10,6 +10,7 @@ const (
 	UserStateAway    UserState = "away"
 	UserStateBusy    UserState = "busy"
 	UserStateHiatus  UserState = "hiatus"
+	UserStateActive  UserState = "active"
 )
 
 type UserStatus struct {
