@@ -3,6 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
 	"log"
@@ -181,18 +182,13 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 		}
 	}
 
-	if status.AfterID == status.ID {
-		status.AfterID = ""
-	}
-
 	var afterId *string
 	if status.AfterID != "" {
-		afterId = &status.AfterID
 
 		args := []interface{}{workspaceUuid, userUuid}
 		queryAppend := ""
 		var parentExpiry *time.Time
-		if status.AfterID == "latest" {
+		if status.AfterID == "latest" || status.AfterID == "overlay" {
 			queryAppend += "AND id != \"\" AND id != ? ORDER BY expiry DESC"
 			args = append(args, status.ID)
 		} else {
@@ -200,12 +196,23 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 			args = append(args, status.AfterID)
 		}
 		qu := p.primaryConnection.QueryRow("SELECT expiry, id FROM user_status WHERE workspace = ? AND user = ? "+queryAppend+" LIMIT 1", args...)
-		err := qu.Scan(&parentExpiry, &status.AfterID)
-		if err == nil && parentExpiry != nil && parentExpiry.After(time.Now()) && duration > 0 {
-			newExp := parentExpiry.Add(time.Duration(duration) * time.Second)
-			expiry = &newExp
-			status.ExpiryTime = newExp
+		locatedId := ""
+		err := qu.Scan(&parentExpiry, &locatedId)
+		if err == nil {
+			if parentExpiry != nil && parentExpiry.After(time.Now()) && duration > 0 {
+				newExp := parentExpiry.Add(time.Duration(duration) * time.Second)
+				expiry = &newExp
+				status.ExpiryTime = newExp
+			} else if locatedId != "" {
+				expiry = nil
+			}
+
+			if status.AfterID == "latest" && locatedId != "" {
+				status.AfterID = locatedId
+			}
 		}
+
+		afterId = &status.AfterID
 	}
 
 	res, err := p.primaryConnection.Exec("INSERT INTO user_status (workspace, user, state, extendedState, expiry, applied, id, afterId, duration, clearOnLogout) "+
@@ -225,7 +232,14 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 }
 
 func (p *Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) error {
-	_, updateErr := p.primaryConnection.Exec("UPDATE user_status SET expiry = DATE_ADD(expiry,INTERVAL duration SECOND) WHERE workspace = ? AND user = ? AND expiry > ? AND afterId = ? AND duration > 0", workspaceUuid, userUuid, time.Now(), statusID)
+
+	if statusID == "" {
+		return errors.New("statusID is required")
+	}
+
+	_, updateErr := p.primaryConnection.Exec("UPDATE user_status SET expiry = DATE_ADD(IFNULL(expiry, NOW()),INTERVAL duration SECOND) "+
+		"WHERE workspace = ? AND user = ? AND (expiry IS NULL OR expiry BETWEEN NOW() AND DATE_ADD(expiry,INTERVAL duration SECOND)) "+
+		"AND afterId IN (?, 'overlay','latest') AND duration > 0", workspaceUuid, userUuid, statusID)
 	if updateErr != nil {
 		return updateErr
 	}
