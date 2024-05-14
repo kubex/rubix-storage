@@ -218,6 +218,9 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 		return status, false, err
 	}
 	impact, err := res.RowsAffected()
+
+	go p.primaryConnection.Exec("DELETE FROM user_status  WHERE workspace = ? AND user = ? AND expiry < ?", workspaceUuid, userUuid, time.Now())
+
 	return status, impact > 0, err
 }
 
