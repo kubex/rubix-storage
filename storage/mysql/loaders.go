@@ -237,7 +237,7 @@ func (p *Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) e
 func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
 	status := rubix.UserStatus{}
 	var expiry *time.Time
-	rows, err := p.primaryConnection.Query("SELECT state, extendedState, applied, expiry, id, afterId FROM user_status WHERE workspace = ? AND user = ? AND expiry > ?", workspaceUuid, userUuid, time.Now())
+	rows, err := p.primaryConnection.Query("SELECT state, extendedState, applied, expiry, id, afterId FROM user_status WHERE workspace = ? AND user = ? AND (expiry IS NULL OR expiry > ?)", workspaceUuid, userUuid, time.Now())
 	if err != nil {
 		return status, err
 	}
