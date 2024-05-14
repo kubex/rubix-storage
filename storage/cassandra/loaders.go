@@ -33,14 +33,13 @@ func (p Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Scop
 	panic("implement me")
 }
 
-func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (rubix.UserStatus, bool, error) {
+func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
 	panic("implement me")
 }
-
 func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
 	panic("implement me")
 }
-
+func (p Provider) ClearUserStatusLogout(workspaceUuid, userUuid string) error { panic("implement me") }
 func (p Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) error {
 	panic("implement me")
 }

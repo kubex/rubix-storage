@@ -28,3 +28,47 @@ type UserStatus struct {
 
 	Overlays []UserStatus `json:"overlays,omitempty"`
 }
+
+const OverlayAfterID = "overlay"
+
+func (u *UserStatus) expiryFromNow() {
+	u.ExpiryTime = time.Now().Add(time.Second * time.Duration(u.ClearAfterSeconds))
+}
+func (u *UserStatus) expiryFrom(at time.Time) {
+	u.ExpiryTime = at.Add(time.Second * time.Duration(u.ClearAfterSeconds))
+}
+
+func (u *UserStatus) Repair() {
+
+	overlayMap := make(map[string]UserStatus)
+	overlayCount := 0
+
+	for _, overlay := range u.Overlays {
+		if !overlay.ExpiryTime.IsZero() && overlay.ExpiryTime.Before(time.Now()) {
+			continue
+		}
+		overlayMap[overlay.ID] = overlay
+		overlayCount++
+	}
+
+	u.Overlays = nil
+
+	for _, overlay := range overlayMap {
+		if overlay.AfterID != "" {
+			if parentOverlay, ok := overlayMap[overlay.AfterID]; ok {
+				if !parentOverlay.ExpiryTime.IsZero() {
+					overlay.expiryFrom(parentOverlay.ExpiryTime)
+				}
+			} else if overlay.ExpiryTime.IsZero() && overlay.ClearAfterSeconds > 0 {
+				overlay.expiryFromNow()
+			}
+		}
+
+		u.Overlays = append(u.Overlays, overlay)
+	}
+
+	if u.ClearAfterSeconds > 0 && u.AfterID == OverlayAfterID && u.ExpiryTime.IsZero() && overlayCount == 0 {
+		u.expiryFromNow()
+	}
+
+}

@@ -3,12 +3,10 @@ package mysql
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
 	"log"
 	"strings"
-	"time"
 )
 
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
@@ -170,116 +168,4 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	}
 
 	return true, nil
-}
-
-func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (rubix.UserStatus, bool, error) {
-	var expiry *time.Time
-	duration := status.ClearAfterSeconds
-	if !status.ExpiryTime.IsZero() {
-		expiry = &status.ExpiryTime
-		if duration == 0 {
-			duration = int32(status.ExpiryTime.Sub(time.Now()).Seconds())
-		}
-	}
-
-	var afterId *string
-	if status.AfterID != "" {
-
-		args := []interface{}{workspaceUuid, userUuid}
-		queryAppend := ""
-		var parentExpiry *time.Time
-		if status.AfterID == "latest" || status.AfterID == "overlay" {
-			queryAppend += "AND id != \"\" AND id != ? ORDER BY expiry DESC"
-			args = append(args, status.ID)
-		} else {
-			queryAppend += "AND id = ?"
-			args = append(args, status.AfterID)
-		}
-		qu := p.primaryConnection.QueryRow("SELECT expiry, id FROM user_status WHERE workspace = ? AND user = ? "+queryAppend+" LIMIT 1", args...)
-		locatedId := ""
-		err := qu.Scan(&parentExpiry, &locatedId)
-		if err == nil {
-			if parentExpiry != nil && parentExpiry.After(time.Now()) && duration > 0 {
-				newExp := parentExpiry.Add(time.Duration(duration) * time.Second)
-				expiry = &newExp
-				status.ExpiryTime = newExp
-			} else if locatedId != "" {
-				expiry = nil
-			}
-
-			if status.AfterID == "latest" && locatedId != "" {
-				status.AfterID = locatedId
-			}
-		}
-
-		afterId = &status.AfterID
-	}
-
-	res, err := p.primaryConnection.Exec("INSERT INTO user_status (workspace, user, state, extendedState, expiry, applied, id, afterId, duration, clearOnLogout) "+
-		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "+
-		"ON DUPLICATE KEY UPDATE "+
-		"state = ?, extendedState = ?, expiry = ?, applied = ?, afterId = ?, duration = ?, clearOnLogout = ?",
-		workspaceUuid, userUuid, status.State, status.ExtendedState, expiry, time.Now(), status.ID, afterId, duration, status.ClearOnLogout,
-		status.State, status.ExtendedState, expiry, time.Now(), afterId, duration, status.ClearOnLogout)
-	if err != nil {
-		return status, false, err
-	}
-	impact, err := res.RowsAffected()
-
-	go p.primaryConnection.Exec("DELETE FROM user_status  WHERE workspace = ? AND user = ? AND expiry < ?", workspaceUuid, userUuid, time.Now())
-
-	return status, impact > 0, err
-}
-
-func (p *Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) error {
-
-	if statusID == "" {
-		return errors.New("statusID is required")
-	}
-
-	_, updateErr := p.primaryConnection.Exec("UPDATE user_status SET expiry = DATE_ADD(IFNULL(expiry, NOW()),INTERVAL duration SECOND) "+
-		"WHERE workspace = ? AND user = ? AND (expiry IS NULL OR expiry BETWEEN NOW() AND DATE_ADD(expiry,INTERVAL duration SECOND)) "+
-		"AND afterId IN (?, 'overlay','latest') AND duration > 0", workspaceUuid, userUuid, statusID)
-	if updateErr != nil {
-		return updateErr
-	}
-
-	_, deleteErr := p.primaryConnection.Exec("DELETE FROM user_status  WHERE workspace = ? AND user = ? AND id = ?", workspaceUuid, userUuid, statusID)
-	return deleteErr
-}
-
-func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
-	status := rubix.UserStatus{}
-	var expiry *time.Time
-	rows, err := p.primaryConnection.Query("SELECT state, extendedState, applied, expiry, id, afterId FROM user_status WHERE workspace = ? AND user = ? AND (expiry IS NULL OR expiry > ?)", workspaceUuid, userUuid, time.Now())
-	if err != nil {
-		return status, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		newResult := rubix.UserStatus{}
-		afterId := sql.NullString{}
-		if scanErr := rows.Scan(&newResult.State, &newResult.ExtendedState, &newResult.AppliedTime, &expiry, &newResult.ID, &afterId); scanErr != nil {
-			return status, scanErr
-		}
-		if afterId.Valid {
-			newResult.AfterID = afterId.String
-		}
-
-		if expiry != nil {
-			newResult.ExpiryTime = *expiry
-		}
-
-		if newResult.ID == "" {
-			status.AppliedTime = newResult.AppliedTime
-			status.ExpiryTime = newResult.ExpiryTime
-			status.State = newResult.State
-			status.ExtendedState = newResult.ExtendedState
-		} else {
-			status.Overlays = append(status.Overlays, newResult)
-		}
-	}
-
-	return status, nil
 }
