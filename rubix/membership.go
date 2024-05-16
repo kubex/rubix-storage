@@ -1,5 +1,7 @@
 package rubix
 
+import "time"
+
 type MembershipRole string
 
 const (
@@ -11,4 +13,5 @@ const (
 type Membership struct {
 	MemberID string
 	Role     MembershipRole
+	Since    time.Time
 }

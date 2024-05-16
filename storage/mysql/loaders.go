@@ -51,10 +51,10 @@ func (p *Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
 }
 
 func (p *Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error) {
-	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, installedApplications FROM workspaces WHERE uuid = ?", workspaceUuid)
+	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, icon, installedApplications FROM workspaces WHERE uuid = ?", workspaceUuid)
 	located := rubix.Workspace{}
 	installedApplicationsJson := ""
-	err := q.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &installedApplicationsJson)
+	err := q.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &located.Icon, &installedApplicationsJson)
 	json.Unmarshal([]byte(installedApplicationsJson), &located.InstalledApplications)
 	return &located, err
 }

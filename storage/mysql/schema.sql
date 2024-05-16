@@ -2,6 +2,7 @@ create table rubix.workspace_memberships (
     user      varchar(64) null,
     workspace varchar(64) null,
     role      varchar(20) null,
+    since     datetime null,
     constraint user_workspace unique (user, workspace)
 );
 
@@ -13,6 +14,7 @@ create table rubix.workspaces (
     name                  varchar(50) null,
     alias                 varchar(50) null,
     domain                varchar(120) null,
+    icon                  varchar(255) null,
     installedApplications text null
 );
 
