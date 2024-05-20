@@ -172,6 +172,55 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	return true, nil
 }
 
+func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
+
+	row := p.primaryConnection.QueryRow("SELECT role, name FROM roles WHERE workspace = ? AND role = ?", workspace, role)
+
+	var ret rubix.Role
+	err := row.Scan(&ret.Role, &ret.Title)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get users
+	rows, err := p.primaryConnection.Query("SELECT user FROM user_roles WHERE workspace = ? AND role = ?", workspace, role)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+
+		var user string
+		err = rows.Scan(&user)
+		if err != nil {
+			return nil, err
+		}
+
+		ret.Users = append(ret.Users, user)
+	}
+
+	// Get permissions
+	rows, err = p.primaryConnection.Query("SELECT permission FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+
+		var id string
+		err = rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+
+		ret.Perms = append(ret.Perms, id)
+	}
+
+	return &ret, nil
+}
+
 func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 
 	rows, err := p.primaryConnection.Query("SELECT role, name FROM roles WHERE workspace = ?", workspace)
@@ -184,7 +233,7 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	for rows.Next() {
 
 		var role rubix.Role
-		err = rows.Scan(&role.Role, &role.Name)
+		err = rows.Scan(&role.Role, &role.Title)
 		if err != nil {
 			return nil, err
 		}

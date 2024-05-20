@@ -57,8 +57,12 @@ CREATE TABLE rubix.`user_roles` (
     `workspace` varchar(64) NOT NULL,
     `user`      varchar(64) NOT NULL,
     `role`      varchar(64) NOT NULL,
-    PRIMARY KEY (`workspace`, `user`, `role`)
-)
+    PRIMARY KEY (`workspace`, `user`, `role`),
+    constraint role_users
+        unique (`workspace`, `role`, `user`)
+);
+
+
 
 CREATE TABLE rubix.`user_status` (
     `workspace`     varchar(64) NOT NULL,

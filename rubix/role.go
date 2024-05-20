@@ -1,8 +1,11 @@
 package rubix
 
 type Role struct {
-	Role string `json:"role"`
-	Name string `json:"name"`
+	Role        string
+	Title       string
+	Description string
+	Users       []string
+	Perms       []string
 }
 
 type MutateRolePayload struct {

@@ -131,6 +131,10 @@ func (p Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) er
 	panic("implement me")
 }
 
+func (p Provider) GetRole(workspace, role string) (rubix.Role, error) {
+	panic("implement me")
+}
+
 func (p Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	panic("implement me")
 }
