@@ -3,10 +3,12 @@ package mysql
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/kubex/definitions-go/app"
-	"github.com/kubex/rubix-storage/rubix"
+	"errors"
 	"log"
 	"strings"
+
+	"github.com/kubex/definitions-go/app"
+	"github.com/kubex/rubix-storage/rubix"
 )
 
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
@@ -168,4 +170,98 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	}
 
 	return true, nil
+}
+
+func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
+
+	rows, err := p.primaryConnection.Query("SELECT role, name FROM roles WHERE workspace = ?", workspace)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var roles []rubix.Role
+	for rows.Next() {
+
+		var role rubix.Role
+		err = rows.Scan(&role.Role, &role.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		roles = append(roles, role)
+	}
+
+	return roles, nil
+}
+
+func (p *Provider) CreateRole(workspace, title, description string, permissions, users []string) error {
+
+	res, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name) VALUES (?, ?, ?)", workspace, title, description)
+	if err != nil {
+		return err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	if id == 0 {
+		return errors.New("role not created")
+	}
+
+	return p.MutateRole(workspace, title, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
+}
+
+func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
+
+	payload := rubix.MutateRolePayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+
+	if payload.Title != nil {
+		_, err := p.primaryConnection.Exec("UPDATE roles SET name = ? WHERE workspace = ? AND role = ?", *payload.Title, workspace, role)
+		if err != nil {
+			return err
+		}
+	}
+
+	//if payload.Description != nil {
+	//	_, err := p.primaryConnection.Exec("UPDATE roles SET description = ? WHERE workspace = ? AND role = ?", *payload.Description, workspace, role)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
+
+	for _, user := range payload.UsersToAdd {
+		_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, user := range payload.UsersToRem {
+		_, err := p.primaryConnection.Exec("DELETE FROM user_roles WHERE workspace = ? AND user = ? AND role = ?", workspace, user, role)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, perm := range payload.PermsToAdd {
+		_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, resource, allow) VALUES (?, ?, ?, '', 1)", workspace, role, perm)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, perm := range payload.PermsToRem {
+		_, err := p.primaryConnection.Exec("DELETE FROM role_permissions WHERE workspace = ? AND role = ? AND permission = ? AND resource = ''", workspace, role, perm)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
