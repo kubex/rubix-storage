@@ -54,8 +54,10 @@ func (p *Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, er
 	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, icon, installedApplications FROM workspaces WHERE uuid = ?", workspaceUuid)
 	located := rubix.Workspace{}
 	installedApplicationsJson := ""
-	err := q.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &located.Icon, &installedApplicationsJson)
+	icon := sql.NullString{}
+	err := q.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson)
 	json.Unmarshal([]byte(installedApplicationsJson), &located.InstalledApplications)
+	located.Icon = icon.String
 	return &located, err
 }
 
