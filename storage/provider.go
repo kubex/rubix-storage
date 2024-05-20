@@ -20,6 +20,10 @@ type Provider interface {
 	ClearUserStatusID(workspaceUuid, userUuid, statusID string) error
 	ClearUserStatusLogout(workspaceUuid, userUuid string) error
 
+	GetRoles(workspace string) ([]rubix.Role, error)
+	CreateRole(workspace, title, description string, permissions, users []string) error
+	MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error
+
 	Connect() error
 	Close() error
 }
