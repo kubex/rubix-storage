@@ -277,6 +277,10 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 		opt(&payload)
 	}
 
+	if payload.Title != nil || payload.Description != nil {
+
+	}
+
 	if payload.Title != nil {
 		result, err := p.primaryConnection.Exec("UPDATE roles SET name = ? WHERE workspace = ? AND role = ?", *payload.Title, workspace, role)
 		if err != nil {
