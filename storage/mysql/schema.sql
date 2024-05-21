@@ -59,7 +59,7 @@ CREATE TABLE rubix.`user_roles` (
     `role`      varchar(64) NOT NULL,
     PRIMARY KEY (`workspace`, `user`, `role`),
     constraint role_users
-        unique (`workspace`, `role`, `user`)
+        unique (`workspace`, `role`)
 );
 
 
