@@ -10,6 +10,7 @@ import (
 
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
+	"golang.org/x/sync/errgroup"
 )
 
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
@@ -278,68 +279,95 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 		opt(&payload)
 	}
 
-	if payload.Title != nil || payload.Description != nil {
+	g := errgroup.Group{}
 
-		var fields []string
-		if payload.Title != nil {
-			fields = append(fields, "name = ?")
-		}
-		if payload.Description != nil {
-			fields = append(fields, "description = ?")
+	g.Go(func() error {
+
+		if payload.Title != nil || payload.Description != nil {
+
+			var fields []string
+			if payload.Title != nil {
+				fields = append(fields, "name = ?")
+			}
+			if payload.Description != nil {
+				fields = append(fields, "description = ?")
+			}
+
+			var vals []any
+			if payload.Title != nil {
+				vals = append(vals, *payload.Title)
+			}
+			if payload.Description != nil {
+				vals = append(vals, *payload.Description)
+			}
+
+			vals = append(vals, workspace, role)
+
+			result, err := p.primaryConnection.Exec(fmt.Sprintf("UPDATE roles SET %s WHERE workspace = ? AND role = ?", strings.Join(fields, ",")), vals...)
+			if err != nil {
+				return err
+			}
+
+			rows, err := result.RowsAffected()
+			if err != nil {
+				return err
+			}
+
+			if rows == 0 {
+				return rubix.ErrNoResultFound
+			}
 		}
 
-		var vals []any
-		if payload.Title != nil {
-			vals = append(vals, *payload.Title)
-		}
-		if payload.Description != nil {
-			vals = append(vals, *payload.Description)
-		}
+		return nil
+	})
 
-		vals = append(vals, workspace, role)
+	g.Go(func() error {
 
-		result, err := p.primaryConnection.Exec(fmt.Sprintf("UPDATE roles SET %s WHERE workspace = ? AND role = ?", strings.Join(fields, ",")), vals...)
-		if err != nil {
-			return err
+		for _, user := range payload.UsersToAdd {
+			_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
+			if err != nil {
+				return err
+			}
 		}
 
-		rows, err := result.RowsAffected()
-		if err != nil {
-			return err
+		return nil
+	})
+
+	g.Go(func() error {
+
+		for _, user := range payload.UsersToRem {
+			_, err := p.primaryConnection.Exec("DELETE FROM user_roles WHERE workspace = ? AND user = ? AND role = ?", workspace, user, role)
+			if err != nil {
+				return err
+			}
 		}
 
-		if rows == 0 {
-			return rubix.ErrNoResultFound
-		}
-	}
+		return nil
+	})
 
-	for _, user := range payload.UsersToAdd {
-		_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
-		if err != nil {
-			return err
-		}
-	}
+	g.Go(func() error {
 
-	for _, user := range payload.UsersToRem {
-		_, err := p.primaryConnection.Exec("DELETE FROM user_roles WHERE workspace = ? AND user = ? AND role = ?", workspace, user, role)
-		if err != nil {
-			return err
+		for _, perm := range payload.PermsToAdd {
+			_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, resource, allow) VALUES (?, ?, ?, '', 1)", workspace, role, perm)
+			if err != nil {
+				return err
+			}
 		}
-	}
 
-	for _, perm := range payload.PermsToAdd {
-		_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, resource, allow) VALUES (?, ?, ?, '', 1)", workspace, role, perm)
-		if err != nil {
-			return err
+		return nil
+	})
+
+	g.Go(func() error {
+
+		for _, perm := range payload.PermsToRem {
+			_, err := p.primaryConnection.Exec("DELETE FROM role_permissions WHERE workspace = ? AND role = ? AND permission = ? AND resource = ''", workspace, role, perm)
+			if err != nil {
+				return err
+			}
 		}
-	}
 
-	for _, perm := range payload.PermsToRem {
-		_, err := p.primaryConnection.Exec("DELETE FROM role_permissions WHERE workspace = ? AND role = ? AND permission = ? AND resource = ''", workspace, role, perm)
-		if err != nil {
-			return err
-		}
-	}
+		return nil
+	})
 
-	return nil
+	return g.Wait()
 }
