@@ -25,7 +25,7 @@ func WorkspaceFromJson(jsonBytes []byte) (*Workspace, error) {
 }
 
 type WorkspaceMembership struct {
-	Workspace string `json:"workspace"`
-	User      string `json:"user"`
-	Since     string `json:"since"`
+	Workspace string  `json:"workspace"`
+	User      string  `json:"user"`
+	Since     *string `json:"since"` // Can be null
 }
