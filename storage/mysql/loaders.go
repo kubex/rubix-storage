@@ -35,21 +35,23 @@ func (p *Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return workspaces, nil
 }
 
-func (p *Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
-	rows, err := p.primaryConnection.Query("SELECT user FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
+func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
+
+	rows, err := p.primaryConnection.Query("SELECT user, workspace, since FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	users := []string{}
+
+	var members []rubix.WorkspaceMembership
 	for rows.Next() {
-		var user string
-		if err := rows.Scan(&user); err != nil {
+		var member rubix.WorkspaceMembership
+		if err := rows.Scan(&member.User, &member.Workspace, &member.Since); err != nil {
 			return nil, err
 		}
-		users = append(users, user)
+		members = append(members, member)
 	}
-	return users, nil
+	return members, nil
 }
 
 func (p *Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error) {

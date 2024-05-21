@@ -13,7 +13,7 @@ func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	panic("implement me")
 }
 
-func (p Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
+func (p Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
 	panic("implement me")
 }
 

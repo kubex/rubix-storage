@@ -33,10 +33,20 @@ func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return ids, err
 }
 
-func (p Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
+func (p Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
+
 	var ids []string
 	err := json.Unmarshal(p.fileData(p.filePath("workspace", workspaceUuid+".users")), &ids)
-	return ids, err
+
+	members := make([]rubix.WorkspaceMembership, len(ids))
+	for i, id := range ids {
+		members[i] = rubix.WorkspaceMembership{
+			Workspace: workspaceUuid,
+			User:      id,
+		}
+	}
+
+	return members, err
 }
 
 func (p Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, error) {

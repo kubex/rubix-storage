@@ -43,19 +43,15 @@ func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return wsuuids, nil
 }
 
-func (p Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
-	q := datastore.NewQuery(kindMembership).
-		Ancestor(workspaceStore{Uuid: workspaceUuid}.dsID()).
-		KeysOnly()
+func (p Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
 
-	members := []string{}
-	if keys, err := p.client.GetAll(context.Background(), q, nil); err != nil {
+	q := datastore.NewQuery(kindMembership).Ancestor(workspaceStore{Uuid: workspaceUuid}.dsID())
+
+	var members []rubix.WorkspaceMembership
+	if _, err := p.client.GetAll(context.Background(), q, &members); err != nil {
 		return nil, err
-	} else {
-		for _, key := range keys {
-			members = append(members, key.Name)
-		}
 	}
+
 	return members, nil
 }
 
