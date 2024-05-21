@@ -174,6 +174,7 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	return true, nil
 }
 
+// GetRole todo, can do async?
 func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 	row := p.primaryConnection.QueryRow("SELECT role, name FROM roles WHERE workspace = ? AND role = ?", workspace, role)
