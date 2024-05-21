@@ -180,6 +180,9 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 	var ret rubix.Role
 	err := row.Scan(&ret.Role, &ret.Title)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, rubix.ErrNoResultFound
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -265,6 +268,7 @@ func (p *Provider) CreateRole(workspace, title, description string, permissions,
 	return p.MutateRole(workspace, title, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
 }
 
+// MutateRole - todo, can do these in async
 func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
 
 	payload := rubix.MutateRolePayload{}
@@ -273,18 +277,36 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	}
 
 	if payload.Title != nil {
-		_, err := p.primaryConnection.Exec("UPDATE roles SET name = ? WHERE workspace = ? AND role = ?", *payload.Title, workspace, role)
+		result, err := p.primaryConnection.Exec("UPDATE roles SET name = ? WHERE workspace = ? AND role = ?", *payload.Title, workspace, role)
 		if err != nil {
 			return err
 		}
+
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		if rows == 0 {
+			return rubix.ErrNoResultFound
+		}
 	}
 
-	//if payload.Description != nil {
-	//	_, err := p.primaryConnection.Exec("UPDATE roles SET description = ? WHERE workspace = ? AND role = ?", *payload.Description, workspace, role)
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
+	if payload.Description != nil {
+		result, err := p.primaryConnection.Exec("UPDATE roles SET description = ? WHERE workspace = ? AND role = ?", *payload.Description, workspace, role)
+		if err != nil {
+			return err
+		}
+
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		if rows == 0 {
+			return rubix.ErrNoResultFound
+		}
+	}
 
 	for _, user := range payload.UsersToAdd {
 		_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
