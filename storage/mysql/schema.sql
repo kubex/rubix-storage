@@ -42,7 +42,7 @@ CREATE TABLE rubix.`roles` (
     `role`      varchar(64) NOT NULL,
     `name`      varchar(64) NOT NULL,
     PRIMARY KEY (`workspace`, `role`)
-)
+);
 
 CREATE TABLE rubix.`role_permissions` (
     `workspace`  varchar(64)  NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE rubix.`role_permissions` (
     `resource`   varchar(255) NOT NULL,
     `allow`      tinyint(1) NOT NULL,
     PRIMARY KEY (`workspace`, `role`, `permission`, `resource`)
-)
+);
 
 CREATE TABLE rubix.`user_roles` (
     `workspace` varchar(64) NOT NULL,
@@ -74,4 +74,4 @@ CREATE TABLE rubix.`user_status` (
     `duration`      int(11)     NOT NULL DEFAULT 0,
     `clearOnLogout` tinyint(1)  NOT NULL DEFAULT 0,
     PRIMARY KEY (`workspace`, `user`, `id`)
-)
+);
