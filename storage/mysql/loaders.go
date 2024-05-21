@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -279,26 +280,25 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 	if payload.Title != nil || payload.Description != nil {
 
-	}
-
-	if payload.Title != nil {
-		result, err := p.primaryConnection.Exec("UPDATE roles SET name = ? WHERE workspace = ? AND role = ?", *payload.Title, workspace, role)
-		if err != nil {
-			return err
+		var fields []string
+		if payload.Title != nil {
+			fields = append(fields, "name = ?")
+		}
+		if payload.Description != nil {
+			fields = append(fields, "description = ?")
 		}
 
-		rows, err := result.RowsAffected()
-		if err != nil {
-			return err
+		var vals []any
+		if payload.Title != nil {
+			vals = append(vals, *payload.Title)
+		}
+		if payload.Description != nil {
+			vals = append(vals, *payload.Description)
 		}
 
-		if rows == 0 {
-			return rubix.ErrNoResultFound
-		}
-	}
+		vals = append(vals, workspace, role)
 
-	if payload.Description != nil {
-		result, err := p.primaryConnection.Exec("UPDATE roles SET description = ? WHERE workspace = ? AND role = ?", *payload.Description, workspace, role)
+		result, err := p.primaryConnection.Exec(fmt.Sprintf("UPDATE roles SET %s WHERE workspace = ? AND role = ?", strings.Join(fields, ",")), vals...)
 		if err != nil {
 			return err
 		}
