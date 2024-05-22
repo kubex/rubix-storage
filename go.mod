@@ -4,14 +4,15 @@ go 1.18
 
 require (
 	cloud.google.com/go/datastore v1.6.0
+	github.com/go-sql-driver/mysql v1.7.1
 	github.com/kubex/definitions-go v0.0.0-20211001114701-e57efcc4fad4
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/api v0.54.0
 	google.golang.org/grpc v1.40.0
 )
 
 require (
 	cloud.google.com/go v0.93.3 // indirect
-	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
