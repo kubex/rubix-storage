@@ -14,7 +14,7 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 	if !status.ExpiryTime.IsZero() {
 		expiry = &status.ExpiryTime
 		if duration == 0 {
-			duration = int32(status.ExpiryTime.Sub(time.Now()).Seconds())
+			duration = int32(time.Until(status.ExpiryTime).Seconds())
 		}
 	}
 
