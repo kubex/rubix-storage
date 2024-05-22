@@ -8,6 +8,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
 	"golang.org/x/sync/errgroup"
@@ -255,6 +256,11 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
 
 	res, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
+
+	var me *mysql.MySQLError
+	if errors.As(err, &me) && me.Number == 1062 {
+		return errors.New("role already exists")
+	}
 	if err != nil {
 		return err
 	}
@@ -325,6 +331,12 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 		for _, user := range payload.UsersToAdd {
 			_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
+
+			var me *mysql.MySQLError
+			if errors.As(err, &me) && me.Number == 1062 {
+				continue
+			}
+
 			if err != nil {
 				return err
 			}
@@ -349,6 +361,12 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 		for _, perm := range payload.PermsToAdd {
 			_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, resource, allow) VALUES (?, ?, ?, '', 1)", workspace, role, perm)
+
+			var me *mysql.MySQLError
+			if errors.As(err, &me) && me.Number == 1062 {
+				continue
+			}
+
 			if err != nil {
 				return err
 			}
