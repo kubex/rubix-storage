@@ -252,9 +252,9 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	return roles, nil
 }
 
-func (p *Provider) CreateRole(workspace, title, description string, permissions, users []string) error {
+func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
 
-	res, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name) VALUES (?, ?, ?)", workspace, title, description)
+	res, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
 	if err != nil {
 		return err
 	}
@@ -268,7 +268,7 @@ func (p *Provider) CreateRole(workspace, title, description string, permissions,
 		return errors.New("role not created")
 	}
 
-	return p.MutateRole(workspace, title, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
+	return p.MutateRole(workspace, name, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
 }
 
 // MutateRole - todo, can do these in async
@@ -303,7 +303,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 			vals = append(vals, workspace, role)
 
-			result, err := p.primaryConnection.Exec(fmt.Sprintf("UPDATE roles SET %s WHERE workspace = ? AND role = ?", strings.Join(fields, ",")), vals...)
+			result, err := p.primaryConnection.Exec(fmt.Sprintf("UPDATE roles SET %s WHERE workspace = ? AND role = ?", strings.Join(fields, ", ")), vals...)
 			if err != nil {
 				return err
 			}

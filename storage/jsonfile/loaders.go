@@ -149,7 +149,7 @@ func (p Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	panic("implement me")
 }
 
-func (p Provider) CreateRole(workspace, title, description string, permissions, users []string) error {
+func (p Provider) CreateRole(workspace, trole, itle, description string, permissions, users []string) error {
 	panic("implement me")
 }
 
