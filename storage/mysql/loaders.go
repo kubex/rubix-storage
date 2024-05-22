@@ -180,54 +180,64 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 // GetRole todo, can do async?
 func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
-	row := p.primaryConnection.QueryRow("SELECT workspace, role, name, description FROM roles WHERE workspace = ? AND role = ?", workspace, role)
-
 	var ret rubix.Role
-	err := row.Scan(&ret.Workspace, &ret.Role, &ret.Name, &ret.Description)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, rubix.ErrNoResultFound
-	}
-	if err != nil {
-		return nil, err
-	}
 
-	// Get users
-	rows, err := p.primaryConnection.Query("SELECT user FROM user_roles WHERE workspace = ? AND role = ?", workspace, role)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	g := errgroup.Group{}
+	g.Go(func() error {
 
-	for rows.Next() {
+		row := p.primaryConnection.QueryRow("SELECT workspace, role, name, description FROM roles WHERE workspace = ? AND role = ?", workspace, role)
 
-		var user string
-		err = rows.Scan(&user)
-		if err != nil {
-			return nil, err
+		err := row.Scan(&ret.Workspace, &ret.Role, &ret.Name, &ret.Description)
+		if errors.Is(err, sql.ErrNoRows) {
+			return rubix.ErrNoResultFound
 		}
 
-		ret.Users = append(ret.Users, user)
-	}
+		return err
+	})
+	g.Go(func() error {
 
-	// Get permissions
-	rows, err = p.primaryConnection.Query("SELECT permission FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-
-		var permission string
-		err = rows.Scan(&permission)
+		rows, err := p.primaryConnection.Query("SELECT user FROM user_roles WHERE workspace = ? AND role = ?", workspace, role)
 		if err != nil {
-			return nil, err
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+
+			var user string
+			err = rows.Scan(&user)
+			if err != nil {
+				return err
+			}
+
+			ret.Users = append(ret.Users, user)
 		}
 
-		ret.Permissions = append(ret.Permissions, permission)
-	}
+		return nil
+	})
+	g.Go(func() error {
 
-	return &ret, nil
+		rows, err := p.primaryConnection.Query("SELECT permission FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+
+			var permission string
+			err = rows.Scan(&permission)
+			if err != nil {
+				return err
+			}
+
+			ret.Permissions = append(ret.Permissions, permission)
+		}
+
+		return nil
+	})
+
+	return &ret, g.Wait()
 }
 
 func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
@@ -277,7 +287,6 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	}
 
 	g := errgroup.Group{}
-
 	g.Go(func() error {
 
 		if payload.Title != nil || payload.Description != nil {
@@ -317,7 +326,6 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 		return nil
 	})
-
 	g.Go(func() error {
 
 		for _, user := range payload.UsersToAdd {
@@ -335,7 +343,6 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 		return nil
 	})
-
 	g.Go(func() error {
 
 		for _, user := range payload.UsersToRem {
@@ -347,7 +354,6 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 		return nil
 	})
-
 	g.Go(func() error {
 
 		for _, perm := range payload.PermsToAdd {
@@ -365,7 +371,6 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 		return nil
 	})
-
 	g.Go(func() error {
 
 		for _, perm := range payload.PermsToRem {
