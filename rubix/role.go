@@ -20,7 +20,7 @@ type MutateRolePayload struct {
 
 type MutateRoleOption func(*MutateRolePayload)
 
-func WithTitle(title string) MutateRoleOption {
+func WithName(title string) MutateRoleOption {
 	return func(p *MutateRolePayload) {
 		p.Title = &title
 	}
@@ -38,7 +38,7 @@ func WithUsersToAdd(users ...string) MutateRoleOption {
 	}
 }
 
-func WithUsersToRem(users ...string) MutateRoleOption {
+func WithUsersToRemove(users ...string) MutateRoleOption {
 	return func(p *MutateRolePayload) {
 		p.UsersToRem = append(p.UsersToRem, users...)
 	}
@@ -50,7 +50,7 @@ func WithPermsToAdd(perms ...string) MutateRoleOption {
 	}
 }
 
-func WithPermsToRem(perms ...string) MutateRoleOption {
+func WithPermsToRemove(perms ...string) MutateRoleOption {
 	return func(p *MutateRolePayload) {
 		p.PermsToRem = append(p.PermsToRem, perms...)
 	}
