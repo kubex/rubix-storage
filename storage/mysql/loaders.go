@@ -255,7 +255,7 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 
 func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
 
-	res, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
+	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
 
 	var me *mysql.MySQLError
 	if errors.As(err, &me) && me.Number == 1062 {
@@ -263,15 +263,6 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 	}
 	if err != nil {
 		return err
-	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	if id == 0 {
-		return errors.New("role not created")
 	}
 
 	return p.MutateRole(workspace, name, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
