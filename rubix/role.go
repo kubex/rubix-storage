@@ -1,11 +1,12 @@
 package rubix
 
 type Role struct {
+	Workspace   string
 	Role        string
-	Title       string
+	Name        string
 	Description string
 	Users       []string
-	Perms       []string
+	Permissions []string
 }
 
 type MutateRolePayload struct {
