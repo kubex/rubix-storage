@@ -13,7 +13,7 @@ func TestDataStore(t *testing.T) {
 
 	log.Println(p.GetWorkspaceUUIDByAlias("alias"))
 	log.Println(p.GetUserWorkspaceUUIDs("anonymous"))
-	log.Println(p.GetWorkspaceUserIDs("random-workspace"))
+	log.Println(p.GetWorkspaceMembers("random-workspace"))
 	uuid := "rumble-uuid"
 	alias := "rumble"
 	w := &rubix.Workspace{
