@@ -1,9 +1,10 @@
 package mysql
 
 import (
-	"github.com/kubex/definitions-go/app"
 	"log"
 	"testing"
+
+	"github.com/kubex/definitions-go/app"
 )
 
 func TestDataStore(t *testing.T) {

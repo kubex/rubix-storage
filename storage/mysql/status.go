@@ -3,8 +3,9 @@ package mysql
 import (
 	"database/sql"
 	"errors"
-	"github.com/kubex/rubix-storage/rubix"
 	"time"
+
+	"github.com/kubex/rubix-storage/rubix"
 )
 
 func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
