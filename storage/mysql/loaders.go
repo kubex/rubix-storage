@@ -177,7 +177,6 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	return true, nil
 }
 
-// GetRole todo, can do async?
 func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 	var ret rubix.Role
@@ -278,7 +277,6 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 	return p.MutateRole(workspace, name, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
 }
 
-// MutateRole - todo, can do these in async
 func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
 
 	payload := rubix.MutateRolePayload{}
