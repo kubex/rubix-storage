@@ -21,11 +21,11 @@ const (
 )
 
 type Membership struct {
-	User      string
-	Workspace string
-	Type      MembershipType
-	PartnerID string
-	Since     time.Time
-	State     MembershipState
-	StteSince time.Time
+	User       string
+	Workspace  string
+	Type       MembershipType
+	PartnerID  string
+	Since      time.Time
+	State      MembershipState
+	StateSince time.Time
 }
