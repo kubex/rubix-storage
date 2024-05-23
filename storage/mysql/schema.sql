@@ -1,10 +1,10 @@
 create table rubix.workspace_memberships
 (
-    user        varchar(64)                           null,
-    workspace   varchar(64)                           null,
-    type        varchar(20) default ''                null,
+    user        varchar(64)                           not null,
+    workspace   varchar(64)                           not null,
+    type        varchar(20) default ''                not null,
     partner_id  varchar(64) default ''                not null,
-    since       datetime    default CURRENT_TIMESTAMP null,
+    since       datetime    default CURRENT_TIMESTAMP not null,
     state       varchar(20) default 0                 not null,
     state_since datetime    default CURRENT_TIMESTAMP not null,
     constraint user_workspace unique (user, workspace)
