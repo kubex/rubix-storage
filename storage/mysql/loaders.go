@@ -299,6 +299,10 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	return roles, nil
 }
 
+func (p *Provider) DeleteRole(workspace, role string) error {
+	panic("implement me")
+}
+
 func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
 
 	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)

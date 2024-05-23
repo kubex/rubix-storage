@@ -111,6 +111,10 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	panic("implement me")
 }
 
+func (p *Provider) DeleteRole(workspace, role string) error {
+	panic("implement me")
+}
+
 func (p *Provider) CreateRole(workspace, role, title, description string, permissions, users []string) error {
 	panic("implement me")
 }
