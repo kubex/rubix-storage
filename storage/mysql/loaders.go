@@ -38,7 +38,7 @@ func (p *Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return workspaces, nil
 }
 
-func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
+func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.Membership, error) {
 
 	rows, err := p.primaryConnection.Query("SELECT user, since FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
 	if err != nil {
@@ -46,9 +46,9 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceM
 	}
 	defer rows.Close()
 
-	var members []rubix.WorkspaceMembership
+	var members []rubix.Membership
 	for rows.Next() {
-		var member = rubix.WorkspaceMembership{Workspace: workspaceUuid}
+		var member = rubix.Membership{Workspace: workspaceUuid}
 		if err := rows.Scan(&member.User, &member.Since); err != nil {
 			return nil, err
 		}
@@ -179,23 +179,23 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	return true, nil
 }
 
-func (p *Provider) SetUserType(workspace, user string, userType rubix.UserType) error {
+func (p *Provider) SetMembershipType(workspace, user string, MembershipType rubix.MembershipType) error {
 
-	switch userType {
-	case rubix.UserTypeOwner, rubix.UserTypeMember, rubix.UserTypeSupport:
+	switch MembershipType {
+	case rubix.MembershipTypeOwner, rubix.MembershipTypeMember, rubix.MembershipTypeSupport:
 	default:
 		return errors.New("invalid user type")
 	}
 
-	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET type = ? WHERE workspace = ? AND user = ?", userType, workspace, user)
+	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET type = ? WHERE workspace = ? AND user = ?", MembershipType, workspace, user)
 	return err
 }
 
-func (p *Provider) SetUserState(workspace, user string, userState rubix.UserRowState) error {
+func (p *Provider) SetMembershipState(workspace, user string, userState rubix.MembershipState) error {
 
 	switch userState {
-	case rubix.UserRowStatePending, rubix.UserRowStateActive, rubix.UserRowStateSuspended, rubix.UserRowStateArchived:
-	case rubix.UserRowStateRemoved:
+	case rubix.MembershipStatePending, rubix.MembershipStateActive, rubix.MembershipStateSuspended, rubix.MembershipStateArchived:
+	case rubix.MembershipStateRemoved:
 		return errors.New("use RemoveUserFromWorkspace()")
 	default:
 		return errors.New("invalid user state")
@@ -207,7 +207,7 @@ func (p *Provider) SetUserState(workspace, user string, userState rubix.UserRowS
 
 func (p *Provider) RemoveUserFromWorkspace(workspace, user string) error {
 
-	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", rubix.UserRowStateRemoved, workspace, user)
+	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", rubix.MembershipStateRemoved, workspace, user)
 	return err
 }
 
