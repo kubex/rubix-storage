@@ -186,9 +186,9 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		row := p.primaryConnection.QueryRow("SELECT workspace, role, name, description FROM roles WHERE workspace = ? AND role = ?", workspace, role)
+		row := p.primaryConnection.QueryRow("SELECT name, description FROM roles WHERE workspace = ? AND role = ?", workspace, role)
 
-		err := row.Scan(&ret.Workspace, &ret.Role, &ret.Name, &ret.Description)
+		err := row.Scan(&ret.Name, &ret.Description)
 		if errors.Is(err, sql.ErrNoRows) {
 			return rubix.ErrNoResultFound
 		}
@@ -243,7 +243,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 
-	rows, err := p.primaryConnection.Query("SELECT workspace, role, name, description FROM roles WHERE workspace = ?", workspace)
+	rows, err := p.primaryConnection.Query("SELECT role, name, description FROM roles WHERE workspace = ?", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	for rows.Next() {
 
 		var role rubix.Role
-		err = rows.Scan(&role.Workspace, &role.Role, &role.Name, &role.Description)
+		err = rows.Scan(&role.Role, &role.Name, &role.Description)
 		if err != nil {
 			return nil, err
 		}
