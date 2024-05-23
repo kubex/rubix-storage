@@ -64,3 +64,15 @@ func (p Provider) CreateRole(workspace, role, title, description string, permiss
 func (p Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
 	panic("implement me")
 }
+
+func (p Provider) SetUserType(workspace, user string, accountType rubix.UserType) error {
+	panic("implement me")
+}
+
+func (p Provider) SetUserState(workspace, user string, accountType rubix.UserRowState) error {
+	panic("implement me")
+}
+
+func (p Provider) RemoveUserFromWorkspace(workspace, user string) error {
+	panic("implement me")
+}

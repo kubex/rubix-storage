@@ -125,6 +125,18 @@ func (p Provider) userPermissionStatements(lookup rubix.Lookup) []app.Permission
 	return statements
 }
 
+func (p *Provider) SetUserType(workspace, user string, accountType rubix.UserType) error {
+	panic("implement me")
+}
+
+func (p *Provider) SetUserState(workspace, user string, accountType rubix.UserRowState) error {
+	panic("implement me")
+}
+
+func (p *Provider) RemoveUserFromWorkspace(workspace, user string) error {
+	panic("implement me")
+}
+
 func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
 	panic("implement me")
 }
