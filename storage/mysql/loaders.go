@@ -48,7 +48,7 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceM
 
 	var members []rubix.WorkspaceMembership
 	for rows.Next() {
-		var member rubix.WorkspaceMembership
+		var member = rubix.WorkspaceMembership{Workspace: workspaceUuid}
 		if err := rows.Scan(&member.User, &member.Since); err != nil {
 			return nil, err
 		}
@@ -181,7 +181,10 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 
 func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
-	var ret rubix.Role
+	var ret = rubix.Role{
+		Workspace: workspace,
+		Role:      role,
+	}
 
 	g := errgroup.Group{}
 	g.Go(func() error {
@@ -252,7 +255,7 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	var roles []rubix.Role
 	for rows.Next() {
 
-		var role rubix.Role
+		var role = rubix.Role{Workspace: workspace}
 		err = rows.Scan(&role.Role, &role.Name, &role.Description)
 		if err != nil {
 			return nil, err
