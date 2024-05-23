@@ -38,10 +38,10 @@ create table rubix.users (
 );
 
 CREATE TABLE rubix.`roles` (
-    `workspace` varchar(64)             NOT NULL,
-    `role`      varchar(64)             NOT NULL,
-    `name`      varchar(64)             NOT NULL,
-    description varchar(255) default '' not null,
+    `workspace`   varchar(64)             NOT NULL,
+    `role`        varchar(64)             NOT NULL,
+    `name`        varchar(64)             NOT NULL,
+    `description` varchar(255) default '' not null,
     PRIMARY KEY (`workspace`, `role`)
 );
 
