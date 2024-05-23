@@ -300,7 +300,9 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 }
 
 func (p *Provider) DeleteRole(workspace, role string) error {
-	panic("implement me")
+
+	_, err := p.primaryConnection.Exec("DELETE FROM roles  WHERE workspace = ? AND role = ?", workspace, role)
+	return err
 }
 
 func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
