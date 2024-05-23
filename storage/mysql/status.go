@@ -3,8 +3,9 @@ package mysql
 import (
 	"database/sql"
 	"errors"
-	"github.com/kubex/rubix-storage/rubix"
 	"time"
+
+	"github.com/kubex/rubix-storage/rubix"
 )
 
 func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
@@ -13,7 +14,7 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 	if !status.ExpiryTime.IsZero() {
 		expiry = &status.ExpiryTime
 		if duration == 0 {
-			duration = int32(status.ExpiryTime.Sub(time.Now()).Seconds())
+			duration = int32(time.Until(status.ExpiryTime).Seconds())
 		}
 	}
 

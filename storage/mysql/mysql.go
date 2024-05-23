@@ -3,6 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"encoding/json"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 

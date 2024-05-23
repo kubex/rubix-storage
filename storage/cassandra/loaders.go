@@ -13,7 +13,7 @@ func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	panic("implement me")
 }
 
-func (p Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
+func (p Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
 	panic("implement me")
 }
 
@@ -36,10 +36,31 @@ func (p Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Scop
 func (p Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error) {
 	panic("implement me")
 }
+
 func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
 	panic("implement me")
 }
-func (p Provider) ClearUserStatusLogout(workspaceUuid, userUuid string) error { panic("implement me") }
+
+func (p Provider) ClearUserStatusLogout(workspaceUuid, userUuid string) error {
+	panic("implement me")
+}
+
 func (p Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) error {
+	panic("implement me")
+}
+
+func (p Provider) GetRole(workspace, role string) (*rubix.Role, error) {
+	panic("implement me")
+}
+
+func (p Provider) GetRoles(workspace string) ([]rubix.Role, error) {
+	panic("implement me")
+}
+
+func (p Provider) CreateRole(workspace, role, title, description string, permissions, users []string) error {
+	panic("implement me")
+}
+
+func (p Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
 	panic("implement me")
 }

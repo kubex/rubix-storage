@@ -3,10 +3,15 @@ package mysql
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/kubex/definitions-go/app"
-	"github.com/kubex/rubix-storage/rubix"
+	"errors"
+	"fmt"
 	"log"
 	"strings"
+
+	"github.com/go-sql-driver/mysql"
+	"github.com/kubex/definitions-go/app"
+	"github.com/kubex/rubix-storage/rubix"
+	"golang.org/x/sync/errgroup"
 )
 
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
@@ -33,21 +38,23 @@ func (p *Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return workspaces, nil
 }
 
-func (p *Provider) GetWorkspaceUserIDs(workspaceUuid string) ([]string, error) {
-	rows, err := p.primaryConnection.Query("SELECT user FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
+func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
+
+	rows, err := p.primaryConnection.Query("SELECT user, since FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	users := []string{}
+
+	var members []rubix.WorkspaceMembership
 	for rows.Next() {
-		var user string
-		if err := rows.Scan(&user); err != nil {
+		var member = rubix.WorkspaceMembership{Workspace: workspaceUuid}
+		if err := rows.Scan(&member.User, &member.Since); err != nil {
 			return nil, err
 		}
-		users = append(users, user)
+		members = append(members, member)
 	}
-	return users, nil
+	return members, nil
 }
 
 func (p *Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error) {
@@ -170,4 +177,215 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	}
 
 	return true, nil
+}
+
+func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
+
+	var ret = rubix.Role{
+		Workspace: workspace,
+		Role:      role,
+	}
+
+	g := errgroup.Group{}
+	g.Go(func() error {
+
+		row := p.primaryConnection.QueryRow("SELECT name, description FROM roles WHERE workspace = ? AND role = ?", workspace, role)
+
+		err := row.Scan(&ret.Name, &ret.Description)
+		if errors.Is(err, sql.ErrNoRows) {
+			return rubix.ErrNoResultFound
+		}
+
+		return err
+	})
+	g.Go(func() error {
+
+		rows, err := p.primaryConnection.Query("SELECT user FROM user_roles WHERE workspace = ? AND role = ?", workspace, role)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+
+			var user string
+			err = rows.Scan(&user)
+			if err != nil {
+				return err
+			}
+
+			ret.Users = append(ret.Users, user)
+		}
+
+		return nil
+	})
+	g.Go(func() error {
+
+		rows, err := p.primaryConnection.Query("SELECT permission FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+
+			var permission string
+			err = rows.Scan(&permission)
+			if err != nil {
+				return err
+			}
+
+			ret.Permissions = append(ret.Permissions, permission)
+		}
+
+		return nil
+	})
+
+	return &ret, g.Wait()
+}
+
+func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
+
+	rows, err := p.primaryConnection.Query("SELECT role, name, description FROM roles WHERE workspace = ?", workspace)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var roles []rubix.Role
+	for rows.Next() {
+
+		var role = rubix.Role{Workspace: workspace}
+		err = rows.Scan(&role.Role, &role.Name, &role.Description)
+		if err != nil {
+			return nil, err
+		}
+
+		roles = append(roles, role)
+	}
+
+	return roles, nil
+}
+
+func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
+
+	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
+
+	var me *mysql.MySQLError
+	if errors.As(err, &me) && me.Number == 1062 {
+		return errors.New("role already exists")
+	}
+	if err != nil {
+		return err
+	}
+
+	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
+}
+
+func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
+
+	payload := rubix.MutateRolePayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+
+	g := errgroup.Group{}
+	g.Go(func() error {
+
+		if payload.Title != nil || payload.Description != nil {
+
+			var fields []string
+			if payload.Title != nil {
+				fields = append(fields, "name = ?")
+			}
+			if payload.Description != nil {
+				fields = append(fields, "description = ?")
+			}
+
+			var vals []any
+			if payload.Title != nil {
+				vals = append(vals, *payload.Title)
+			}
+			if payload.Description != nil {
+				vals = append(vals, *payload.Description)
+			}
+
+			vals = append(vals, workspace, role)
+
+			q := fmt.Sprintf("UPDATE roles SET %s WHERE workspace = ? AND role = ?", strings.Join(fields, ", "))
+			result, err := p.primaryConnection.Exec(q, vals...)
+			if err != nil {
+				return err
+			}
+
+			rows, err := result.RowsAffected()
+			if err != nil {
+				return err
+			}
+
+			if rows == 0 {
+				return rubix.ErrNoResultFound
+			}
+		}
+
+		return nil
+	})
+	g.Go(func() error {
+
+		for _, user := range payload.UsersToAdd {
+			_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
+
+			var me *mysql.MySQLError
+			if errors.As(err, &me) && me.Number == 1062 {
+				continue
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	g.Go(func() error {
+
+		for _, user := range payload.UsersToRem {
+			_, err := p.primaryConnection.Exec("DELETE FROM user_roles WHERE workspace = ? AND user = ? AND role = ?", workspace, user, role)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	g.Go(func() error {
+
+		for _, perm := range payload.PermsToAdd {
+			_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, resource, allow) VALUES (?, ?, ?, '', 1)", workspace, role, perm)
+
+			var me *mysql.MySQLError
+			if errors.As(err, &me) && me.Number == 1062 {
+				continue
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	g.Go(func() error {
+
+		for _, perm := range payload.PermsToRem {
+			_, err := p.primaryConnection.Exec("DELETE FROM role_permissions WHERE workspace = ? AND role = ? AND permission = ? AND resource = ''", workspace, role, perm)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return g.Wait()
 }
