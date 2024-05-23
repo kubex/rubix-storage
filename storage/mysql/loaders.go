@@ -179,6 +179,24 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	return true, nil
 }
 
+func (p *Provider) SetUserType(workspace, user string, userType rubix.UserType) error {
+
+	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET type = ? WHERE workspace = ? AND user = ?", userType, workspace, user)
+	return err
+}
+
+func (p *Provider) SetUserState(workspace, user string, userState rubix.UserRowState) error {
+
+	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", userState, workspace, user)
+	return err
+}
+
+func (p *Provider) RemoveUserFromWorkspace(workspace, user string) error {
+
+	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", rubix.UserRowStateRemoved, workspace, user)
+	return err
+}
+
 func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 	var ret = rubix.Role{
