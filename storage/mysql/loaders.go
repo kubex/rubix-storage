@@ -299,6 +299,29 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	return roles, nil
 }
 
+func (p *Provider) GetUserRoles(workspace, user string) ([]rubix.UserRole, error) {
+
+	rows, err := p.primaryConnection.Query("SELECT role FROM user_roles WHERE workspace = ? AND user = ?", workspace, user)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var roles []rubix.UserRole
+	for rows.Next() {
+
+		var role = rubix.UserRole{Workspace: workspace, User: user}
+		err = rows.Scan(&role.Role)
+		if err != nil {
+			return nil, err
+		}
+
+		roles = append(roles, role)
+	}
+
+	return roles, nil
+}
+
 func (p *Provider) DeleteRole(workspace, role string) error {
 
 	_, err := p.primaryConnection.Exec("DELETE FROM roles  WHERE workspace = ? AND role = ?", workspace, role)

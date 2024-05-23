@@ -9,6 +9,12 @@ type Role struct {
 	Permissions []string // Not on roles table
 }
 
+type UserRole struct {
+	Workspace string
+	User      string
+	Role      string
+}
+
 type MutateRolePayload struct {
 	Title       *string
 	Description *string

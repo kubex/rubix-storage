@@ -161,7 +161,7 @@ func (p Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	panic("implement me")
 }
 
-func (p Provider) GetUserRoles(workspace, user string) ([]rubix.Role, error) {
+func (p Provider) GetUserRoles(workspace, user string) ([]rubix.UserRole, error) {
 	panic("implement me")
 }
 
