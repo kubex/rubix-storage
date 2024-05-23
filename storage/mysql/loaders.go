@@ -40,7 +40,7 @@ func (p *Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 
 func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
 
-	rows, err := p.primaryConnection.Query("SELECT user, workspace, since FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
+	rows, err := p.primaryConnection.Query("SELECT user, since FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceM
 	var members []rubix.WorkspaceMembership
 	for rows.Next() {
 		var member rubix.WorkspaceMembership
-		if err := rows.Scan(&member.User, &member.Workspace, &member.Since); err != nil {
+		if err := rows.Scan(&member.User, &member.Since); err != nil {
 			return nil, err
 		}
 		members = append(members, member)
