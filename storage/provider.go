@@ -20,10 +20,9 @@ type Provider interface {
 	ClearUserStatusID(workspaceUuid, userUuid, statusID string) error
 	ClearUserStatusLogout(workspaceUuid, userUuid string) error
 
-	SuspendUser(workspace, user string) error
-	ReactivateUser(workspace, user string) error
+	SetUserType(workspace, user string, accountType rubix.UserType) error
+	SetUserState(workspace, user string, accountType rubix.UserRowState) error
 	RemoveUserFromWorkspace(workspace, user string) error
-	SetUserAccountType(workspace, user string, accountType rubix.UserType) error
 
 	GetRole(workspace, role string) (*rubix.Role, error)
 	GetRoles(workspace string) ([]rubix.Role, error)
