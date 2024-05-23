@@ -181,11 +181,25 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 
 func (p *Provider) SetUserType(workspace, user string, userType rubix.UserType) error {
 
+	switch userType {
+	case rubix.UserTypeOwner, rubix.UserTypeMember, rubix.UserTypeSupport:
+	default:
+		return errors.New("invalid user type")
+	}
+
 	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET type = ? WHERE workspace = ? AND user = ?", userType, workspace, user)
 	return err
 }
 
 func (p *Provider) SetUserState(workspace, user string, userState rubix.UserRowState) error {
+
+	switch userState {
+	case rubix.UserRowStatePending, rubix.UserRowStateActive, rubix.UserRowStateSuspended, rubix.UserRowStateArchived:
+	case rubix.UserRowStateRemoved:
+		return errors.New("use RemoveUserFromWorkspace()")
+	default:
+		return errors.New("invalid user state")
+	}
 
 	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", userState, workspace, user)
 	return err
