@@ -309,7 +309,8 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 			vals = append(vals, workspace, role)
 
-			result, err := p.primaryConnection.Exec(fmt.Sprintf("UPDATE roles SET %s WHERE workspace = ? AND role = ?", strings.Join(fields, ", ")), vals...)
+			q := fmt.Sprintf("UPDATE roles SET %s WHERE workspace = ? AND role = ?", strings.Join(fields, ", "))
+			result, err := p.primaryConnection.Exec(q, vals...)
 			if err != nil {
 				return err
 			}
