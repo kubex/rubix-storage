@@ -62,7 +62,7 @@ func (ws workspaceStore) dsID() *datastore.Key {
 type workspaceMembership struct {
 	WorkspaceUUID string `datastore:"-"`
 	IdentityID    string
-	Role          rubix.MembershipRole
+	Role          rubix.MembershipType
 }
 
 func (wm workspaceMembership) dsID() *datastore.Key {

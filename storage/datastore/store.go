@@ -20,7 +20,7 @@ func (p Provider) StoreWorkspace(w *rubix.Workspace) error {
 	return err
 }
 
-func (p Provider) AddMembership(workspaceUUID, identityID string, Role rubix.MembershipRole) error {
+func (p Provider) AddMembership(workspaceUUID, identityID string, Role rubix.MembershipType) error {
 	mem := &workspaceMembership{
 		WorkspaceUUID: workspaceUUID,
 		IdentityID:    identityID,

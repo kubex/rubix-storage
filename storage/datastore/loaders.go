@@ -43,11 +43,11 @@ func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return wsuuids, nil
 }
 
-func (p Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
+func (p Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.Membership, error) {
 
 	q := datastore.NewQuery(kindMembership).Ancestor(workspaceStore{Uuid: workspaceUuid}.dsID())
 
-	var members []rubix.WorkspaceMembership
+	var members []rubix.Membership
 	if _, err := p.client.GetAll(context.Background(), q, &members); err != nil {
 		return nil, err
 	}
@@ -119,11 +119,11 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	panic("implement me")
 }
 
-func (p Provider) SetUserType(workspace, user string, accountType rubix.UserType) error {
+func (p Provider) SetMembershipType(workspace, user string, accountType rubix.MembershipType) error {
 	panic("implement me")
 }
 
-func (p Provider) SetUserState(workspace, user string, accountType rubix.UserRowState) error {
+func (p Provider) SetMembershipState(workspace, user string, accountType rubix.MembershipState) error {
 	panic("implement me")
 }
 

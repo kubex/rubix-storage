@@ -13,7 +13,7 @@ func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	panic("implement me")
 }
 
-func (p Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
+func (p Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.Membership, error) {
 	panic("implement me")
 }
 
@@ -65,11 +65,11 @@ func (p Provider) MutateRole(workspace, role string, options ...rubix.MutateRole
 	panic("implement me")
 }
 
-func (p Provider) SetUserType(workspace, user string, accountType rubix.UserType) error {
+func (p Provider) SetMembershipType(workspace, user string, accountType rubix.MembershipType) error {
 	panic("implement me")
 }
 
-func (p Provider) SetUserState(workspace, user string, accountType rubix.UserRowState) error {
+func (p Provider) SetMembershipState(workspace, user string, accountType rubix.MembershipState) error {
 	panic("implement me")
 }
 

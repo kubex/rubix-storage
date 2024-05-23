@@ -8,7 +8,7 @@ import (
 type Provider interface {
 	GetWorkspaceUUIDByAlias(alias string) (string, error)
 	GetUserWorkspaceUUIDs(userId string) ([]string, error)
-	GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error)
+	GetWorkspaceMembers(workspaceUuid string) ([]rubix.Membership, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
 	GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error)
 
@@ -20,8 +20,8 @@ type Provider interface {
 	ClearUserStatusID(workspaceUuid, userUuid, statusID string) error
 	ClearUserStatusLogout(workspaceUuid, userUuid string) error
 
-	SetUserType(workspace, user string, accountType rubix.UserType) error
-	SetUserState(workspace, user string, accountType rubix.UserRowState) error
+	SetMembershipType(workspace, user string, accountType rubix.MembershipType) error
+	SetMembershipState(workspace, user string, accountType rubix.MembershipState) error
 	RemoveUserFromWorkspace(workspace, user string) error
 
 	GetRole(workspace, role string) (*rubix.Role, error)
