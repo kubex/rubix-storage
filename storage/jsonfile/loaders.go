@@ -42,7 +42,7 @@ func (p Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.Membership,
 	for i, id := range ids {
 		members[i] = rubix.Membership{
 			Workspace: workspaceUuid,
-			User:      id,
+			UserID:    id,
 		}
 	}
 

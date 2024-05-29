@@ -49,7 +49,7 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.Membership
 	var members []rubix.Membership
 	for rows.Next() {
 		var member = rubix.Membership{Workspace: workspaceUuid}
-		if err := rows.Scan(&member.User, &member.Type, &member.PartnerID, &member.Since, &member.State, &member.StateSince); err != nil {
+		if err := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &member.Since, &member.State, &member.StateSince); err != nil {
 			return nil, err
 		}
 		members = append(members, member)

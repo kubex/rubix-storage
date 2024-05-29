@@ -21,7 +21,7 @@ const (
 )
 
 type Membership struct {
-	User       string
+	UserID     string
 	Workspace  string
 	Type       MembershipType
 	PartnerID  string
