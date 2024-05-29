@@ -24,6 +24,6 @@ func TestDataStore(t *testing.T) {
 	}
 	p.StoreWorkspace(w)
 
-	p.AddMembership(uuid, "anonymous", rubix.MembershipRoleOwner)
+	p.AddMembership(uuid, "anonymous", rubix.MembershipTypeOwner)
 
 }

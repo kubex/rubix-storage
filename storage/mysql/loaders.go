@@ -38,18 +38,18 @@ func (p *Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return workspaces, nil
 }
 
-func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.WorkspaceMembership, error) {
+func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.Membership, error) {
 
-	rows, err := p.primaryConnection.Query("SELECT user, since FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
+	rows, err := p.primaryConnection.Query("SELECT user, type, partner_id, since, state, state_since  FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var members []rubix.WorkspaceMembership
+	var members []rubix.Membership
 	for rows.Next() {
-		var member = rubix.WorkspaceMembership{Workspace: workspaceUuid}
-		if err := rows.Scan(&member.User, &member.Since); err != nil {
+		var member = rubix.Membership{Workspace: workspaceUuid}
+		if err := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &member.Since, &member.State, &member.StateSince); err != nil {
 			return nil, err
 		}
 		members = append(members, member)
@@ -179,6 +179,38 @@ func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.Sco
 	return true, nil
 }
 
+func (p *Provider) SetMembershipType(workspace, user string, MembershipType rubix.MembershipType) error {
+
+	switch MembershipType {
+	case rubix.MembershipTypeOwner, rubix.MembershipTypeMember, rubix.MembershipTypeSupport:
+	default:
+		return errors.New("invalid user type")
+	}
+
+	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET type = ? WHERE workspace = ? AND user = ?", MembershipType, workspace, user)
+	return err
+}
+
+func (p *Provider) SetMembershipState(workspace, user string, userState rubix.MembershipState) error {
+
+	switch userState {
+	case rubix.MembershipStatePending, rubix.MembershipStateActive, rubix.MembershipStateSuspended, rubix.MembershipStateArchived:
+	case rubix.MembershipStateRemoved:
+		return errors.New("use RemoveUserFromWorkspace()")
+	default:
+		return errors.New("invalid user state")
+	}
+
+	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", userState, workspace, user)
+	return err
+}
+
+func (p *Provider) RemoveUserFromWorkspace(workspace, user string) error {
+
+	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", rubix.MembershipStateRemoved, workspace, user)
+	return err
+}
+
 func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 	var ret = rubix.Role{
@@ -265,6 +297,35 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	}
 
 	return roles, nil
+}
+
+func (p *Provider) GetUserRoles(workspace, user string) ([]rubix.UserRole, error) {
+
+	rows, err := p.primaryConnection.Query("SELECT role FROM user_roles WHERE workspace = ? AND user = ?", workspace, user)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var roles []rubix.UserRole
+	for rows.Next() {
+
+		var role = rubix.UserRole{Workspace: workspace, User: user}
+		err = rows.Scan(&role.Role)
+		if err != nil {
+			return nil, err
+		}
+
+		roles = append(roles, role)
+	}
+
+	return roles, nil
+}
+
+func (p *Provider) DeleteRole(workspace, role string) error {
+
+	_, err := p.primaryConnection.Exec("DELETE FROM roles  WHERE workspace = ? AND role = ?", workspace, role)
+	return err
 }
 
 func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
