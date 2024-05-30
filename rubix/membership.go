@@ -16,6 +16,20 @@ func (mt MembershipType) String() string {
 	return cases.Title(language.English, cases.Compact).String(string(mt))
 }
 
+// Int is used to compare your level with another users level
+func (mt MembershipType) Int() int {
+	switch mt {
+	case MembershipTypeOwner:
+		return 30
+	case MembershipTypeMember:
+		return 20
+	case MembershipTypeSupport:
+		return 10
+	default:
+		return 0
+	}
+}
+
 const (
 	MembershipTypeOwner   MembershipType = "owner"   // Full access
 	MembershipTypeMember  MembershipType = "member"  // Permissions only
