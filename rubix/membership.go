@@ -9,8 +9,8 @@ import (
 
 type MembershipType string
 
-func (us UserState) String() string {
-	return cases.Title(language.English, cases.Compact).String(string(us))
+func (mt MembershipType) String() string {
+	return cases.Title(language.English, cases.Compact).String(string(mt))
 }
 
 const (
@@ -21,8 +21,8 @@ const (
 
 type MembershipState int
 
-func (us MembershipState) String() string {
-	switch us {
+func (ms MembershipState) String() string {
+	switch ms {
 	case MembershipStatePending:
 		return "Pending"
 	case MembershipStateActive:
