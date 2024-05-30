@@ -42,9 +42,20 @@ func (p *Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return workspaces, nil
 }
 
-func (p *Provider) GetWorkspaceMembers(workspaceUuid string) ([]rubix.Membership, error) {
+// GetWorkspaceMembers - userID is optional
+func (p *Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Membership, error) {
 
-	rows, err := p.primaryConnection.Query("SELECT user, type, partner_id, since, state, state_since  FROM workspace_memberships WHERE workspace = ?", workspaceUuid)
+	var fields = []string{"workspace = ?"}
+	var values = []any{workspaceUuid}
+
+	if userID != "" {
+		fields = append(fields, "user = ?")
+		values = append(values, userID)
+	}
+
+	q := fmt.Sprintf("SELECT user, type, partner_id, since, state, state_since  FROM workspace_memberships WHERE %s", strings.Join(fields, " AND "))
+
+	rows, err := p.primaryConnection.Query(q, values...)
 	if err != nil {
 		return nil, err
 	}

@@ -8,7 +8,7 @@ import (
 type Provider interface {
 	GetWorkspaceUUIDByAlias(alias string) (string, error)
 	GetUserWorkspaceUUIDs(userId string) ([]string, error)
-	GetWorkspaceMembers(workspaceUuid string) ([]rubix.Membership, error)
+	GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Membership, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
 	GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error)
 
