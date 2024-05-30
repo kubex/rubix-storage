@@ -9,7 +9,7 @@ import (
 
 type MembershipType string
 
-func (mt MembershipType) String() string {
+func (mt MembershipType) Display() string {
 	if mt == "" {
 		return "Unknown"
 	}
@@ -38,7 +38,7 @@ const (
 
 type MembershipState int
 
-func (ms MembershipState) String() string {
+func (ms MembershipState) Display() string {
 	switch ms {
 	case MembershipStatePending:
 		return "Pending"
