@@ -439,7 +439,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	g.Go(func() error {
 
 		for _, perm := range payload.PermsToRem {
-			_, err := p.primaryConnection.Exec("DELETE FROM role_permissions WHERE workspace = ? AND role = ? AND permission = ? AND resource = ''", workspace, role, perm)
+			_, err := p.primaryConnection.Exec("DELETE FROM role_permissions WHERE workspace = ? AND role = ? AND permission = ?", workspace, role, perm)
 			if err != nil {
 				return err
 			}
