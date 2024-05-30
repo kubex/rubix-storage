@@ -257,7 +257,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	})
 	g.Go(func() error {
 
-		rows, err := p.primaryConnection.Query("SELECT permission FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+		rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, meta FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
 		if err != nil {
 			return err
 		}
@@ -265,8 +265,8 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 		for rows.Next() {
 
-			var permission string
-			err = rows.Scan(&permission)
+			var permission = rubix.RolePermission{Workspace: workspace, Role: role}
+			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, &permission.Meta)
 			if err != nil {
 				return err
 			}
@@ -422,7 +422,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	g.Go(func() error {
 
 		for _, perm := range payload.PermsToAdd {
-			_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, resource, allow) VALUES (?, ?, ?, '', 1)", workspace, role, perm)
+			_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission) VALUES (?, ?, ?)", workspace, role, perm)
 
 			var me *mysql.MySQLError
 			if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {

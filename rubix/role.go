@@ -5,14 +5,23 @@ type Role struct {
 	Role        string
 	Name        string
 	Description string
-	Users       []string // Not on roles table
-	Permissions []string // Not on roles table
+	Users       []string         // Not on roles table
+	Permissions []RolePermission // Not on roles table
 }
 
 type UserRole struct {
 	Workspace string
 	User      string
 	Role      string
+}
+
+type RolePermission struct {
+	Workspace  string `json:"workspace"`
+	Role       string `json:"role"`
+	Permission string `json:"permission"`
+	Resource   string `json:"resource"`
+	Allow      bool   `json:"allow"`
+	Meta       string `json:"meta"`
 }
 
 type MutateRolePayload struct {

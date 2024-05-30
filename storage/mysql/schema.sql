@@ -49,12 +49,14 @@ CREATE TABLE rubix.`roles` (
     PRIMARY KEY (`workspace`, `role`)
 );
 
-CREATE TABLE rubix.`role_permissions` (
-    `workspace`  varchar(64)  NOT NULL,
-    `role`       varchar(64)  NOT NULL,
-    `permission` varchar(255) NOT NULL,
-    `resource`   varchar(255) NOT NULL,
-    `allow`      tinyint(1) NOT NULL,
+CREATE TABLE rubix.`role_permissions`
+(
+    workspace  varchar(64)             NOT NULL,
+    role       varchar(64)             NOT NULL,
+    permission varchar(255)            NOT NULL,
+    resource   varchar(255) default '' NOT NULL,
+    allow      tinyint(1)   default 1  NOT NULL,
+    meta       varchar(255) default '' NOT NULL,
     PRIMARY KEY (`workspace`, `role`, `permission`, `resource`)
 );
 
