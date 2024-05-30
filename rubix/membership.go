@@ -10,6 +10,9 @@ import (
 type MembershipType string
 
 func (mt MembershipType) String() string {
+	if mt == "" {
+		return "Unknown"
+	}
 	return cases.Title(language.English, cases.Compact).String(string(mt))
 }
 
