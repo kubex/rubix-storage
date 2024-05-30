@@ -356,18 +356,14 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 		if payload.Title != nil || payload.Description != nil {
 
 			var fields []string
+			var vals []any
+
 			if payload.Title != nil {
 				fields = append(fields, "name = ?")
-			}
-			if payload.Description != nil {
-				fields = append(fields, "description = ?")
-			}
-
-			var vals []any
-			if payload.Title != nil {
 				vals = append(vals, *payload.Title)
 			}
 			if payload.Description != nil {
+				fields = append(fields, "description = ?")
 				vals = append(vals, *payload.Description)
 			}
 
