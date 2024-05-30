@@ -14,6 +14,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	mySQLDuplicateEntry = 1062
+)
+
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 	q := p.primaryConnection.QueryRow("SELECT uuid FROM workspaces WHERE alias = ?", alias)
 	located := ""
@@ -333,7 +337,7 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
 
 	var me *mysql.MySQLError
-	if errors.As(err, &me) && me.Number == 1062 {
+	if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
 		return errors.New("role already exists")
 	}
 	if err != nil {
@@ -393,7 +397,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 			_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
 
 			var me *mysql.MySQLError
-			if errors.As(err, &me) && me.Number == 1062 {
+			if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
 				continue
 			}
 
@@ -421,7 +425,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 			_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, resource, allow) VALUES (?, ?, ?, '', 1)", workspace, role, perm)
 
 			var me *mysql.MySQLError
-			if errors.As(err, &me) && me.Number == 1062 {
+			if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
 				continue
 			}
 
