@@ -145,6 +145,14 @@ func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatu
 	panic("implement me")
 }
 
+func (p *Provider) AddMemberToWorkspace(workspaceID, userID string) error {
+	panic("implement me")
+}
+
+func (p *Provider) CreateUser(userID, name string) error {
+	panic("implement me")
+}
+
 func (p Provider) ClearUserStatusLogout(workspaceUuid, userUuid string) error {
 	panic("implement me")
 }

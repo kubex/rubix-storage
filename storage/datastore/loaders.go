@@ -107,6 +107,14 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	panic("implement me")
 }
 
+func (p *Provider) AddMemberToWorkspace(workspaceID, userID string) error {
+	panic("implement me")
+}
+
+func (p *Provider) CreateUser(userID, name string) error {
+	panic("implement me")
+}
+
 func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	panic("implement me")
 }

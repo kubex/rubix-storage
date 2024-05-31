@@ -11,10 +11,12 @@ type Provider interface {
 	GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Membership, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
 	GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error)
+	AddMemberToWorkspace(workspaceID, userID string) error
 
 	GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error)
 	UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error)
 
+	CreateUser(userID, name string) error
 	SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error)
 	GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error)
 	ClearUserStatusID(workspaceUuid, userUuid, statusID string) error

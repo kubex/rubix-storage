@@ -17,6 +17,14 @@ func (p Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Mem
 	panic("implement me")
 }
 
+func (p *Provider) AddMemberToWorkspace(workspaceID, userID string) error {
+	panic("implement me")
+}
+
+func (p *Provider) CreateUser(userID, name string) error {
+	panic("implement me")
+}
+
 func (p Provider) RetrieveWorkspace(workspaceAlias string) (*rubix.Workspace, error) {
 	panic("implement me")
 }
