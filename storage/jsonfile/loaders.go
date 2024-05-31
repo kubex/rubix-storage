@@ -176,3 +176,7 @@ func (p Provider) CreateRole(workspace, trole, itle, description string, permiss
 func (p Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
 	panic("implement me")
 }
+
+func (p *Provider) MutateUser(workspace, user string, options ...rubix.MutateUserOption) error {
+	panic("implement me")
+}

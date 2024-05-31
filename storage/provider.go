@@ -19,6 +19,7 @@ type Provider interface {
 	GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error)
 	ClearUserStatusID(workspaceUuid, userUuid, statusID string) error
 	ClearUserStatusLogout(workspaceUuid, userUuid string) error
+	MutateUser(workspace, user string, options ...rubix.MutateUserOption) error
 
 	SetMembershipType(workspace, user string, accountType rubix.MembershipType) error
 	SetMembershipState(workspace, user string, accountType rubix.MembershipState) error

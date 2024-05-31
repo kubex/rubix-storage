@@ -138,3 +138,7 @@ func (p Provider) SetMembershipState(workspace, user string, accountType rubix.M
 func (p Provider) RemoveUserFromWorkspace(workspace, user string) error {
 	panic("implement me")
 }
+
+func (p *Provider) MutateUser(workspace, user string, options ...rubix.MutateUserOption) error {
+	panic("implement me")
+}

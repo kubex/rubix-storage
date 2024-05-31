@@ -170,6 +170,45 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 	return statements, nil
 }
 
+func (p *Provider) MutateUser(workspace, user string, options ...rubix.MutateUserOption) error {
+
+	payload := rubix.MutateUserPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+
+	g := errgroup.Group{}
+	g.Go(func() error {
+
+		for _, role := range payload.RolesToAdd {
+			_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
+
+			var me *mysql.MySQLError
+			if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	g.Go(func() error {
+
+		for _, role := range payload.RolesToRemove {
+			_, err := p.primaryConnection.Exec("DELETE FROM user_roles WHERE workspace = ? AND user = ? AND role = ?", workspace, user, role)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return g.Wait()
+}
+
 func (p *Provider) UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error) {
 	if len(permissions) == 0 {
 		return true, nil
@@ -411,7 +450,6 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 			if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
 				continue
 			}
-
 			if err != nil {
 				return err
 			}
@@ -439,7 +477,6 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 			if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
 				continue
 			}
-
 			if err != nil {
 				return err
 			}
