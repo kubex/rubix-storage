@@ -354,7 +354,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 
-	rows, err := p.primaryConnection.Query("SELECT role, name, description FROM roles WHERE workspace = ?", workspace)
+	rows, err := p.primaryConnection.Query("SELECT role, name, description FROM roles WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
