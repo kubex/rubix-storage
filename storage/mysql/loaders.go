@@ -70,16 +70,24 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) 
 	var values = []any{workspaceUuid, rubix.MembershipStateRemoved}
 
 	if len(userIDs) > 0 {
-		placeholder := strings.Repeat("?,", len(userIDs))
-		placeholder = placeholder[:len(placeholder)-1]
-		fields = append(fields, "m.user IN ("+placeholder+")")
-		values = append(values, userIDs)
+		var placeholders []string
+		for _, uid := range userIDs {
+			if uid == "" {
+				continue
+			}
+			values = append(values, uid)
+			placeholders = append(placeholders, "?")
+		}
+		if len(placeholders) > 0 {
+			fields = append(fields, "m.user IN ("+strings.Join(placeholders, ",")+")")
+		}
 	}
 
 	q := "SELECT m.user, m.type, m.partner_id, m.since, m.state, m.state_since, u.name, u.email " +
 		"FROM workspace_memberships AS m " +
 		"LEFT JOIN users AS u ON m.user = u.user " +
 		"WHERE " + strings.Join(fields, " AND ")
+	log.Println(q)
 
 	rows, err := p.primaryConnection.Query(q, values...)
 	if err != nil {
