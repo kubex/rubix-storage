@@ -64,14 +64,16 @@ func (p *Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 }
 
 // GetWorkspaceMembers - userID is optional
-func (p *Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Membership, error) {
+func (p *Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) ([]rubix.Membership, error) {
 
 	var fields = []string{"workspace = ?", "state != ?"}
 	var values = []any{workspaceUuid, rubix.MembershipStateRemoved}
 
-	if userID != "" {
-		fields = append(fields, "m.user = ?")
-		values = append(values, userID)
+	if len(userIDs) > 0 {
+		placeholder := strings.Repeat("?,", len(userIDs))
+		placeholder = placeholder[:len(placeholder)-1]
+		fields = append(fields, "m.user IN ("+placeholder+")")
+		values = append(values, userIDs)
 	}
 
 	q := "SELECT m.user, m.type, m.partner_id, m.since, m.state, m.state_since, u.name, u.email " +

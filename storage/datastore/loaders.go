@@ -43,7 +43,7 @@ func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return wsuuids, nil
 }
 
-func (p Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Membership, error) {
+func (p Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) ([]rubix.Membership, error) {
 
 	q := datastore.NewQuery(kindMembership).Ancestor(workspaceStore{Uuid: workspaceUuid}.dsID())
 

@@ -33,7 +33,7 @@ func (p Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 	return ids, err
 }
 
-func (p Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Membership, error) {
+func (p Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) ([]rubix.Membership, error) {
 
 	var ids []string
 	err := json.Unmarshal(p.fileData(p.filePath("workspace", workspaceUuid+".users")), &ids)
