@@ -26,7 +26,7 @@ func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 }
 
 func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType) error {
-	_, err := p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state) VALUES (?, ?, ?, NOW(), NOW(), ?)", userID, workspaceID, as, rubix.MembershipStateActive)
+	_, err := p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state) VALUES (?, ?, ?, NOW(), NOW(), ?)", userID, workspaceID, as, rubix.MembershipStatePending)
 
 	var me2 *mysql.MySQLError
 	if errors.As(err, &me2) && me2.Number == mySQLDuplicateEntry {
