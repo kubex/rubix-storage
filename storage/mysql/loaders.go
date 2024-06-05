@@ -70,7 +70,7 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Me
 	var values = []any{workspaceUuid}
 
 	if userID != "" {
-		fields = append(fields, "user = ?")
+		fields = append(fields, "m.user = ?")
 		values = append(values, userID)
 	}
 
