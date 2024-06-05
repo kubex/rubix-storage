@@ -1,5 +1,4 @@
-create table rubix.workspace_memberships
-(
+create table rubix.workspace_memberships (
     user        varchar(64)                           not null,
     workspace   varchar(64)                           not null,
     type        varchar(20) default ''                not null,
@@ -37,8 +36,9 @@ create table rubix.auth_data (
 create unique index `wuvak` on rubix.auth_data(workspace, user, vendor, app, `key`);
 
 create table rubix.users (
-    user varchar(64) null,
-    name varchar(64) not null
+    `user`  varchar(64) NOT NULL,
+    `name`  varchar(64) NOT NULL,
+    `email` varchar(128) DEFAULT NULL
 );
 
 CREATE TABLE rubix.`roles` (
@@ -49,8 +49,7 @@ CREATE TABLE rubix.`roles` (
     PRIMARY KEY (`workspace`, `role`)
 );
 
-CREATE TABLE rubix.`role_permissions`
-(
+CREATE TABLE rubix.`role_permissions` (
     workspace  varchar(64)             NOT NULL,
     role       varchar(64)             NOT NULL,
     permission varchar(255)            NOT NULL,
@@ -67,7 +66,7 @@ CREATE TABLE rubix.`user_roles` (
     PRIMARY KEY (`workspace`, `user`, `role`)
 );
 
-create index role_users on rubix.`user_roles` (workspace, role);
+create index role_users on rubix.`user_roles`(workspace, role);
 
 CREATE TABLE rubix.`user_status` (
     `workspace`     varchar(64) NOT NULL,

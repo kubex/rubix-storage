@@ -74,7 +74,10 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Me
 		values = append(values, userID)
 	}
 
-	q := fmt.Sprintf("SELECT user, type, partner_id, since, state, state_since  FROM workspace_memberships WHERE %s", strings.Join(fields, " AND "))
+	q := "SELECT m.user, m.type, m.partner_id, m.since, m.state, m.state_since, u.name, u.email " +
+		"FROM workspace_memberships AS m " +
+		"LEFT JOIN users AS u ON m.user = u.user " +
+		"WHERE " + strings.Join(fields, " AND ")
 
 	rows, err := p.primaryConnection.Query(q, values...)
 	if err != nil {
@@ -85,8 +88,8 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Me
 	var members []rubix.Membership
 	for rows.Next() {
 		var member = rubix.Membership{Workspace: workspaceUuid}
-		if err := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &member.Since, &member.State, &member.StateSince); err != nil {
-			return nil, err
+		if scanErr := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &member.Since, &member.State, &member.StateSince, &member.Name, &member.Email); scanErr != nil {
+			return nil, scanErr
 		}
 		members = append(members, member)
 	}

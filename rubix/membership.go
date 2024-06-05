@@ -65,6 +65,8 @@ const (
 
 type Membership struct {
 	UserID     string
+	Name       string
+	Email      string
 	Workspace  string
 	Type       MembershipType
 	PartnerID  string
