@@ -66,8 +66,8 @@ func (p *Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
 // GetWorkspaceMembers - userID is optional
 func (p *Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Membership, error) {
 
-	var fields = []string{"workspace = ?"}
-	var values = []any{workspaceUuid}
+	var fields = []string{"workspace = ?", "state != ?"}
+	var values = []any{workspaceUuid, rubix.MembershipStateRemoved}
 
 	if userID != "" {
 		fields = append(fields, "m.user = ?")
