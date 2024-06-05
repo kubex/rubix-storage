@@ -89,10 +89,12 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid, userID string) ([]rubix.Me
 	for rows.Next() {
 		var member = rubix.Membership{Workspace: workspaceUuid}
 		email := sql.NullString{}
-		if scanErr := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &member.Since, &member.State, &member.StateSince, &member.Name, &email); scanErr != nil {
+		name := sql.NullString{}
+		if scanErr := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &member.Since, &member.State, &member.StateSince, &name, &email); scanErr != nil {
 			return nil, scanErr
 		} else {
 			member.Email = email.String
+			member.Name = name.String
 		}
 		members = append(members, member)
 	}
