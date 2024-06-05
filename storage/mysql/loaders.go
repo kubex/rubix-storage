@@ -87,7 +87,6 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) 
 		"FROM workspace_memberships AS m " +
 		"LEFT JOIN users AS u ON m.user = u.user " +
 		"WHERE " + strings.Join(fields, " AND ")
-	log.Println(q)
 
 	rows, err := p.primaryConnection.Query(q, values...)
 	if err != nil {
