@@ -305,7 +305,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 	var ret = rubix.Role{
 		Workspace: workspace,
-		Role:      role,
+		ID:        role,
 	}
 
 	g := errgroup.Group{}
@@ -378,7 +378,7 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	for rows.Next() {
 
 		var role = rubix.Role{Workspace: workspace}
-		err = rows.Scan(&role.Role, &role.Name, &role.Description)
+		err = rows.Scan(&role.ID, &role.Name, &role.Description)
 		if err != nil {
 			return nil, err
 		}

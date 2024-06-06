@@ -2,7 +2,7 @@ package rubix
 
 type Role struct {
 	Workspace   string
-	Role        string
+	ID          string
 	Name        string
 	Description string
 	Users       []string         // Not on roles table
