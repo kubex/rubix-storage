@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
@@ -176,10 +175,9 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 
 	rows, err := p.primaryConnection.Query(query, params...)
 	if err != nil {
-		log.Println(err)
-		panic(err)
 		return nil, err
 	}
+
 	defer rows.Close()
 	result := make(map[string]permissionResult)
 	for rows.Next() {
