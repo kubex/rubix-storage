@@ -208,6 +208,10 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 
 func (p *Provider) MutateUser(workspace, user string, options ...rubix.MutateUserOption) error {
 
+	if len(options) == 0 {
+		return nil
+	}
+
 	payload := rubix.MutateUserPayload{}
 	for _, opt := range options {
 		opt(&payload)
@@ -434,6 +438,10 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 }
 
 func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
+
+	if len(options) == 0 {
+		return nil
+	}
 
 	payload := rubix.MutateRolePayload{}
 	for _, opt := range options {
