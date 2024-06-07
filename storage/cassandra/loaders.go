@@ -17,7 +17,7 @@ func (p Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) (
 	panic("implement me")
 }
 
-func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType) error {
+func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string) error {
 	panic("implement me")
 }
 

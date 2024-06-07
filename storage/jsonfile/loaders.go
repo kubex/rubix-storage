@@ -145,7 +145,7 @@ func (p Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatu
 	panic("implement me")
 }
 
-func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType) error {
+func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string) error {
 	panic("implement me")
 }
 

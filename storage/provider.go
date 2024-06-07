@@ -11,7 +11,7 @@ type Provider interface {
 	GetWorkspaceMembers(workspaceUuid string, userIDs ...string) ([]rubix.Membership, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
 	GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error)
-	AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType) error
+	AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string) error
 
 	GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error)
 	UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error)
