@@ -38,7 +38,8 @@ create unique index `wuvak` on rubix.auth_data(workspace, user, vendor, app, `ke
 create table rubix.users (
     `user`  varchar(64) NOT NULL,
     `name`  varchar(64) NOT NULL,
-    `email` varchar(128) DEFAULT NULL
+    `email` varchar(128) DEFAULT NULL,
+    PRIMARY KEY (`user`)
 );
 
 CREATE TABLE rubix.`roles` (
