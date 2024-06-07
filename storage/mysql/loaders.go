@@ -36,7 +36,7 @@ func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.Membe
 
 func (p *Provider) CreateUser(userID, name, email string) error {
 
-	_, err := p.primaryConnection.Exec("INSERT INTO users (user, name, email) VALUES (?, ?)", userID, name, email)
+	_, err := p.primaryConnection.Exec("INSERT INTO users (user, name, email) VALUES (?, ?, ?)", userID, name, email)
 
 	var me1 *mysql.MySQLError
 	if errors.As(err, &me1) && me1.Number == mySQLDuplicateEntry {
