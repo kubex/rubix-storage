@@ -16,7 +16,7 @@ type Provider interface {
 	GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error)
 	UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error)
 
-	CreateUser(userID, name string) error
+	CreateUser(userID, name, email string) error
 	SetUserStatus(workspaceUuid, userUuid string, status rubix.UserStatus) (bool, error)
 	GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error)
 	ClearUserStatusID(workspaceUuid, userUuid, statusID string) error

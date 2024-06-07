@@ -149,7 +149,7 @@ func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.Membe
 	panic("implement me")
 }
 
-func (p *Provider) CreateUser(userID, name string) error {
+func (p *Provider) CreateUser(userID, name, email string) error {
 	panic("implement me")
 }
 
