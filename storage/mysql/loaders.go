@@ -110,13 +110,17 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) 
 }
 
 func (p *Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error) {
-	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, icon, installedApplications FROM workspaces WHERE uuid = ?", workspaceUuid)
+	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts FROM workspaces WHERE uuid = ?", workspaceUuid)
 	located := rubix.Workspace{}
 	installedApplicationsJson := ""
+	footerPartsJson := ""
+	sysVendors := ""
 	icon := sql.NullString{}
-	err := q.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson)
-	json.Unmarshal([]byte(installedApplicationsJson), &located.InstalledApplications)
+	err := q.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &located.DefaultApp, &sysVendors, &footerPartsJson)
+	located.SystemVendors = strings.Split(sysVendors, ",")
 	located.Icon = icon.String
+	json.Unmarshal([]byte(installedApplicationsJson), &located.InstalledApplications)
+	json.Unmarshal([]byte(footerPartsJson), &located.FooterParts)
 	return &located, err
 }
 

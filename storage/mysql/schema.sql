@@ -18,7 +18,10 @@ create table rubix.workspaces (
     alias                 varchar(50) null,
     domain                varchar(120) null,
     icon                  varchar(255) null,
-    installedApplications text null
+    installedApplications text null,
+    defaultApp            varchar(120) null,
+    systemVendors         varchar(120) null,
+    footerParts           text null,
 );
 
 create index workspaces_alias on rubix.workspaces(alias);

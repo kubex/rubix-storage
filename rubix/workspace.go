@@ -8,12 +8,15 @@ import (
 )
 
 type Workspace struct {
-	Uuid                  string          `json:"uuid"`
-	Alias                 string          `json:"alias"`
-	Domain                string          `json:"domain"`
-	Name                  string          `json:"name"`
-	Icon                  string          `json:"icon"`
-	InstalledApplications []app.ScopedKey `json:"installedApplications"`
+	Uuid                  string            `json:"uuid"`
+	Alias                 string            `json:"alias"`
+	Domain                string            `json:"domain"`
+	Name                  string            `json:"name"`
+	Icon                  string            `json:"icon"`
+	InstalledApplications []app.ScopedKey   `json:"installedApplications"`
+	SystemVendors         []string          `json:"systemVendors"`
+	DefaultApp            app.GlobalAppID   `json:"defaultApp"`
+	FooterParts           map[string]string `json:"footerParts"`
 }
 
 func WorkspaceFromJson(jsonBytes []byte) (*Workspace, error) {
