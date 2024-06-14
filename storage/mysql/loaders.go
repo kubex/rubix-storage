@@ -118,6 +118,10 @@ func (p *Provider) RetrieveWorkspaceByDomain(domain string) (*rubix.Workspace, e
 }
 
 func (p *Provider) retrieveWorkspaceBy(field, match string) (*rubix.Workspace, error) {
+	if match == "" {
+		return nil, errors.New("invalid match")
+	}
+
 	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts FROM workspaces WHERE "+field+" = ?", match)
 	located := rubix.Workspace{}
 	installedApplicationsJson := sql.NullString{}
