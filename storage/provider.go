@@ -10,6 +10,8 @@ type Provider interface {
 	GetUserWorkspaceUUIDs(userId string) ([]string, error)
 	GetWorkspaceMembers(workspaceUuid string, userIDs ...string) ([]rubix.Membership, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
+	RetrieveWorkspaceByDomain(domain string) (*rubix.Workspace, error)
+
 	GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error)
 	AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string) error
 

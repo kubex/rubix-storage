@@ -110,7 +110,15 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) 
 }
 
 func (p *Provider) RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error) {
-	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts FROM workspaces WHERE uuid = ?", workspaceUuid)
+	return p.retrieveWorkspaceBy("uuid", workspaceUuid)
+}
+
+func (p *Provider) RetrieveWorkspaceByDomain(domain string) (*rubix.Workspace, error) {
+	return p.retrieveWorkspaceBy("domain", domain)
+}
+
+func (p *Provider) retrieveWorkspaceBy(field, match string) (*rubix.Workspace, error) {
+	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts FROM workspaces WHERE "+field+" = ?", match)
 	located := rubix.Workspace{}
 	installedApplicationsJson := sql.NullString{}
 	footerPartsJson := sql.NullString{}
