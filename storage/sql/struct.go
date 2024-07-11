@@ -1,4 +1,4 @@
-package mysql
+package sql
 
 type permissionResult struct {
 	PermissionKey string

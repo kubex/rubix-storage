@@ -36,6 +36,7 @@ type Provider interface {
 	CreateRole(workspace, role, title, description string, permissions, users []string) error
 	MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error
 
+	Initialize() error
 	Connect() error
 	Close() error
 	Sync() error

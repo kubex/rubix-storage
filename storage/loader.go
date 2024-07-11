@@ -3,8 +3,7 @@ package storage
 import (
 	"encoding/json"
 	"errors"
-
-	"github.com/kubex/rubix-storage/storage/mysql"
+	"github.com/kubex/rubix-storage/storage/sql"
 )
 
 func Load(jsonBytes []byte) (Provider, error) {
@@ -20,8 +19,8 @@ func Load(jsonBytes []byte) (Provider, error) {
 	}
 
 	switch loader.Provider {
-	case mysql.ProviderKey:
-		return mysql.FromJson(*loader.Configuration)
+	case sql.ProviderKey:
+		return sql.FromJson(*loader.Configuration)
 	}
 
 	return nil, errors.New("unable to load storage provider '" + loader.Provider + "'")
