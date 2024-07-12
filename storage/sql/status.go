@@ -52,7 +52,7 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 	res, err := p.primaryConnection.Exec("INSERT INTO user_status (workspace, user, state, extendedState, expiry, applied, id, afterId, duration, clearOnLogout) "+
 		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "+
 		onDuplicate+
-		"state = ?, extendedState = ?, expiry = ?, applied = ?, afterId = ?, duration = ?, clearOnLogout = ?",
+		" state = ?, extendedState = ?, expiry = ?, applied = ?, afterId = ?, duration = ?, clearOnLogout = ?",
 		workspaceUuid, userUuid, status.State, status.ExtendedState, expiry, time.Now(), status.ID, afterId, duration, status.ClearOnLogout,
 		status.State, status.ExtendedState, expiry, time.Now(), afterId, duration, status.ClearOnLogout)
 	if err != nil {
