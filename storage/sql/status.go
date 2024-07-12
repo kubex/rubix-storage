@@ -33,7 +33,7 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 			if !expiryTime.Valid || expiryTime.String == "" {
 				status.ExpiryTime = time.Now().Add(time.Second * time.Duration(duration))
 			} else {
-				exp, _ := time.Parse(time.RFC3339Nano, expiryTime.String)
+				exp := timeFromString(expiryTime.String)
 				status.ExpiryTime = exp.Add(time.Second * time.Duration(duration))
 			}
 			expiry = &status.ExpiryTime
@@ -105,17 +105,17 @@ func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStat
 		newResult := rubix.UserStatus{}
 		afterId := sql.NullString{}
 		expiryTime := sql.NullString{}
-		appliedTime := ""
+		appliedTime := sql.NullString{}
 		if scanErr := rows.Scan(&newResult.State, &newResult.ExtendedState, &appliedTime, &expiryTime, &newResult.ID, &afterId, &newResult.ClearAfterSeconds, &newResult.ClearOnLogout); scanErr != nil {
 			return status, scanErr
 		}
 
-		if appliedTime != "" {
-			newResult.AppliedTime, _ = time.Parse(time.RFC3339Nano, appliedTime)
+		if appliedTime.Valid && appliedTime.String != "" {
+			newResult.AppliedTime = timeFromString(appliedTime.String)
 		}
 
 		if expiryTime.Valid && expiryTime.String != "" {
-			newResult.ExpiryTime, _ = time.Parse(time.RFC3339Nano, expiryTime.String)
+			newResult.ExpiryTime = timeFromString(expiryTime.String)
 		}
 
 		if afterId.Valid {
