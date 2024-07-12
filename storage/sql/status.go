@@ -23,15 +23,17 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 
 		if status.AfterID == "latest" {
 			latest := p.primaryConnection.QueryRow("SELECT id,expiry FROM user_status WHERE workspace = ? AND user = ? AND id != '' AND expiry IS NOT NULL ORDER BY expiry DESC LIMIT 1", workspaceUuid, userUuid)
-			exp := time.Time{}
-			latestErr := latest.Scan(&status.AfterID, &exp)
+
+			expiryTime := sql.NullString{}
+			latestErr := latest.Scan(&status.AfterID, &expiryTime)
 			if latestErr != nil && !errors.Is(latestErr, sql.ErrNoRows) {
 				return false, latestErr
 			}
 
-			if exp.IsZero() {
+			if !expiryTime.Valid || expiryTime.String == "" {
 				status.ExpiryTime = time.Now().Add(time.Second * time.Duration(duration))
 			} else {
+				exp, _ := time.Parse(time.RFC3339Nano, expiryTime.String)
 				status.ExpiryTime = exp.Add(time.Second * time.Duration(duration))
 			}
 			expiry = &status.ExpiryTime
@@ -93,7 +95,6 @@ func (p *Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) e
 
 func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
 	status := rubix.UserStatus{}
-	var expiry *time.Time
 	rows, err := p.primaryConnection.Query("SELECT state, extendedState, applied, expiry, id, afterId, duration, clearOnLogout FROM user_status WHERE workspace = ? AND user = ? AND (expiry IS NULL OR expiry > ?)", workspaceUuid, userUuid, time.Now())
 	if err != nil {
 		return status, err
@@ -103,15 +104,22 @@ func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStat
 	for rows.Next() {
 		newResult := rubix.UserStatus{}
 		afterId := sql.NullString{}
-		if scanErr := rows.Scan(&newResult.State, &newResult.ExtendedState, &newResult.AppliedTime, &expiry, &newResult.ID, &afterId, &newResult.ClearAfterSeconds, &newResult.ClearOnLogout); scanErr != nil {
+		expiryTime := sql.NullString{}
+		appliedTime := ""
+		if scanErr := rows.Scan(&newResult.State, &newResult.ExtendedState, &appliedTime, &expiryTime, &newResult.ID, &afterId, &newResult.ClearAfterSeconds, &newResult.ClearOnLogout); scanErr != nil {
 			return status, scanErr
 		}
-		if afterId.Valid {
-			newResult.AfterID = afterId.String
+
+		if appliedTime != "" {
+			newResult.AppliedTime, _ = time.Parse(time.RFC3339Nano, appliedTime)
 		}
 
-		if expiry != nil {
-			newResult.ExpiryTime = *expiry
+		if expiryTime.Valid && expiryTime.String != "" {
+			newResult.ExpiryTime, _ = time.Parse(time.RFC3339Nano, expiryTime.String)
+		}
+
+		if afterId.Valid {
+			newResult.AfterID = afterId.String
 		}
 
 		if newResult.ID == "" {

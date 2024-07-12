@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/kubex/definitions-go/app"
@@ -105,11 +106,21 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) 
 		var member = rubix.Membership{Workspace: workspaceUuid}
 		email := sql.NullString{}
 		name := sql.NullString{}
-		if scanErr := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &member.Since, &member.State, &member.StateSince, &name, &email); scanErr != nil {
+		since := sql.NullString{}
+		stateSince := sql.NullString{}
+		if scanErr := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &since, &member.State, &stateSince, &name, &email); scanErr != nil {
 			return nil, scanErr
 		} else {
 			member.Email = email.String
 			member.Name = name.String
+
+			if stateSince.Valid && stateSince.String != "" {
+				member.StateSince, _ = time.Parse(time.RFC3339Nano, stateSince.String)
+			}
+			if since.Valid && since.String != "" {
+				member.Since, _ = time.Parse(time.RFC3339Nano, since.String)
+			}
+
 		}
 		members = append(members, member)
 	}
