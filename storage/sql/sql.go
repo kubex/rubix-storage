@@ -22,6 +22,7 @@ type Provider struct {
 	TursoToken        string   `json:"tursoToken"`
 	primaryConnection *sql.DB
 	tursoDir          string
+	afterUpdate       []func()
 	tursoConnector    *libsql.Connector
 }
 
@@ -151,6 +152,17 @@ func (p *Provider) Initialize() error {
 	}
 
 	return nil
+}
+
+func (p *Provider) AfterUpdate(exec func()) error {
+	p.afterUpdate = append(p.afterUpdate, exec)
+	return nil
+}
+
+func (p *Provider) update() {
+	for _, exec := range p.afterUpdate {
+		exec()
+	}
 }
 
 func FromJson(data []byte) (*Provider, error) {

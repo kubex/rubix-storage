@@ -40,4 +40,6 @@ type Provider interface {
 	Connect() error
 	Close() error
 	Sync() error
+
+	AfterUpdate(func()) error
 }

@@ -31,6 +31,7 @@ func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.Membe
 	if errors.As(err, &me2) && me2.Number == mySQLDuplicateEntry {
 		return nil
 	}
+	p.update()
 	return err
 }
 
@@ -42,6 +43,7 @@ func (p *Provider) CreateUser(userID, name, email string) error {
 	if errors.As(err, &me1) && me1.Number == mySQLDuplicateEntry {
 		return nil
 	}
+	p.update()
 	return err
 }
 
@@ -300,6 +302,7 @@ func (p *Provider) SetMembershipType(workspace, user string, MembershipType rubi
 	}
 
 	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET type = ? WHERE workspace = ? AND user = ?", MembershipType, workspace, user)
+	p.update()
 	return err
 }
 
@@ -314,12 +317,14 @@ func (p *Provider) SetMembershipState(workspace, user string, userState rubix.Me
 	}
 
 	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", userState, workspace, user)
+	p.update()
 	return err
 }
 
 func (p *Provider) RemoveUserFromWorkspace(workspace, user string) error {
 
 	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", rubix.MembershipStateRemoved, workspace, user)
+	p.update()
 	return err
 }
 
@@ -437,12 +442,14 @@ func (p *Provider) GetUserRoles(workspace, user string) ([]rubix.UserRole, error
 func (p *Provider) DeleteRole(workspace, role string) error {
 
 	_, err := p.primaryConnection.Exec("DELETE FROM roles  WHERE workspace = ? AND role = ?", workspace, role)
+	p.update()
 	return err
 }
 
 func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
 
 	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
+	p.update()
 
 	var me *mysql.MySQLError
 	if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
@@ -460,6 +467,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	if len(options) == 0 {
 		return nil
 	}
+	defer p.update()
 
 	payload := rubix.MutateRolePayload{}
 	for _, opt := range options {

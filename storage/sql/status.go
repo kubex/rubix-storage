@@ -58,16 +58,20 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 	// Always clear previous states when applying
 	go p.primaryConnection.Exec("DELETE FROM user_status  WHERE workspace = ? AND user = ? AND expiry < ? AND expiry IS NOT NULL", workspaceUuid, userUuid, time.Now())
 
+	p.update()
+
 	return impact > 0, err
 }
 
 func (p *Provider) ClearUserStatusLogout(workspaceUuid, userUuid string) error {
 	_, err := p.primaryConnection.Exec("DELETE FROM user_status  WHERE workspace = ? AND user = ? AND clearOnLogout = 1", workspaceUuid, userUuid)
+	p.update()
 	return err
 }
 
 func (p *Provider) setExpiry(workspaceUuid, userUuid, statusID string, expiry time.Time) error {
 	_, err := p.primaryConnection.Exec("UPDATE user_status SET expiry = ? WHERE workspace = ? AND user = ? AND id = ?", expiry, workspaceUuid, userUuid, statusID)
+	p.update()
 	return err
 }
 
@@ -78,6 +82,7 @@ func (p *Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) e
 	}
 
 	_, deleteErr := p.primaryConnection.Exec("DELETE FROM user_status  WHERE workspace = ? AND user = ? AND (id = ? OR (expiry < ? AND expiry IS NOT NULL))", workspaceUuid, userUuid, statusID, time.Now())
+	p.update()
 	return deleteErr
 }
 
