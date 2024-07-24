@@ -43,7 +43,7 @@ func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.Membe
 	if p.SqlLite {
 		onDuplicate = "ON CONFLICT DO UPDATE SET"
 	}
-	_, err = p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state, partner_id) VALUES (?, ?, ?, NOW(), NOW(), ?, ?) "+onDuplicate+" state = IF(state = ?, ?, state)", userID, workspaceID, as, rubix.MembershipStatePending, partnerId, rubix.MembershipStateRemoved, rubix.MembershipStatePending)
+	_, err = p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state, partner_id) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?) "+onDuplicate+" state = IF(state = ?, ?, state)", userID, workspaceID, as, rubix.MembershipStatePending, partnerId, rubix.MembershipStateRemoved, rubix.MembershipStatePending)
 
 	if p.isDuplicateConflict(err) {
 		return nil
