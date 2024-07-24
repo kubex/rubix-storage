@@ -39,14 +39,11 @@ func (p *Provider) isDuplicateConflict(err error) bool {
 
 func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string) error {
 	var err error
-	onDuplicate := "ON DUPLICATE KEY UPDATE"
-	if p.SqlLite {
-		onDuplicate = "ON CONFLICT DO UPDATE SET"
-	}
-	_, err = p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state, partner_id) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?) "+onDuplicate+" state = IF(state = ?, ?, state)", userID, workspaceID, as, rubix.MembershipStatePending, partnerId, rubix.MembershipStateRemoved, rubix.MembershipStatePending)
+	_, err = p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state, partner_id) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)", userID, workspaceID, as, rubix.MembershipStatePending, partnerId)
 
 	if p.isDuplicateConflict(err) {
-		return nil
+		_, err = p.primaryConnection.Exec("UPDATE workspace_memberships SET state_since = CURRENT_TIMESTAMP, state = ?, type = ?, parner_id = ? WHERE state = ? AND user = ? AND workspace = ?", rubix.MembershipStatePending, as, partnerId, rubix.MembershipStateRemoved, userID, workspaceID)
+		return err
 	}
 	p.update()
 	return err
