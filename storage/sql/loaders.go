@@ -50,6 +50,9 @@ func (p *Provider) CreateUser(userID, name, email string) error {
 	if errors.As(err, &me1) && (me1.Number == mySQLDuplicateEntry || me1.Number == sqlLiteDuplicateEntry) {
 		return nil
 	}
+	if err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		return nil
+	}
 	p.update()
 	return err
 }
