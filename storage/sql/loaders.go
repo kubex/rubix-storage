@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	mySQLDuplicateEntry = 1062
+	mySQLDuplicateEntry   = 1062
+	sqlLiteDuplicateEntry = 1555
 )
 
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
@@ -46,7 +47,7 @@ func (p *Provider) CreateUser(userID, name, email string) error {
 	_, err := p.primaryConnection.Exec("INSERT INTO users (user, name, email) VALUES (?, ?, ?)", userID, name, email)
 
 	var me1 *mysql.MySQLError
-	if errors.As(err, &me1) && me1.Number == mySQLDuplicateEntry {
+	if errors.As(err, &me1) && (me1.Number == mySQLDuplicateEntry || me1.Number == sqlLiteDuplicateEntry) {
 		return nil
 	}
 	p.update()
