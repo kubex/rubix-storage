@@ -26,6 +26,17 @@ func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 	return located, err
 }
 
+func (p *Provider) isDuplicateConflict(err error) bool {
+	var me1 *mysql.MySQLError
+	if errors.As(err, &me1) && (me1.Number == mySQLDuplicateEntry || me1.Number == sqlLiteDuplicateEntry) {
+		return true
+	}
+	if err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		return true
+	}
+	return false
+}
+
 func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string) error {
 	var err error
 	onDuplicate := "ON DUPLICATE KEY UPDATE"
@@ -34,8 +45,7 @@ func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.Membe
 	}
 	_, err = p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state, partner_id) VALUES (?, ?, ?, NOW(), NOW(), ?, ?) "+onDuplicate+" state = IF(state = ?, ?, state)", userID, workspaceID, as, rubix.MembershipStatePending, partnerId, rubix.MembershipStateRemoved, rubix.MembershipStatePending)
 
-	var me2 *mysql.MySQLError
-	if errors.As(err, &me2) && me2.Number == mySQLDuplicateEntry {
+	if p.isDuplicateConflict(err) {
 		return nil
 	}
 	p.update()
@@ -46,11 +56,7 @@ func (p *Provider) CreateUser(userID, name, email string) error {
 
 	_, err := p.primaryConnection.Exec("INSERT INTO users (user, name, email) VALUES (?, ?, ?)", userID, name, email)
 
-	var me1 *mysql.MySQLError
-	if errors.As(err, &me1) && (me1.Number == mySQLDuplicateEntry || me1.Number == sqlLiteDuplicateEntry) {
-		return nil
-	}
-	if err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed") {
+	if p.isDuplicateConflict(err) {
 		return nil
 	}
 	p.update()
@@ -263,8 +269,7 @@ func (p *Provider) MutateUser(workspace, user string, options ...rubix.MutateUse
 		for _, role := range payload.RolesToAdd {
 			_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
 
-			var me *mysql.MySQLError
-			if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
+			if p.isDuplicateConflict(err) {
 				continue
 			}
 			if err != nil {
@@ -471,8 +476,7 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
 	p.update()
 
-	var me *mysql.MySQLError
-	if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
+	if p.isDuplicateConflict(err) {
 		return errors.New("role already exists")
 	}
 	if err != nil {
@@ -536,8 +540,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 		for _, user := range payload.UsersToAdd {
 			_, err := p.primaryConnection.Exec("INSERT INTO user_roles (workspace, user, role) VALUES (?, ?, ?)", workspace, user, role)
 
-			var me *mysql.MySQLError
-			if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
+			if p.isDuplicateConflict(err) {
 				continue
 			}
 			if err != nil {
@@ -563,8 +566,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 		for _, perm := range payload.PermsToAdd {
 			_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission) VALUES (?, ?, ?)", workspace, role, perm)
 
-			var me *mysql.MySQLError
-			if errors.As(err, &me) && me.Number == mySQLDuplicateEntry {
+			if p.isDuplicateConflict(err) {
 				continue
 			}
 			if err != nil {
