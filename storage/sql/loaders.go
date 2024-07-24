@@ -42,7 +42,7 @@ func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.Membe
 	_, err = p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state, partner_id) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)", userID, workspaceID, as, rubix.MembershipStatePending, partnerId)
 
 	if p.isDuplicateConflict(err) {
-		_, err = p.primaryConnection.Exec("UPDATE workspace_memberships SET state_since = CURRENT_TIMESTAMP, state = ?, type = ?, parner_id = ? WHERE state = ? AND user = ? AND workspace = ?", rubix.MembershipStatePending, as, partnerId, rubix.MembershipStateRemoved, userID, workspaceID)
+		_, err = p.primaryConnection.Exec("UPDATE workspace_memberships SET state_since = CURRENT_TIMESTAMP, state = ?, type = ?, partner_id = ? WHERE state = ? AND user = ? AND workspace = ?", rubix.MembershipStatePending, as, partnerId, rubix.MembershipStateRemoved, userID, workspaceID)
 		return err
 	}
 	p.update()
