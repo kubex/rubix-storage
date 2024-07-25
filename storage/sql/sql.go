@@ -5,25 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/tursodatabase/go-libsql"
-	"os"
-	"path/filepath"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	"strings"
 )
 
 const ProviderKey = "sql"
 
 type Provider struct {
-	PrimaryDSN        string   `json:"primaryDsn"` // user:password@tcp(hostname:port)
-	ReplicaDSNs       []string `json:"replicaDsns"`
-	Database          string   `json:"database"`
-	SqlLite           bool     `json:"sqlLite"`
-	TursoToken        string   `json:"tursoToken"`
+	PrimaryDSN        string `json:"primaryDsn"` // user:password@tcp(hostname:port)
+	Database          string `json:"database"`
+	SqlLite           bool   `json:"sqlLite"`
 	primaryConnection *sql.DB
-	tursoDir          string
 	afterUpdate       []func()
-	tursoConnector    *libsql.Connector
 }
 
 func (p *Provider) Close() error {
@@ -31,55 +24,21 @@ func (p *Provider) Close() error {
 	if p.primaryConnection != nil {
 		errs = append(errs, p.primaryConnection.Close())
 	}
-	if p.tursoConnector != nil {
-		errs = append(errs, p.tursoConnector.Close())
-	}
-	if p.tursoDir != "" {
-		errs = append(errs, os.RemoveAll(p.tursoDir))
-	}
 	return errors.Join(errs...)
 }
 
 func (p *Provider) Sync() error {
-	if p.tursoConnector != nil {
-		return p.tursoConnector.Sync()
-	}
 	return nil
 }
 
 func (p *Provider) Connect() error {
 	if p.primaryConnection == nil {
-
 		var err error
 		if p.SqlLite {
-
-			authToken := p.TursoToken
-
-			if authToken != "" {
-				dbName := "rubix.db"
-				primaryUrl := "libsql://" + p.Database + ".turso.io"
-
-				p.tursoDir, err = os.MkdirTemp("", "libsql-*")
-				if err != nil {
-					return fmt.Errorf("error creating temporary directory: %s", err)
-				}
-
-				dbPath := filepath.Join(p.tursoDir, dbName)
-				p.tursoConnector, err = libsql.NewEmbeddedReplicaConnector(dbPath, primaryUrl, libsql.WithAuthToken(authToken))
-				if err != nil {
-					return err
-				}
-
-				p.tursoConnector.Sync()
-				p.primaryConnection = sql.OpenDB(p.tursoConnector)
-			} else {
-				dbName := "file:" + p.Database
-				p.primaryConnection, err = sql.Open("libsql", dbName)
-				if err != nil {
-					return fmt.Errorf("failed to open db %s", err)
-				}
+			p.primaryConnection, err = sql.Open("libsql", p.PrimaryDSN)
+			if err != nil {
+				return fmt.Errorf("failed to open db %s", err)
 			}
-
 		} else {
 			p.primaryConnection, err = sql.Open("mysql", p.PrimaryDSN+"/"+p.Database+"?parseTime=true")
 		}
