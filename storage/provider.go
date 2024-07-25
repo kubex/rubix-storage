@@ -9,6 +9,7 @@ type Provider interface {
 	GetWorkspaceUUIDByAlias(alias string) (string, error)
 	GetUserWorkspaceUUIDs(userId string) ([]string, error)
 	GetWorkspaceMembers(workspaceUuid string, userIDs ...string) ([]rubix.Membership, error)
+	RetrieveWorkspaces(workspaceUuids ...string) (map[string]*rubix.Workspace, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
 	RetrieveWorkspaceByDomain(domain string) (*rubix.Workspace, error)
 

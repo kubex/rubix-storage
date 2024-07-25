@@ -142,25 +142,68 @@ func (p *Provider) RetrieveWorkspaceByDomain(domain string) (*rubix.Workspace, e
 	return p.retrieveWorkspaceBy("domain", domain)
 }
 
+func (p *Provider) RetrieveWorkspaces(workspaceUuids ...string) (map[string]*rubix.Workspace, error) {
+	if len(workspaceUuids) == 0 {
+		return nil, nil
+	}
+
+	args := make([]any, len(workspaceUuids))
+	inQ := "?"
+	args[0] = workspaceUuids[0]
+	for i := 1; i < len(workspaceUuids); i++ {
+		inQ += ",?"
+		args[i] = workspaceUuids[i]
+	}
+
+	return p.retrieveWorkspacesByQuery("uuid IN ("+inQ+")", args...)
+}
+
 func (p *Provider) retrieveWorkspaceBy(field, match string) (*rubix.Workspace, error) {
 	if match == "" {
 		return nil, errors.New("invalid match")
 	}
 
-	q := p.primaryConnection.QueryRow("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts FROM workspaces WHERE "+field+" = ?", match)
-	located := rubix.Workspace{}
-	installedApplicationsJson := sql.NullString{}
-	footerPartsJson := sql.NullString{}
-	sysVendors := sql.NullString{}
-	icon := sql.NullString{}
-	defaultApp := sql.NullString{}
-	err := q.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson)
-	located.SystemVendors = strings.Split(sysVendors.String, ",")
-	located.Icon = icon.String
-	located.DefaultApp = app.IDFromString(defaultApp.String)
-	json.Unmarshal([]byte(installedApplicationsJson.String), &located.InstalledApplications)
-	json.Unmarshal([]byte(footerPartsJson.String), &located.FooterParts)
-	return &located, err
+	resp, err := p.retrieveWorkspacesByQuery(field+" = ?", match)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp) > 0 {
+		for _, workspace := range resp {
+			return workspace, nil
+		}
+	}
+	return nil, nil
+}
+
+func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[string]*rubix.Workspace, error) {
+	resp := make(map[string]*rubix.Workspace)
+	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts FROM workspaces WHERE "+where, args...)
+	if err != nil {
+		return resp, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		located := rubix.Workspace{}
+		installedApplicationsJson := sql.NullString{}
+		footerPartsJson := sql.NullString{}
+		sysVendors := sql.NullString{}
+		icon := sql.NullString{}
+		defaultApp := sql.NullString{}
+		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson)
+		if scanErr != nil {
+			continue
+		}
+		located.SystemVendors = strings.Split(sysVendors.String, ",")
+		located.Icon = icon.String
+		located.DefaultApp = app.IDFromString(defaultApp.String)
+		json.Unmarshal([]byte(installedApplicationsJson.String), &located.InstalledApplications)
+		json.Unmarshal([]byte(footerPartsJson.String), &located.FooterParts)
+		resp[located.Uuid] = &located
+	}
+
+	return resp, err
 }
 
 func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error) {
