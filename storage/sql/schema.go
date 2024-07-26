@@ -29,14 +29,14 @@ func migrations() []migration {
 		"since       datetime    default CURRENT_TIMESTAMP not null,"+
 		"state       varchar(20) default 0                 not null,"+
 		"state_since datetime    default CURRENT_TIMESTAMP not null,"+
-		"constraint user_workspace unique (user, workspace)"+
+		"PRIMARY KEY (`user`, `workspace`)"+
 		");"))
 	queries = append(queries, migQuery(`create index user_index on workspace_memberships(user);`))
 	queries = append(queries, migQuery(`create index workspace_index on workspace_memberships(workspace);`))
 
 	// Workspaces
 	queries = append(queries, migQuery("create table workspaces ("+
-		"uuid                  varchar(64) not null primary key,"+
+		"uuid                  varchar(64) not null,"+
 		"name                  varchar(50) null,"+
 		"alias                 varchar(50) null,"+
 		"domain                varchar(120) null,"+
@@ -45,6 +45,7 @@ func migrations() []migration {
 		"defaultApp            varchar(120) null,"+
 		"systemVendors         varchar(120) null,"+
 		"footerParts           text null"+
+		"PRIMARY KEY (`uuid`)"+
 		");"))
 	queries = append(queries, migQuery(`create index workspaces_alias on workspaces(alias);`))
 
@@ -56,6 +57,7 @@ func migrations() []migration {
 		"`app`       varchar(64) null,"+
 		"`key`       varchar(64) not null,"+
 		"`value`     text        not null"+
+		"PRIMARY KEY (`workspace`, `vendor`, `app`, `user`, `key`)"+
 		");"))
 	queries = append(queries, migQuery("create unique index `wuvak` on auth_data(`workspace`, `user`, `vendor`, `app`, `key`);"))
 
