@@ -44,7 +44,7 @@ func migrations() []migration {
 		"installedApplications text null,"+
 		"defaultApp            varchar(120) null,"+
 		"systemVendors         varchar(120) null,"+
-		"footerParts           text null"+
+		"footerParts           text null,"+
 		"PRIMARY KEY (`uuid`)"+
 		");"))
 	queries = append(queries, migQuery(`create index workspaces_alias on workspaces(alias);`))
@@ -56,7 +56,7 @@ func migrations() []migration {
 		"`vendor`    varchar(64) not null,"+
 		"`app`       varchar(64) null,"+
 		"`key`       varchar(64) not null,"+
-		"`value`     text        not null"+
+		"`value`     text        not null,"+
 		"PRIMARY KEY (`workspace`, `vendor`, `app`, `user`, `key`)"+
 		");"))
 	queries = append(queries, migQuery("create unique index `wuvak` on auth_data(`workspace`, `user`, `vendor`, `app`, `key`);"))
