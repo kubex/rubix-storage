@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	"strings"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 const ProviderKey = "sql"
@@ -77,7 +78,7 @@ func (p *Provider) Initialize() error {
 		}
 
 		if createMigrations {
-			_, err := p.primaryConnection.Exec("create table rubix_migrations (migration varchar(255) not null, applied int not null)")
+			_, err := p.primaryConnection.Exec("create table rubix_migrations (migration varchar(255) not null primary key, applied int not null)")
 			if err != nil {
 				return err
 			}
