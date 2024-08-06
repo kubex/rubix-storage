@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
@@ -105,6 +106,7 @@ func (p *Provider) Initialize() error {
 					return migErr
 				}
 				if _, migErr := p.primaryConnection.Exec("INSERT INTO rubix_migrations (migration, applied) VALUES (?, 1);", query.key); migErr != nil {
+					log.Println("Failed to insert migration", query.key, migErr)
 					return migErr
 				}
 			}
