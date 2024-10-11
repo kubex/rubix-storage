@@ -216,6 +216,17 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 	return resp, err
 }
 
+func (p *Provider) SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error {
+	query := "INSERT INTO auth_data (workspace, user, `vendor`, `app`, `key`, `value`) VALUES (?, ?, ?, ?, ?, ?) "
+	args := []any{workspaceUuid, userUuid, value.VendorID, value.AppID, value.Key, value.Value}
+	if forceUpdate {
+		query += "ON DUPLICATE KEY UPDATE `value` = ?"
+		args = append(args, value.Value)
+	}
+	_, err := p.primaryConnection.Exec(query, args...)
+	return err
+}
+
 func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error) {
 	subQuery := " AND ("
 	for i, appID := range appIDs {
