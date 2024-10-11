@@ -19,6 +19,16 @@ const (
 	sqlLiteDuplicateEntry = 1555
 )
 
+func (p *Provider) CreateWorkspace(workspaceUuid, name, alias, domain string) error {
+	_, err := p.primaryConnection.Exec("INSERT INTO workspaces (uuid,name,alias,domain) VALUES (?, ?, ?, ?)", workspaceUuid, name, alias, domain)
+
+	if p.isDuplicateConflict(err) {
+		return nil
+	}
+	p.update()
+	return err
+}
+
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
 	q := p.primaryConnection.QueryRow("SELECT uuid FROM workspaces WHERE alias = ?", alias)
 	located := ""

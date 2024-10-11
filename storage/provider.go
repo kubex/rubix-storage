@@ -6,6 +6,7 @@ import (
 )
 
 type Provider interface {
+	CreateWorkspace(workspaceUuid, name, alias, domain string) error
 	GetWorkspaceUUIDByAlias(alias string) (string, error)
 	GetUserWorkspaceUUIDs(userId string) ([]string, error)
 	GetWorkspaceMembers(workspaceUuid string, userIDs ...string) ([]rubix.Membership, error)
