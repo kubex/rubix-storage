@@ -1,11 +1,21 @@
 package rubix
 
-import "github.com/kubex/definitions-go/app"
+import (
+	"time"
+
+	"github.com/kubex/definitions-go/app"
+)
 
 type Lookup struct {
 	WorkspaceUUID string
 	UserUUID      string
 	AppID         app.GlobalAppID
+
+	MFA             bool
+	VerifiedAccount bool
+	SessionIssued   time.Time
+	Location        string
+	IP              string
 }
 
 type DataResult struct {

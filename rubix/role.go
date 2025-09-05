@@ -7,6 +7,12 @@ type Role struct {
 	Description string
 	Users       []string         // Not on roles table
 	Permissions []RolePermission // Not on roles table
+
+	AllowedLocations          []string
+	AllowedIPs                []string
+	RequireMFA                bool
+	RequireVerifiedAccount    bool
+	MaxTimeSinceSessionIssued int64 // max number of seconds since the user logged in
 }
 
 type UserRole struct {
