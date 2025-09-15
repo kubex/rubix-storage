@@ -17,6 +17,7 @@ type Workspace struct {
 	SystemVendors         []string          `json:"systemVendors"`
 	DefaultApp            app.GlobalAppID   `json:"defaultApp"`
 	FooterParts           map[string]string `json:"footerParts"`
+	AccessCondition       Condition         `json:"accessCondition"`
 }
 
 func WorkspaceFromJson(jsonBytes []byte) (*Workspace, error) {

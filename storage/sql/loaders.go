@@ -188,7 +188,7 @@ func (p *Provider) retrieveWorkspaceBy(field, match string) (*rubix.Workspace, e
 
 func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[string]*rubix.Workspace, error) {
 	resp := make(map[string]*rubix.Workspace)
-	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts FROM workspaces WHERE "+where, args...)
+	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts,accessCondition FROM workspaces WHERE "+where, args...)
 	if err != nil {
 		return resp, err
 	}
@@ -198,6 +198,7 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		located := rubix.Workspace{}
 		installedApplicationsJson := sql.NullString{}
 		footerPartsJson := sql.NullString{}
+		accessConditionJson := sql.NullString{}
 		sysVendors := sql.NullString{}
 		icon := sql.NullString{}
 		defaultApp := sql.NullString{}
@@ -210,6 +211,7 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		located.DefaultApp = app.IDFromString(defaultApp.String)
 		json.Unmarshal([]byte(installedApplicationsJson.String), &located.InstalledApplications)
 		json.Unmarshal([]byte(footerPartsJson.String), &located.FooterParts)
+		json.Unmarshal([]byte(accessConditionJson.String), &located.AccessCondition)
 		resp[located.Uuid] = &located
 	}
 

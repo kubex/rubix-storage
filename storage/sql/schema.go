@@ -108,5 +108,9 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `user`, `id`)"+
 		");"))
 
+	queries = append(queries, migQuery("alter table `workspaces` "+
+		"ADD `accessCondition` text null"+
+		";"))
+
 	return queries
 }
