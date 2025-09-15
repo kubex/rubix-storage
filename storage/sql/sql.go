@@ -79,21 +79,26 @@ func (p *Provider) Initialize() error {
 		}
 
 		if createMigrations {
-			_, err := p.primaryConnection.Exec("create table rubix_migrations (migration varchar(255) not null primary key, applied int not null)")
+			_, err := p.primaryConnection.Exec("create table rubix_migrations (migration varchar(255) not null primary key, applied int not null, query text null)")
 			if err != nil {
 				return err
 			}
 		}
 
 		processed := make(map[string]bool)
-		rows, err := p.primaryConnection.Query("SELECT migration, applied FROM rubix_migrations;")
+		rows, err := p.primaryConnection.Query("SELECT migration, applied, query FROM rubix_migrations;")
+		if err != nil && strings.Contains(err.Error(), "no such column") {
+			p.primaryConnection.Exec("ALTER TABLE rubix_migrations ADD COLUMN query text null;")
+			rows, err = p.primaryConnection.Query("SELECT migration, applied, query FROM rubix_migrations;")
+		}
 		if err != nil {
 			return err
 		}
 		for rows.Next() {
 			var migKey string
 			var applied int
-			if scanErr := rows.Scan(&migKey, &applied); scanErr != nil {
+			var q sql.NullString
+			if scanErr := rows.Scan(&migKey, &applied, &q); scanErr != nil {
 				return scanErr
 			}
 			processed[migKey] = applied == 1
@@ -103,9 +108,11 @@ func (p *Provider) Initialize() error {
 		for _, query := range queries {
 			if !processed[query.key] {
 				if _, migErr := p.primaryConnection.Exec(query.query); migErr != nil {
-					return migErr
+					if !strings.Contains(migErr.Error(), "already exists") {
+						return migErr
+					}
 				}
-				if _, migErr := p.primaryConnection.Exec("INSERT INTO rubix_migrations (migration, applied) VALUES (?, 1);", query.key); migErr != nil {
+				if _, migErr := p.primaryConnection.Exec("INSERT INTO rubix_migrations (migration, applied, query) VALUES (?, 1, ?);", query.key, query.query); migErr != nil {
 					log.Println("Failed to insert migration", query.key, migErr)
 					return migErr
 				}
