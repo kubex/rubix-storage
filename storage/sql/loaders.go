@@ -202,7 +202,7 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		sysVendors := sql.NullString{}
 		icon := sql.NullString{}
 		defaultApp := sql.NullString{}
-		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson)
+		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson, &accessConditionJson)
 		if scanErr != nil {
 			continue
 		}
