@@ -16,20 +16,45 @@ type UserRole struct {
 }
 
 type RolePermission struct {
-	Workspace  string `json:"workspace"`
-	Role       string `json:"role"`
-	Permission string `json:"permission"`
-	Resource   string `json:"resource"`
-	Allow      bool   `json:"allow"`
-	Meta       string `json:"meta"`
+	Workspace   string `json:"workspace"`
+	Role        string `json:"role"`
+	Permission  string `json:"permission"`
+	Resource    string `json:"resource"`
+	Allow       bool   `json:"allow"`
+	Meta        string `json:"meta"`
+	Constraints string `json:"constraints"`
 }
+
+type RolePermissionConstraint struct {
+	Type     RolePermissionConstraintType     `json:"type"`
+	Operator RolePermissionConstraintOperator `json:"operator"`
+	Value    interface{}                      `json:"value"`
+}
+
+type RolePermissionConstraintType string
+
+const (
+	TypeValue    RolePermissionConstraintType = "value"
+	TypeLocation RolePermissionConstraintType = "location"
+)
+
+type RolePermissionConstraintOperator string
+
+const (
+	OperatorLessThan           RolePermissionConstraintOperator = "lessThan"
+	OperatorGreaterThan        RolePermissionConstraintOperator = "greaterThan"
+	OperatorEqual              RolePermissionConstraintOperator = "equal"
+	OperatorNotEqual           RolePermissionConstraintOperator = "notEqual"
+	OperatorLessThanOrEqual    RolePermissionConstraintOperator = "lessThanOrEqual"
+	OperatorGreaterThanOrEqual RolePermissionConstraintOperator = "greaterThanOrEqual"
+)
 
 type MutateRolePayload struct {
 	Title       *string
 	Description *string
 	UsersToAdd  []string
 	UsersToRem  []string
-	PermsToAdd  []string
+	PermsToAdd  map[string][]RolePermissionConstraint
 	PermsToRem  []string
 }
 
@@ -59,9 +84,11 @@ func WithUsersToRemove(users ...string) MutateRoleOption {
 	}
 }
 
-func WithPermsToAdd(perms ...string) MutateRoleOption {
+func WithPermsToAdd(perms map[string][]RolePermissionConstraint) MutateRoleOption {
 	return func(p *MutateRolePayload) {
-		p.PermsToAdd = append(p.PermsToAdd, perms...)
+		for k, v := range perms {
+			p.PermsToAdd[k] = v
+		}
 	}
 }
 

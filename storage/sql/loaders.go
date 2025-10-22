@@ -544,7 +544,7 @@ func (p *Provider) DeleteRole(workspace, role string) error {
 	return err
 }
 
-func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
+func (p *Provider) CreateRole(workspace, role, name, description string, permissions map[string][]rubix.RolePermissionConstraint, users []string) error {
 
 	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
 	p.update()
@@ -556,7 +556,7 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 		return err
 	}
 
-	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
+	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions))
 }
 
 func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
@@ -636,8 +636,13 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	})
 	g.Go(func() error {
 
-		for _, perm := range payload.PermsToAdd {
-			_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission) VALUES (?, ?, ?)", workspace, role, perm)
+		for perm, constraints := range payload.PermsToAdd {
+			_, err := json.Marshal(constraints) // @todo add migrations for constraint field and populate from here
+			if err != nil {
+				return err
+			}
+
+			_, err = p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission) VALUES (?, ?, ?)", workspace, role, perm)
 
 			if p.isDuplicateConflict(err) {
 				continue
