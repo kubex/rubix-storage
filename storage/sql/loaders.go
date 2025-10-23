@@ -468,7 +468,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	})
 	g.Go(func() error {
 
-		rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, meta FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+		rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, meta, constraints FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
 		if err != nil {
 			return err
 		}
@@ -477,9 +477,17 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 		for rows.Next() {
 
 			var permission = rubix.RolePermission{Workspace: workspace, Role: role}
-			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, &permission.Meta)
+			var constraintsStr sql.NullString
+			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, &permission.Meta, &constraintsStr)
 			if err != nil {
 				return err
+			}
+
+			if constraintsStr.Valid {
+				err = json.Unmarshal([]byte(constraintsStr.String), &permission.Constraints)
+				if err != nil {
+					return err
+				}
 			}
 
 			ret.Permissions = append(ret.Permissions, permission)

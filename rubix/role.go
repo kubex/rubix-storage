@@ -16,13 +16,13 @@ type UserRole struct {
 }
 
 type RolePermission struct {
-	Workspace   string `json:"workspace"`
-	Role        string `json:"role"`
-	Permission  string `json:"permission"`
-	Resource    string `json:"resource"`
-	Allow       bool   `json:"allow"`
-	Meta        string `json:"meta"`
-	Constraints string `json:"constraints"`
+	Workspace   string                     `json:"workspace"`
+	Role        string                     `json:"role"`
+	Permission  string                     `json:"permission"`
+	Resource    string                     `json:"resource"`
+	Allow       bool                       `json:"allow"`
+	Meta        string                     `json:"meta"`
+	Constraints []RolePermissionConstraint `json:"constraints"`
 }
 
 type RolePermissionConstraint struct {
@@ -87,6 +87,9 @@ func WithUsersToRemove(users ...string) MutateRoleOption {
 
 func WithPermsToAdd(perms map[string][]RolePermissionConstraint) MutateRoleOption {
 	return func(p *MutateRolePayload) {
+		if p.PermsToAdd == nil {
+			p.PermsToAdd = make(map[string][]RolePermissionConstraint)
+		}
 		for k, v := range perms {
 			p.PermsToAdd[k] = v
 		}
