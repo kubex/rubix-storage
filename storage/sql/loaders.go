@@ -650,7 +650,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 				return err
 			}
 
-			_, err = p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, constraints) VALUES (?, ?, ?, ?)", workspace, role, perm, constraintsStr)
+			_, err = p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, constraints) VALUES (?, ?, ?, ?)", workspace, role, perm, string(constraintsStr))
 
 			if p.isDuplicateConflict(err) { // Could be duplicate when updating constraints
 				_, err = p.primaryConnection.Exec("UPDATE role_permissions SET constraints = ? WHERE workspace = ? AND role = ? AND permission = ?", constraintsStr, workspace, role, perm)
