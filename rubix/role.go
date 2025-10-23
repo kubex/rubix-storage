@@ -26,6 +26,7 @@ type RolePermission struct {
 }
 
 type RolePermissionConstraint struct {
+	Field    string                           `json:"field"`
 	Type     RolePermissionConstraintType     `json:"type"`
 	Operator RolePermissionConstraintOperator `json:"operator"`
 	Value    interface{}                      `json:"value"`
