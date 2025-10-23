@@ -637,15 +637,15 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	g.Go(func() error {
 
 		for perm, constraints := range payload.PermsToAdd {
-			_, err := json.Marshal(constraints) // @todo add migrations for constraint field and populate from here
+			constraint, err := json.Marshal(constraints) // @todo add migrations for constraint field and populate from here
 			if err != nil {
 				return err
 			}
 
-			_, err = p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission) VALUES (?, ?, ?)", workspace, role, perm)
+			_, err = p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, constraints) VALUES (?, ?, ?, ?)", workspace, role, perm, constraints)
 
-			if p.isDuplicateConflict(err) {
-				continue
+			if p.isDuplicateConflict(err) { // Could be duplicate when updating constraints
+				_, err = p.primaryConnection.Exec("UPDATE role_permissions SET constraints = ? WHERE workspace = ? AND role = ? AND permission = ?", constraint, workspace, role, perm)
 			}
 			if err != nil {
 				return err
