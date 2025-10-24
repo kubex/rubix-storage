@@ -93,6 +93,12 @@ func WithDescription(description string) MutateRoleOption {
 	}
 }
 
+func WithConstraints(constraints []UserRoleConstraint) MutateRoleOption {
+	return func(p *MutateRolePayload) {
+		p.Constraints = &constraints
+	}
+}
+
 func WithUsersToAdd(users ...string) MutateRoleOption {
 	return func(p *MutateRolePayload) {
 		p.UsersToAdd = append(p.UsersToAdd, users...)
