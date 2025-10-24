@@ -7,6 +7,7 @@ type Role struct {
 	Description string
 	Users       []string         // Not on roles table
 	Permissions []RolePermission // Not on roles table
+	Constraints []UserRoleConstraint
 }
 
 type UserRole struct {
