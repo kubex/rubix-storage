@@ -451,11 +451,19 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		row := p.primaryConnection.QueryRow("SELECT name, description FROM roles WHERE workspace = ? AND role = ?", workspace, role)
+		row := p.primaryConnection.QueryRow("SELECT name, description, constraints FROM roles WHERE workspace = ? AND role = ?", workspace, role)
 
-		err := row.Scan(&ret.Name, &ret.Description)
+		var constraintsStr sql.NullString
+		err := row.Scan(&ret.Name, &ret.Description, &constraintsStr)
 		if errors.Is(err, sql.ErrNoRows) {
 			return rubix.ErrNoResultFound
+		}
+
+		if constraintsStr.Valid {
+			err = json.Unmarshal([]byte(constraintsStr.String), &ret.Constraints)
+			if err != nil {
+				return err
+			}
 		}
 
 		return err
