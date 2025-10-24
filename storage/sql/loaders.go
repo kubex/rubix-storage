@@ -612,12 +612,12 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 			}
 			if payload.Constraints != nil {
 				fields = append(fields, "constraints = ?")
-				constraintsStr, err := json.Marshal(*payload.Constraints)
+				constraintsBytes, err := json.Marshal(*payload.Constraints)
 				if err != nil {
 					return err
 				}
 
-				vals = append(vals, constraintsStr)
+				vals = append(vals, string(constraintsBytes))
 			}
 
 			vals = append(vals, workspace, role)
