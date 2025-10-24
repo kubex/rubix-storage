@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -284,7 +286,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 		params = append(params, perm.String())
 	}
 
-	query := "SELECT rp.permission,rp.resource, rp.allow" +
+	query := "SELECT rp.permission, rp.resource, rp.allow" +
 		" FROM user_roles AS ur" +
 		" INNER JOIN roles AS r ON ur.role = r.role AND ur.workspace = r.workspace" +
 		" INNER JOIN role_permissions AS rp ON rp.role = r.role AND rp.workspace = r.workspace" +
@@ -298,31 +300,44 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 	}
 
 	defer rows.Close()
-	result := make(map[string]permissionResult)
+	result := []permissionResult{}
 	for rows.Next() {
 		newResult := permissionResult{}
-		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow); err != nil {
+		var roleConstraintsStr sql.NullString
+
+		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConstraintsStr); err != nil {
 			return nil, err
 		}
-		if _, ok := result[newResult.PermissionKey]; !ok || !newResult.Allow {
-			result[newResult.PermissionKey] = newResult
+
+		if roleConstraintsStr.Valid {
+			if err = json.Unmarshal([]byte(roleConstraintsStr.String), &newResult.RoleConstraints); err != nil {
+				return nil, err
+			}
 		}
+
+		result = append(result, newResult)
 	}
 
-	var statements []app.PermissionStatement
+	statements := make(map[string]app.PermissionStatement)
 	for _, res := range result {
 		effect := app.PermissionEffectAllow
 		if !res.Allow {
 			effect = app.PermissionEffectDeny
+		} else if !rubix.CheckRoleConstraints(res.RoleConstraints, lookup) {
+			continue
 		}
-		statements = append(statements, app.PermissionStatement{
-			Effect:     effect,
-			Permission: app.ScopedKeyFromString(res.PermissionKey),
-			Resource:   "",
-		})
+
+		// only overwrite if the effect is deny
+		if _, ok := statements[res.PermissionKey]; !ok || effect == app.PermissionEffectDeny {
+			statements[res.PermissionKey] = app.PermissionStatement{
+				Effect:     effect,
+				Permission: app.ScopedKeyFromString(res.PermissionKey),
+				Resource:   "",
+			}
+		}
 	}
 
-	return statements, nil
+	return slices.Collect(maps.Values(statements)), nil
 }
 
 func (p *Provider) MutateUser(workspace, user string, options ...rubix.MutateUserOption) error {
@@ -582,7 +597,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		if payload.Title != nil || payload.Description != nil {
+		if payload.Title != nil || payload.Description != nil || payload.Constraints != nil {
 
 			var fields []string
 			var vals []any
@@ -594,6 +609,15 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 			if payload.Description != nil {
 				fields = append(fields, "description = ?")
 				vals = append(vals, *payload.Description)
+			}
+			if payload.Constraints != nil {
+				fields = append(fields, "constraints = ?")
+				constraintsStr, err := json.Marshal(*payload.Constraints)
+				if err != nil {
+					return err
+				}
+
+				vals = append(vals, constraintsStr)
 			}
 
 			vals = append(vals, workspace, role)
@@ -645,7 +669,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	g.Go(func() error {
 
 		for perm, constraints := range payload.PermsToAdd {
-			constraintsStr, err := json.Marshal(constraints) // @todo add migrations for constraintsStr field and populate from here
+			constraintsStr, err := json.Marshal(constraints)
 			if err != nil {
 				return err
 			}

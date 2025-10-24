@@ -6,6 +6,7 @@ type Lookup struct {
 	WorkspaceUUID string
 	UserUUID      string
 	AppID         app.GlobalAppID
+	GeoLocation   string
 }
 
 type DataResult struct {
@@ -15,8 +16,8 @@ type DataResult struct {
 	Value    string
 }
 
-func NewLookup(WorkspaceUUID, UserUUID string, AppID app.GlobalAppID) Lookup {
-	return Lookup{WorkspaceUUID: WorkspaceUUID, UserUUID: UserUUID, AppID: AppID}
+func NewLookup(WorkspaceUUID, UserUUID string, AppID app.GlobalAppID, geoLocation string) Lookup {
+	return Lookup{WorkspaceUUID: WorkspaceUUID, UserUUID: UserUUID, AppID: AppID, GeoLocation: geoLocation}
 }
 
 func (l Lookup) String() string {

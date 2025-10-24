@@ -15,6 +15,24 @@ type UserRole struct {
 	Role      string
 }
 
+type UserRoleConstraint struct {
+	Type     UserRoleConstraintType           `json:"type"`
+	Operator RolePermissionConstraintOperator `json:"operator"`
+	Value    interface{}                      `json:"value"`
+}
+
+type UserRoleConstraintType string
+
+const (
+	UserRoleConstraintTypeLocation UserRoleConstraintType = "location"
+)
+
+type RoleConstraintOperator string
+
+const (
+	RoleConstraintOperatorInList RolePermissionConstraintOperator = "inList"
+)
+
 type RolePermission struct {
 	Workspace   string                     `json:"workspace"`
 	Role        string                     `json:"role"`
@@ -57,6 +75,7 @@ type MutateRolePayload struct {
 	UsersToRem  []string
 	PermsToAdd  map[string][]RolePermissionConstraint
 	PermsToRem  []string
+	Constraints *[]UserRoleConstraint
 }
 
 type MutateRoleOption func(*MutateRolePayload)

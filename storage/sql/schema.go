@@ -116,5 +116,9 @@ func migrations() []migration {
 		"ADD `constraints` text null"+
 		";"))
 
+	queries = append(queries, migQuery("alter table `user_roles` "+
+		"ADD `constraints` text null"+
+		";"))
+
 	return queries
 }
