@@ -575,7 +575,7 @@ func (p *Provider) DeleteRole(workspace, role string) error {
 	return err
 }
 
-func (p *Provider) CreateRole(workspace, role, name, description string, permissions map[string][]rubix.RolePermissionConstraint, users []string) error {
+func (p *Provider) CreateRole(workspace, role, name, description string, permissions map[string][]app.PermissionConstraint, users []string) error {
 
 	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
 	p.update()
