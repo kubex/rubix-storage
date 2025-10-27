@@ -1,5 +1,7 @@
 package rubix
 
+import "github.com/kubex/definitions-go/app"
+
 type Role struct {
 	Workspace   string
 	ID          string
@@ -17,9 +19,9 @@ type UserRole struct {
 }
 
 type UserRoleConstraint struct {
-	Type     UserRoleConstraintType           `json:"type"`
-	Operator RolePermissionConstraintOperator `json:"operator"`
-	Value    interface{}                      `json:"value"`
+	Type     UserRoleConstraintType     `json:"type"`
+	Operator UserRoleConstraintOperator `json:"operator"`
+	Value    interface{}                `json:"value"`
 }
 
 type UserRoleConstraintType string
@@ -29,10 +31,10 @@ const (
 	UserRoleConstraintTypeIpAddress UserRoleConstraintType = "ipAddress"
 )
 
-type RoleConstraintOperator string
+type UserRoleConstraintOperator string
 
 const (
-	RoleConstraintOperatorInList RolePermissionConstraintOperator = "inList"
+	UserRoleConstraintOperatorInList UserRoleConstraintOperator = "inList"
 )
 
 type RolePermission struct {
@@ -47,28 +49,10 @@ type RolePermission struct {
 
 type RolePermissionConstraint struct {
 	Field    string                           `json:"field"`
-	Type     RolePermissionConstraintType     `json:"type"`
-	Operator RolePermissionConstraintOperator `json:"operator"`
+	Type     app.PermissionConstraintType     `json:"type"`
+	Operator app.PermissionConstraintOperator `json:"operator"`
 	Value    interface{}                      `json:"value"`
 }
-
-type RolePermissionConstraintType string
-
-const (
-	TypeValue    RolePermissionConstraintType = "value"
-	TypeLocation RolePermissionConstraintType = "location"
-)
-
-type RolePermissionConstraintOperator string
-
-const (
-	OperatorLessThan           RolePermissionConstraintOperator = "lessThan"
-	OperatorGreaterThan        RolePermissionConstraintOperator = "greaterThan"
-	OperatorEqual              RolePermissionConstraintOperator = "equal"
-	OperatorNotEqual           RolePermissionConstraintOperator = "notEqual"
-	OperatorLessThanOrEqual    RolePermissionConstraintOperator = "lessThanOrEqual"
-	OperatorGreaterThanOrEqual RolePermissionConstraintOperator = "greaterThanOrEqual"
-)
 
 type MutateRolePayload struct {
 	Title       *string

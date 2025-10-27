@@ -1,15 +1,13 @@
 module github.com/kubex/rubix-storage
 
-go 1.22
-
-toolchain go1.22.0
+go 1.23.0
 
 require (
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/kubex/definitions-go v0.0.0-20240613212537-a5196f011135
+	github.com/kubex/definitions-go v0.0.0-20251027150449-6ee8bb4915f7
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240723183952-b944339d7e70
-	golang.org/x/sync v0.7.0
-	golang.org/x/text v0.16.0
+	golang.org/x/sync v0.16.0
+	golang.org/x/text v0.27.0
 )
 
 require (
