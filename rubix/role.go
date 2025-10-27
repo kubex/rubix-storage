@@ -25,7 +25,8 @@ type UserRoleConstraint struct {
 type UserRoleConstraintType string
 
 const (
-	UserRoleConstraintTypeLocation UserRoleConstraintType = "location"
+	UserRoleConstraintTypeLocation  UserRoleConstraintType = "location"
+	UserRoleConstraintTypeIpAddress UserRoleConstraintType = "ipAddress"
 )
 
 type RoleConstraintOperator string
