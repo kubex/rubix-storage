@@ -696,7 +696,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 				return err
 			}
 
-			_, err = p.primaryConnection.Exec("UPDATE role_permissions SET constraints = ? WHERE workspace = ? AND role = ? AND permission = ?", constraintsStr, workspace, role, perm)
+			_, err = p.primaryConnection.Exec("UPDATE role_permissions SET constraints = ? WHERE workspace = ? AND role = ? AND permission = ?", string(constraintsStr), workspace, role, perm)
 			if err != nil {
 				return err
 			}
