@@ -48,13 +48,14 @@ type RolePermission struct {
 }
 
 type MutateRolePayload struct {
-	Title       *string
-	Description *string
-	UsersToAdd  []string
-	UsersToRem  []string
-	PermsToAdd  map[string][]app.PermissionConstraint
-	PermsToRem  []string
-	Constraints *[]UserRoleConstraint
+	Title                *string
+	Description          *string
+	UsersToAdd           []string
+	UsersToRem           []string
+	PermsToAdd           []string
+	PermConstraintsToAdd map[string][]app.PermissionConstraint
+	PermsToRem           []string
+	Constraints          *[]UserRoleConstraint
 }
 
 type MutateRoleOption func(*MutateRolePayload)
@@ -89,13 +90,19 @@ func WithUsersToRemove(users ...string) MutateRoleOption {
 	}
 }
 
-func WithPermsToAdd(perms map[string][]app.PermissionConstraint) MutateRoleOption {
+func WithPermsToAdd(perms ...string) MutateRoleOption {
 	return func(p *MutateRolePayload) {
-		if p.PermsToAdd == nil {
-			p.PermsToAdd = make(map[string][]app.PermissionConstraint)
+		p.PermsToAdd = append(p.PermsToAdd, perms...)
+	}
+}
+
+func WithPermConstraintsToAdd(perms map[string][]app.PermissionConstraint) MutateRoleOption {
+	return func(p *MutateRolePayload) {
+		if p.PermConstraintsToAdd == nil {
+			p.PermConstraintsToAdd = make(map[string][]app.PermissionConstraint)
 		}
 		for k, v := range perms {
-			p.PermsToAdd[k] = v
+			p.PermConstraintsToAdd[k] = v
 		}
 	}
 }

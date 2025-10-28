@@ -575,7 +575,7 @@ func (p *Provider) DeleteRole(workspace, role string) error {
 	return err
 }
 
-func (p *Provider) CreateRole(workspace, role, name, description string, permissions map[string][]app.PermissionConstraint, users []string) error {
+func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
 
 	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
 	p.update()
@@ -587,7 +587,7 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 		return err
 	}
 
-	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions))
+	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
 }
 
 func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
@@ -676,17 +676,27 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	})
 	g.Go(func() error {
 
-		for perm, constraints := range payload.PermsToAdd {
+		for _, perm := range payload.PermsToAdd {
+			_, err := p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission) VALUES (?, ?, ?)", workspace, role, perm)
+
+			if p.isDuplicateConflict(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	g.Go(func() error {
+		for perm, constraints := range payload.PermConstraintsToAdd {
 			constraintsStr, err := json.Marshal(constraints)
 			if err != nil {
 				return err
 			}
 
-			_, err = p.primaryConnection.Exec("INSERT INTO role_permissions (workspace, role, permission, constraints) VALUES (?, ?, ?, ?)", workspace, role, perm, string(constraintsStr))
-
-			if p.isDuplicateConflict(err) { // Could be duplicate when updating constraints
-				_, err = p.primaryConnection.Exec("UPDATE role_permissions SET constraints = ? WHERE workspace = ? AND role = ? AND permission = ?", constraintsStr, workspace, role, perm)
-			}
+			_, err = p.primaryConnection.Exec("UPDATE role_permissions SET constraints = ? WHERE workspace = ? AND role = ? AND permission = ?", constraintsStr, workspace, role, perm)
 			if err != nil {
 				return err
 			}
