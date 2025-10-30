@@ -3,8 +3,8 @@ package sql
 import "github.com/kubex/rubix-storage/rubix"
 
 type permissionResult struct {
-	PermissionKey   string
-	Resource        string
-	Allow           bool
-	RoleConstraints []rubix.UserRoleConstraint
+	PermissionKey  string
+	Resource       string
+	Allow          bool
+	RoleConditions rubix.Condition
 }

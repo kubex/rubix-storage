@@ -9,7 +9,7 @@ type Role struct {
 	Description string
 	Users       []string         // Not on roles table
 	Permissions []RolePermission // Not on roles table
-	Constraints []UserRoleConstraint
+	Constraints Condition
 }
 
 type UserRole struct {
@@ -17,25 +17,6 @@ type UserRole struct {
 	User      string
 	Role      string
 }
-
-type UserRoleConstraint struct {
-	Type     UserRoleConstraintType     `json:"type"`
-	Operator UserRoleConstraintOperator `json:"operator"`
-	Value    interface{}                `json:"value"`
-}
-
-type UserRoleConstraintType string
-
-const (
-	UserRoleConstraintTypeLocation  UserRoleConstraintType = "location"
-	UserRoleConstraintTypeIpAddress UserRoleConstraintType = "ipAddress"
-)
-
-type UserRoleConstraintOperator string
-
-const (
-	UserRoleConstraintOperatorInList UserRoleConstraintOperator = "inList"
-)
 
 type RolePermission struct {
 	Workspace   string                     `json:"workspace"`
@@ -55,7 +36,7 @@ type MutateRolePayload struct {
 	PermsToAdd           []string
 	PermConstraintsToAdd map[string][]app.PermissionConstraint
 	PermsToRem           []string
-	Constraints          *[]UserRoleConstraint
+	Conditions           *[]Condition
 }
 
 type MutateRoleOption func(*MutateRolePayload)
@@ -72,9 +53,9 @@ func WithDescription(description string) MutateRoleOption {
 	}
 }
 
-func WithConstraints(constraints []UserRoleConstraint) MutateRoleOption {
+func WithConditions(conditions []Condition) MutateRoleOption {
 	return func(p *MutateRolePayload) {
-		p.Constraints = &constraints
+		p.Conditions = &conditions
 	}
 }
 

@@ -303,14 +303,14 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 	result := []permissionResult{}
 	for rows.Next() {
 		newResult := permissionResult{}
-		var roleConstraintsStr sql.NullString
+		var roleConditionsStr sql.NullString
 
-		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConstraintsStr); err != nil {
+		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr); err != nil {
 			return nil, err
 		}
 
-		if roleConstraintsStr.Valid {
-			if err = json.Unmarshal([]byte(roleConstraintsStr.String), &newResult.RoleConstraints); err != nil {
+		if roleConditionsStr.Valid {
+			if err = json.Unmarshal([]byte(roleConditionsStr.String), &newResult.RoleConditions); err != nil {
 				return nil, err
 			}
 		}
@@ -323,7 +323,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 		effect := app.PermissionEffectAllow
 		if !res.Allow {
 			effect = app.PermissionEffectDeny
-		} else if !rubix.CheckRoleConstraints(res.RoleConstraints, lookup) {
+		} else if !rubix.CheckCondition(res.RoleConditions, lookup) {
 			continue
 		}
 
@@ -575,8 +575,7 @@ func (p *Provider) DeleteRole(workspace, role string) error {
 	return err
 }
 
-func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
-
+func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition) error {
 	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
 	p.update()
 
@@ -587,7 +586,7 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 		return err
 	}
 
-	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
+	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...), rubix.WithConditions([]rubix.Condition{conditions}))
 }
 
 func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
@@ -605,7 +604,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		if payload.Title != nil || payload.Description != nil || payload.Constraints != nil {
+		if payload.Title != nil || payload.Description != nil || payload.Conditions != nil {
 
 			var fields []string
 			var vals []any
@@ -618,14 +617,14 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 				fields = append(fields, "description = ?")
 				vals = append(vals, *payload.Description)
 			}
-			if payload.Constraints != nil {
-				fields = append(fields, "constraints = ?")
-				constraintsBytes, err := json.Marshal(*payload.Constraints)
+			if payload.Conditions != nil {
+				fields = append(fields, "conditions = ?")
+				conditionsBytes, err := json.Marshal(*payload.Conditions)
 				if err != nil {
 					return err
 				}
 
-				vals = append(vals, string(constraintsBytes))
+				vals = append(vals, string(conditionsBytes))
 			}
 
 			vals = append(vals, workspace, role)
