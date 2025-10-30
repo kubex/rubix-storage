@@ -36,7 +36,7 @@ type Provider interface {
 	GetRoles(workspace string) ([]rubix.Role, error)
 	GetUserRoles(workspace, user string) ([]rubix.UserRole, error)
 	DeleteRole(workspace, role string) error
-	CreateRole(workspace, role, title, description string, permissions, users []string) error
+	CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition) error
 	MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error
 
 	Initialize() error
