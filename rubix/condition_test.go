@@ -3,6 +3,7 @@ package rubix
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -79,6 +80,113 @@ func TestIsConstraintMet(t *testing.T) {
 			},
 			lookup:   Lookup{},
 			expected: false,
+		},
+		{
+			name:      "No Conditions",
+			condition: Condition{},
+			lookup:    Lookup{},
+			expected:  true,
+		},
+		{
+			name: "Max Session Age - valid",
+			condition: Condition{
+				MaxSessionAgeSeconds: 1000,
+			},
+			lookup: Lookup{
+				SessionIssued: time.Now().Add(-500 * time.Second),
+			},
+			expected: true,
+		},
+		{
+			name: "Max Session Age - invalid",
+			condition: Condition{
+				MaxSessionAgeSeconds: 400,
+			},
+			lookup: Lookup{
+				SessionIssued: time.Now().Add(-500 * time.Second),
+			},
+			expected: false,
+		},
+		{
+			name: "Blocked location matches",
+			condition: Condition{
+				BlockedLocations: []string{"PL", "FR"},
+			},
+			lookup: Lookup{
+				GeoLocation: "FR",
+			},
+			expected: false,
+		},
+		{
+			name: "Blocked location does not match",
+			condition: Condition{
+				BlockedLocations: []string{"PL", "FR"},
+			},
+			lookup: Lookup{
+				GeoLocation: "GB",
+			},
+			expected: true,
+		},
+		{
+			name: "Blocked IP matches",
+			condition: Condition{
+				BlockedIPs: []string{"1.2.3.4", "1.1.1.1"},
+			},
+			lookup: Lookup{
+				IpAddress: net.IP{1, 1, 1, 1},
+			},
+			expected: false,
+		},
+		{
+			name: "Blocked IP does not match",
+			condition: Condition{
+				BlockedIPs: []string{"1.2.3.4", "1.1.1.1"},
+			},
+			lookup: Lookup{
+				IpAddress: net.IP{2, 1, 1, 1},
+			},
+			expected: true,
+		},
+		{
+			name: "Require MFA - invalid",
+			condition: Condition{
+				RequireMFA: true,
+			},
+			lookup: Lookup{
+				MFA: false,
+			},
+			expected: false,
+		},
+		{
+			name: "Require MFA - valid",
+			condition: Condition{
+				RequireMFA: true,
+			},
+			lookup: Lookup{
+				MFA: true,
+			},
+			expected: true,
+		},
+
+		{
+			name: "Require Verified - invalid",
+			condition: Condition{
+				RequireVerifiedAccount: true,
+			},
+			lookup: Lookup{
+				VerifiedAccount: false,
+			},
+			expected: false,
+		},
+		{
+			name: "Require Verified - valid",
+			condition: Condition{
+				RequireVerifiedAccount: true,
+			},
+			lookup: Lookup{
+				VerifiedAccount: true,
+			},
+			expected: true,
 		},
 	}
 

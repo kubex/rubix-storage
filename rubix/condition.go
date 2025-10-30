@@ -27,7 +27,7 @@ func CheckCondition(condition Condition, lookup Lookup) bool {
 		return false
 	}
 
-	if condition.MaxSessionAgeSeconds < 0 && time.Now().Unix()-lookup.SessionIssued.Unix() > int64(condition.MaxSessionAgeSeconds) {
+	if condition.MaxSessionAgeSeconds > 0 && time.Now().Unix()-lookup.SessionIssued.Unix() > int64(condition.MaxSessionAgeSeconds) {
 		return false
 	}
 
