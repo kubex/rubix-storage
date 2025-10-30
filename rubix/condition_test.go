@@ -188,6 +188,16 @@ func TestIsConstraintMet(t *testing.T) {
 			},
 			expected: true,
 		},
+		{
+			name: "IPv6",
+			condition: Condition{
+				AllowedIPs: []string{"009b:35eb:8f09:2712:401f:51c3:ccea:8a21", "560f:6261:b7ff:cfaf:0af3:06e4:2063:3e8e"},
+			},
+			lookup: Lookup{
+				IpAddress: net.ParseIP("560f:6261:b7ff:cfaf:0af3:06e4:2063:3e8e"),
+			},
+			expected: true,
+		},
 	}
 
 	for _, tc := range testCases {
