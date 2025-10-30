@@ -112,5 +112,9 @@ func migrations() []migration {
 		"ADD `accessCondition` text null"+
 		";"))
 
+	queries = append(queries, migQuery("alter table `roles` "+
+		"ADD `conditions` text null"+
+		";"))
+
 	return queries
 }

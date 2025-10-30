@@ -284,7 +284,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 		params = append(params, perm.String())
 	}
 
-	query := "SELECT rp.permission,rp.resource, rp.allow" +
+	query := "SELECT rp.permission,rp.resource, rp.allow, r.conditions" +
 		" FROM user_roles AS ur" +
 		" INNER JOIN roles AS r ON ur.role = r.role AND ur.workspace = r.workspace" +
 		" INNER JOIN role_permissions AS rp ON rp.role = r.role AND rp.workspace = r.workspace" +
@@ -301,9 +301,17 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 	result := make(map[string]permissionResult)
 	for rows.Next() {
 		newResult := permissionResult{}
-		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow); err != nil {
+		var roleConditionsStr sql.NullString
+		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, roleConditionsStr); err != nil {
 			return nil, err
 		}
+
+		if roleConditionsStr.Valid {
+			if err = json.Unmarshal([]byte(roleConditionsStr.String), &newResult.RoleConditions); err != nil {
+				return nil, err
+			}
+		}
+
 		if _, ok := result[newResult.PermissionKey]; !ok || !newResult.Allow {
 			result[newResult.PermissionKey] = newResult
 		}
@@ -314,7 +322,10 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 		effect := app.PermissionEffectAllow
 		if !res.Allow {
 			effect = app.PermissionEffectDeny
+		} else if !rubix.CheckCondition(res.RoleConditions, lookup) {
+			continue
 		}
+
 		statements = append(statements, app.PermissionStatement{
 			Effect:     effect,
 			Permission: app.ScopedKeyFromString(res.PermissionKey),
@@ -427,7 +438,6 @@ func (p *Provider) RemoveUserFromWorkspace(workspace, user string) error {
 }
 
 func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
-
 	var ret = rubix.Role{
 		Workspace: workspace,
 		ID:        role,
@@ -436,11 +446,18 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		row := p.primaryConnection.QueryRow("SELECT name, description FROM roles WHERE workspace = ? AND role = ?", workspace, role)
+		row := p.primaryConnection.QueryRow("SELECT name, description, conditions FROM roles WHERE workspace = ? AND role = ?", workspace, role)
 
-		err := row.Scan(&ret.Name, &ret.Description)
+		var conditionsStr sql.NullString
+		err := row.Scan(&ret.Name, &ret.Description, &conditionsStr)
 		if errors.Is(err, sql.ErrNoRows) {
 			return rubix.ErrNoResultFound
+		}
+		if conditionsStr.Valid {
+			err = json.Unmarshal([]byte(conditionsStr.String), &ret.Conditions)
+			if err != nil {
+				return err
+			}
 		}
 
 		return err
@@ -544,7 +561,7 @@ func (p *Provider) DeleteRole(workspace, role string) error {
 	return err
 }
 
-func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string) error {
+func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition) error {
 
 	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
 	p.update()
@@ -556,7 +573,7 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 		return err
 	}
 
-	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...))
+	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...), rubix.WithConditions(conditions))
 }
 
 func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
@@ -574,7 +591,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		if payload.Title != nil || payload.Description != nil {
+		if payload.Title != nil || payload.Description != nil || payload.Conditions != nil {
 
 			var fields []string
 			var vals []any
@@ -586,6 +603,15 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 			if payload.Description != nil {
 				fields = append(fields, "description = ?")
 				vals = append(vals, *payload.Description)
+			}
+			if payload.Conditions != nil {
+				fields = append(fields, "conditions = ?")
+				conditionsBytes, err := json.Marshal(*payload.Conditions)
+				if err != nil {
+					return err
+				}
+
+				vals = append(vals, string(conditionsBytes))
 			}
 
 			vals = append(vals, workspace, role)
