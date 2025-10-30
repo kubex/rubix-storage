@@ -7,6 +7,7 @@ type Role struct {
 	Description string
 	Users       []string         // Not on roles table
 	Permissions []RolePermission // Not on roles table
+	Conditions  Condition
 }
 
 type UserRole struct {
@@ -31,7 +32,7 @@ type MutateRolePayload struct {
 	UsersToRem  []string
 	PermsToAdd  []string
 	PermsToRem  []string
-	Conditions  *[]Condition
+	Conditions  *Condition
 }
 
 type MutateRoleOption func(*MutateRolePayload)
@@ -48,7 +49,7 @@ func WithDescription(description string) MutateRoleOption {
 	}
 }
 
-func WithConditions(conditions []Condition) MutateRoleOption {
+func WithConditions(conditions Condition) MutateRoleOption {
 	return func(p *MutateRolePayload) {
 		p.Conditions = &conditions
 	}

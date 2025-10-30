@@ -438,7 +438,6 @@ func (p *Provider) RemoveUserFromWorkspace(workspace, user string) error {
 }
 
 func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
-
 	var ret = rubix.Role{
 		Workspace: workspace,
 		ID:        role,
@@ -447,11 +446,18 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		row := p.primaryConnection.QueryRow("SELECT name, description FROM roles WHERE workspace = ? AND role = ?", workspace, role)
+		row := p.primaryConnection.QueryRow("SELECT name, description, conditions FROM roles WHERE workspace = ? AND role = ?", workspace, role)
 
-		err := row.Scan(&ret.Name, &ret.Description)
+		var conditionsStr sql.NullString
+		err := row.Scan(&ret.Name, &ret.Description, &conditionsStr)
 		if errors.Is(err, sql.ErrNoRows) {
 			return rubix.ErrNoResultFound
+		}
+		if conditionsStr.Valid {
+			err = json.Unmarshal([]byte(conditionsStr.String), &ret.Conditions)
+			if err != nil {
+				return err
+			}
 		}
 
 		return err
@@ -567,7 +573,7 @@ func (p *Provider) CreateRole(workspace, role, name, description string, permiss
 		return err
 	}
 
-	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...), rubix.WithConditions([]rubix.Condition{conditions}))
+	return p.MutateRole(workspace, role, rubix.WithUsersToAdd(users...), rubix.WithPermsToAdd(permissions...), rubix.WithConditions(conditions))
 }
 
 func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error {
