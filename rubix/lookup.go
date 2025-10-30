@@ -1,11 +1,21 @@
 package rubix
 
-import "github.com/kubex/definitions-go/app"
+import (
+	"net"
+	"time"
+
+	"github.com/kubex/definitions-go/app"
+)
 
 type Lookup struct {
-	WorkspaceUUID string
-	UserUUID      string
-	AppID         app.GlobalAppID
+	WorkspaceUUID   string
+	UserUUID        string
+	AppID           app.GlobalAppID
+	GeoLocation     string
+	IpAddress       net.IP
+	MFA             bool
+	VerifiedAccount bool
+	SessionIssued   time.Time
 }
 
 type DataResult struct {
@@ -15,8 +25,17 @@ type DataResult struct {
 	Value    string
 }
 
-func NewLookup(WorkspaceUUID, UserUUID string, AppID app.GlobalAppID) Lookup {
-	return Lookup{WorkspaceUUID: WorkspaceUUID, UserUUID: UserUUID, AppID: AppID}
+func NewLookup(WorkspaceUUID, UserUUID string, AppID app.GlobalAppID, geoLocation string, ipAddress string, mfa bool, verifiedAccount bool, sessionIssued time.Time) Lookup {
+	return Lookup{
+		WorkspaceUUID:   WorkspaceUUID,
+		UserUUID:        UserUUID,
+		AppID:           AppID,
+		GeoLocation:     geoLocation,
+		IpAddress:       net.ParseIP(ipAddress),
+		MFA:             mfa,
+		VerifiedAccount: verifiedAccount,
+		SessionIssued:   sessionIssued,
+	}
 }
 
 func (l Lookup) String() string {

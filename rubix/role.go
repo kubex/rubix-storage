@@ -1,5 +1,7 @@
 package rubix
 
+import "github.com/kubex/definitions-go/app"
+
 type Role struct {
 	Workspace   string
 	ID          string
@@ -7,6 +9,7 @@ type Role struct {
 	Description string
 	Users       []string         // Not on roles table
 	Permissions []RolePermission // Not on roles table
+	Constraints Condition
 }
 
 type UserRole struct {
@@ -16,21 +19,24 @@ type UserRole struct {
 }
 
 type RolePermission struct {
-	Workspace  string `json:"workspace"`
-	Role       string `json:"role"`
-	Permission string `json:"permission"`
-	Resource   string `json:"resource"`
-	Allow      bool   `json:"allow"`
-	Meta       string `json:"meta"`
+	Workspace   string                     `json:"workspace"`
+	Role        string                     `json:"role"`
+	Permission  string                     `json:"permission"`
+	Resource    string                     `json:"resource"`
+	Allow       bool                       `json:"allow"`
+	Meta        string                     `json:"meta"`
+	Constraints []app.PermissionConstraint `json:"constraints"`
 }
 
 type MutateRolePayload struct {
-	Title       *string
-	Description *string
-	UsersToAdd  []string
-	UsersToRem  []string
-	PermsToAdd  []string
-	PermsToRem  []string
+	Title                *string
+	Description          *string
+	UsersToAdd           []string
+	UsersToRem           []string
+	PermsToAdd           []string
+	PermConstraintsToAdd map[string][]app.PermissionConstraint
+	PermsToRem           []string
+	Conditions           *[]Condition
 }
 
 type MutateRoleOption func(*MutateRolePayload)
@@ -44,6 +50,12 @@ func WithName(title string) MutateRoleOption {
 func WithDescription(description string) MutateRoleOption {
 	return func(p *MutateRolePayload) {
 		p.Description = &description
+	}
+}
+
+func WithConditions(conditions []Condition) MutateRoleOption {
+	return func(p *MutateRolePayload) {
+		p.Conditions = &conditions
 	}
 }
 
@@ -62,6 +74,17 @@ func WithUsersToRemove(users ...string) MutateRoleOption {
 func WithPermsToAdd(perms ...string) MutateRoleOption {
 	return func(p *MutateRolePayload) {
 		p.PermsToAdd = append(p.PermsToAdd, perms...)
+	}
+}
+
+func WithPermConstraintsToAdd(perms map[string][]app.PermissionConstraint) MutateRoleOption {
+	return func(p *MutateRolePayload) {
+		if p.PermConstraintsToAdd == nil {
+			p.PermConstraintsToAdd = make(map[string][]app.PermissionConstraint)
+		}
+		for k, v := range perms {
+			p.PermConstraintsToAdd[k] = v
+		}
 	}
 }
 
