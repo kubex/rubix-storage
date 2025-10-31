@@ -500,11 +500,18 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 		defer rows.Close()
 
 		for rows.Next() {
-
 			var permission = rubix.RolePermission{Workspace: workspace, Role: role}
-			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, &permission.Meta)
+			var metaStr sql.NullString
+			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, metaStr)
 			if err != nil {
 				return err
+			}
+
+			if metaStr.Valid {
+				err = json.Unmarshal([]byte(metaStr.String), &permission.Meta)
+				if err != nil {
+					return err
+				}
 			}
 
 			ret.Permissions = append(ret.Permissions, permission)

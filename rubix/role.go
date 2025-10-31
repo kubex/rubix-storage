@@ -17,12 +17,12 @@ type UserRole struct {
 }
 
 type RolePermission struct {
-	Workspace  string `json:"workspace"`
-	Role       string `json:"role"`
-	Permission string `json:"permission"`
-	Resource   string `json:"resource"`
-	Allow      bool   `json:"allow"`
-	Meta       string `json:"meta"`
+	Workspace  string              `json:"workspace"`
+	Role       string              `json:"role"`
+	Permission string              `json:"permission"`
+	Resource   string              `json:"resource"`
+	Allow      bool                `json:"allow"`
+	Meta       map[string][]string `json:"meta"`
 }
 
 type MutateRolePayload struct {
