@@ -302,19 +302,19 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 	for rows.Next() {
 		newResult := permissionResult{}
 		var roleConditionsStr sql.NullString
-		var permissionOptionsStr sql.NullString
-		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr, &permissionOptionsStr); err != nil {
+		var metaStr sql.NullString
+		if err = rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr, &metaStr); err != nil {
 			return nil, err
 		}
 
 		if roleConditionsStr.Valid {
-			if err = json.Unmarshal([]byte(roleConditionsStr.String), &newResult.PermissionOptions); err != nil {
+			if err = json.Unmarshal([]byte(roleConditionsStr.String), &newResult.Meta); err != nil {
 				return nil, err
 			}
 		}
 
-		if permissionOptionsStr.Valid {
-			if err = json.Unmarshal([]byte(permissionOptionsStr.String), &newResult.PermissionOptions); err != nil {
+		if metaStr.Valid {
+			if err = json.Unmarshal([]byte(metaStr.String), &newResult.Meta); err != nil {
 				return nil, err
 			}
 		}
@@ -337,7 +337,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 			Effect:     effect,
 			Permission: app.ScopedKeyFromString(res.PermissionKey),
 			Resource:   "",
-			Options:    res.PermissionOptions,
+			Meta:       res.Meta,
 		})
 	}
 

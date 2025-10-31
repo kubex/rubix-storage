@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/kubex/definitions-go v0.0.0-20251031094041-d236cf54fa88
+	github.com/kubex/definitions-go v0.0.0-20251031144200-ed82c2867090
 	github.com/stretchr/testify v1.11.1
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240723183952-b944339d7e70
 	golang.org/x/sync v0.16.0
