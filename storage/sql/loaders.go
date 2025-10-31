@@ -284,7 +284,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 		params = append(params, perm.String())
 	}
 
-	query := "SELECT rp.permission,rp.resource, rp.allow, r.conditions" +
+	query := "SELECT rp.permission,rp.resource, rp.allow, r.conditions, rp.options" +
 		" FROM user_roles AS ur" +
 		" INNER JOIN roles AS r ON ur.role = r.role AND ur.workspace = r.workspace" +
 		" INNER JOIN role_permissions AS rp ON rp.role = r.role AND rp.workspace = r.workspace" +
@@ -302,12 +302,19 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 	for rows.Next() {
 		newResult := permissionResult{}
 		var roleConditionsStr sql.NullString
-		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr); err != nil {
+		var permissionOptionsStr sql.NullString
+		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr, &permissionOptionsStr); err != nil {
 			return nil, err
 		}
 
 		if roleConditionsStr.Valid {
-			if err = json.Unmarshal([]byte(roleConditionsStr.String), &newResult.RoleConditions); err != nil {
+			if err = json.Unmarshal([]byte(roleConditionsStr.String), &newResult.PermissionOptions); err != nil {
+				return nil, err
+			}
+		}
+
+		if permissionOptionsStr.Valid {
+			if err = json.Unmarshal([]byte(permissionOptionsStr.String), &newResult.PermissionOptions); err != nil {
 				return nil, err
 			}
 		}
@@ -330,6 +337,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 			Effect:     effect,
 			Permission: app.ScopedKeyFromString(res.PermissionKey),
 			Resource:   "",
+			Options:    res.PermissionOptions,
 		})
 	}
 
@@ -679,6 +687,21 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 		for _, perm := range payload.PermsToRem {
 			_, err := p.primaryConnection.Exec("DELETE FROM role_permissions WHERE workspace = ? AND role = ? AND permission = ?", workspace, role, perm)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	g.Go(func() error {
+		for perm, option := range payload.PermOptionToAdd {
+			optionsStr, err := json.Marshal(option)
+			if err != nil {
+				return err
+			}
+
+			_, err = p.primaryConnection.Exec("UPDATE role_permissions SET options = ? WHERE workspace = ? AND role = ? AND permission = ?", string(optionsStr), workspace, role, perm)
 			if err != nil {
 				return err
 			}

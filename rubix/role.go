@@ -26,13 +26,14 @@ type RolePermission struct {
 }
 
 type MutateRolePayload struct {
-	Title       *string
-	Description *string
-	UsersToAdd  []string
-	UsersToRem  []string
-	PermsToAdd  []string
-	PermsToRem  []string
-	Conditions  *Condition
+	Title           *string
+	Description     *string
+	UsersToAdd      []string
+	UsersToRem      []string
+	PermsToAdd      []string
+	PermsToRem      []string
+	Conditions      *Condition
+	PermOptionToAdd map[string][]string
 }
 
 type MutateRoleOption func(*MutateRolePayload)
@@ -76,5 +77,16 @@ func WithPermsToAdd(perms ...string) MutateRoleOption {
 func WithPermsToRemove(perms ...string) MutateRoleOption {
 	return func(p *MutateRolePayload) {
 		p.PermsToRem = append(p.PermsToRem, perms...)
+	}
+}
+
+func WithPermOptionToAdd(perms map[string][]string) MutateRoleOption {
+	return func(p *MutateRolePayload) {
+		if p.PermOptionToAdd == nil {
+			p.PermOptionToAdd = make(map[string][]string)
+		}
+		for k, v := range perms {
+			p.PermOptionToAdd[k] = v
+		}
 	}
 }
