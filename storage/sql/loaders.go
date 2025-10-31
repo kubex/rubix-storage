@@ -302,7 +302,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 	for rows.Next() {
 		newResult := permissionResult{}
 		var roleConditionsStr sql.NullString
-		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, roleConditionsStr); err != nil {
+		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr); err != nil {
 			return nil, err
 		}
 
