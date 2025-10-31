@@ -502,7 +502,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 		for rows.Next() {
 			var permission = rubix.RolePermission{Workspace: workspace, Role: role}
 			var metaStr sql.NullString
-			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, metaStr)
+			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, &metaStr)
 			if err != nil {
 				return err
 			}
