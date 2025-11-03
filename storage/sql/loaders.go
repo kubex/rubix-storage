@@ -284,7 +284,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 		params = append(params, perm.String())
 	}
 
-	query := "SELECT rp.permission,rp.resource, rp.allow, r.conditions" +
+	query := "SELECT rp.permission,rp.resource, rp.allow, r.conditions, rp.options" +
 		" FROM user_roles AS ur" +
 		" INNER JOIN roles AS r ON ur.role = r.role AND ur.workspace = r.workspace" +
 		" INNER JOIN role_permissions AS rp ON rp.role = r.role AND rp.workspace = r.workspace" +
@@ -302,7 +302,8 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 	for rows.Next() {
 		newResult := permissionResult{}
 		var roleConditionsStr sql.NullString
-		if err := rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr); err != nil {
+		var optionsStr sql.NullString
+		if err = rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr, &optionsStr); err != nil {
 			return nil, err
 		}
 
@@ -312,8 +313,22 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 			}
 		}
 
+		if optionsStr.Valid {
+			if err = json.Unmarshal([]byte(optionsStr.String), &newResult.Options); err != nil {
+				return nil, err
+			}
+		}
+
 		if _, ok := result[newResult.PermissionKey]; !ok || !newResult.Allow {
 			result[newResult.PermissionKey] = newResult
+		} else if newResult.Options != nil && len(newResult.Options) > 0 {
+			for key, opt := range newResult.Options {
+				if _, ok = result[newResult.PermissionKey].Options[key]; !ok {
+					result[newResult.PermissionKey].Options[key] = opt
+				} else {
+					result[newResult.PermissionKey].Options[key] = append(result[newResult.PermissionKey].Options[key], newResult.Options[key]...)
+				}
+			}
 		}
 	}
 
@@ -330,6 +345,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 			Effect:     effect,
 			Permission: app.ScopedKeyFromString(res.PermissionKey),
 			Resource:   "",
+			Meta:       res.Options,
 		})
 	}
 
@@ -485,18 +501,25 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	})
 	g.Go(func() error {
 
-		rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, meta FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+		rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, options FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
 		if err != nil {
 			return err
 		}
 		defer rows.Close()
 
 		for rows.Next() {
-
 			var permission = rubix.RolePermission{Workspace: workspace, Role: role}
-			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, &permission.Meta)
+			var optionsStr sql.NullString
+			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, &optionsStr)
 			if err != nil {
 				return err
+			}
+
+			if optionsStr.Valid {
+				err = json.Unmarshal([]byte(optionsStr.String), &permission.Options)
+				if err != nil {
+					return err
+				}
 			}
 
 			ret.Permissions = append(ret.Permissions, permission)
@@ -679,6 +702,21 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 		for _, perm := range payload.PermsToRem {
 			_, err := p.primaryConnection.Exec("DELETE FROM role_permissions WHERE workspace = ? AND role = ? AND permission = ?", workspace, role, perm)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	g.Go(func() error {
+		for perm, option := range payload.PermOptionToAdd {
+			optionsStr, err := json.Marshal(option)
+			if err != nil {
+				return err
+			}
+
+			_, err = p.primaryConnection.Exec("UPDATE role_permissions SET options = ? WHERE workspace = ? AND role = ? AND permission = ?", string(optionsStr), workspace, role, perm)
 			if err != nil {
 				return err
 			}
