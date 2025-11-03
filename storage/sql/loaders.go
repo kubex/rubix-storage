@@ -308,7 +308,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 		}
 
 		if roleConditionsStr.Valid {
-			if err = json.Unmarshal([]byte(roleConditionsStr.String), &newResult.Meta); err != nil {
+			if err = json.Unmarshal([]byte(roleConditionsStr.String), &newResult.RoleConditions); err != nil {
 				return nil, err
 			}
 		}
