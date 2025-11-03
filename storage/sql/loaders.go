@@ -321,6 +321,14 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 
 		if _, ok := result[newResult.PermissionKey]; !ok || !newResult.Allow {
 			result[newResult.PermissionKey] = newResult
+		} else if newResult.Options == nil && len(newResult.Options) > 0 {
+			for key, opt := range newResult.Options {
+				if _, ok = result[newResult.PermissionKey].Options[key]; !ok {
+					result[newResult.PermissionKey].Options[key] = opt
+				} else {
+					result[newResult.PermissionKey].Options[key] = append(result[newResult.PermissionKey].Options[key], newResult.Options[key]...)
+				}
+			}
 		}
 	}
 
