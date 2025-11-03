@@ -7,5 +7,5 @@ type permissionResult struct {
 	Resource       string
 	Allow          bool
 	RoleConditions rubix.Condition
-	Meta           map[string][]string
+	Options        map[string][]string
 }

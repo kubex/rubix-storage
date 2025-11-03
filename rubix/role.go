@@ -22,7 +22,7 @@ type RolePermission struct {
 	Permission string              `json:"permission"`
 	Resource   string              `json:"resource"`
 	Allow      bool                `json:"allow"`
-	Meta       map[string][]string `json:"meta"`
+	Options    map[string][]string `json:"options"`
 }
 
 type MutateRolePayload struct {

@@ -302,8 +302,8 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 	for rows.Next() {
 		newResult := permissionResult{}
 		var roleConditionsStr sql.NullString
-		var metaStr sql.NullString
-		if err = rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr, &metaStr); err != nil {
+		var optionsStr sql.NullString
+		if err = rows.Scan(&newResult.PermissionKey, &newResult.Resource, &newResult.Allow, &roleConditionsStr, &optionsStr); err != nil {
 			return nil, err
 		}
 
@@ -313,8 +313,8 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 			}
 		}
 
-		if metaStr.Valid {
-			if err = json.Unmarshal([]byte(metaStr.String), &newResult.Meta); err != nil {
+		if optionsStr.Valid {
+			if err = json.Unmarshal([]byte(optionsStr.String), &newResult.Options); err != nil {
 				return nil, err
 			}
 		}
@@ -337,7 +337,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 			Effect:     effect,
 			Permission: app.ScopedKeyFromString(res.PermissionKey),
 			Resource:   "",
-			Meta:       res.Meta,
+			Meta:       res.Options,
 		})
 	}
 
@@ -493,7 +493,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	})
 	g.Go(func() error {
 
-		rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, meta FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+		rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, options FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
 		if err != nil {
 			return err
 		}
@@ -501,14 +501,14 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 		for rows.Next() {
 			var permission = rubix.RolePermission{Workspace: workspace, Role: role}
-			var metaStr sql.NullString
-			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, &metaStr)
+			var optionsStr sql.NullString
+			err = rows.Scan(&permission.Permission, &permission.Resource, &permission.Allow, &optionsStr)
 			if err != nil {
 				return err
 			}
 
-			if metaStr.Valid {
-				err = json.Unmarshal([]byte(metaStr.String), &permission.Meta)
+			if optionsStr.Valid {
+				err = json.Unmarshal([]byte(optionsStr.String), &permission.Options)
 				if err != nil {
 					return err
 				}
