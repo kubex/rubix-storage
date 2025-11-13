@@ -902,3 +902,229 @@ func (p *Provider) MutateGroup(workspace, group string, options ...rubix.MutateG
 	})
 	return g.Wait()
 }
+
+// --- Brands ---
+func (p *Provider) GetBrand(workspace, brand string) (*rubix.Brand, error) {
+	ret := &rubix.Brand{Workspace: workspace, ID: brand}
+	row := p.primaryConnection.QueryRow("SELECT name, description FROM brands WHERE workspace = ? AND brand = ?", workspace, brand)
+	if err := row.Scan(&ret.Name, &ret.Description); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (p *Provider) GetBrands(workspace string) ([]rubix.Brand, error) {
+	rows, err := p.primaryConnection.Query("SELECT brand, name, description FROM brands WHERE workspace = ? ORDER BY name ASC", workspace)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.Brand
+	for rows.Next() {
+		var it rubix.Brand
+		it.Workspace = workspace
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description); err != nil {
+			return nil, err
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) CreateBrand(workspace, brand, name, description string) error {
+	_, err := p.primaryConnection.Exec("INSERT INTO brands (workspace, brand, name, description) VALUES (?, ?, ?, ?)", workspace, brand, name, description)
+	p.update()
+	if p.isDuplicateConflict(err) {
+		return errors.New("brand already exists")
+	}
+	return err
+}
+
+func (p *Provider) MutateBrand(workspace, brand string, options ...rubix.MutateBrandOption) error {
+	if len(options) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateBrandPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+	var fields []string
+	var vals []any
+	if payload.Title != nil {
+		fields = append(fields, "name = ?")
+		vals = append(vals, *payload.Title)
+	}
+	if payload.Description != nil {
+		fields = append(fields, "description = ?")
+		vals = append(vals, *payload.Description)
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	vals = append(vals, workspace, brand)
+	q := fmt.Sprintf("UPDATE brands SET %s WHERE workspace = ? AND brand = ?", strings.Join(fields, ", "))
+	res, err := p.primaryConnection.Exec(q, vals...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}
+
+// --- Departments ---
+func (p *Provider) GetDepartment(workspace, department string) (*rubix.Department, error) {
+	ret := &rubix.Department{Workspace: workspace, ID: department}
+	row := p.primaryConnection.QueryRow("SELECT name, description FROM departments WHERE workspace = ? AND department = ?", workspace, department)
+	if err := row.Scan(&ret.Name, &ret.Description); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (p *Provider) GetDepartments(workspace string) ([]rubix.Department, error) {
+	rows, err := p.primaryConnection.Query("SELECT department, name, description FROM departments WHERE workspace = ? ORDER BY name ASC", workspace)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.Department
+	for rows.Next() {
+		var it rubix.Department
+		it.Workspace = workspace
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description); err != nil {
+			return nil, err
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) CreateDepartment(workspace, department, name, description string) error {
+	_, err := p.primaryConnection.Exec("INSERT INTO departments (workspace, department, name, description) VALUES (?, ?, ?, ?)", workspace, department, name, description)
+	p.update()
+	if p.isDuplicateConflict(err) {
+		return errors.New("department already exists")
+	}
+	return err
+}
+
+func (p *Provider) MutateDepartment(workspace, department string, options ...rubix.MutateDepartmentOption) error {
+	if len(options) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateDepartmentPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+	var fields []string
+	var vals []any
+	if payload.Title != nil {
+		fields = append(fields, "name = ?")
+		vals = append(vals, *payload.Title)
+	}
+	if payload.Description != nil {
+		fields = append(fields, "description = ?")
+		vals = append(vals, *payload.Description)
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	vals = append(vals, workspace, department)
+	q := fmt.Sprintf("UPDATE departments SET %s WHERE workspace = ? AND department = ?", strings.Join(fields, ", "))
+	res, err := p.primaryConnection.Exec(q, vals...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}
+
+// --- Channels ---
+func (p *Provider) GetChannel(workspace, channel string) (*rubix.Channel, error) {
+	ret := &rubix.Channel{Workspace: workspace, ID: channel}
+	row := p.primaryConnection.QueryRow("SELECT department, name, description FROM channels WHERE workspace = ? AND channel = ?", workspace, channel)
+	var desc sql.NullString
+	if err := row.Scan(&ret.DepartmentID, &ret.Name, &desc); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	ret.Description = desc.String
+	return ret, nil
+}
+
+func (p *Provider) GetChannels(workspace string) ([]rubix.Channel, error) {
+	rows, err := p.primaryConnection.Query("SELECT channel, department, name, description FROM channels WHERE workspace = ? ORDER BY name ASC", workspace)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.Channel
+	for rows.Next() {
+		var it rubix.Channel
+		var desc sql.NullString
+		it.Workspace = workspace
+		if err := rows.Scan(&it.ID, &it.DepartmentID, &it.Name, &desc); err != nil {
+			return nil, err
+		}
+		it.Description = desc.String
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) CreateChannel(workspace, channel, department, name, description string) error {
+	_, err := p.primaryConnection.Exec("INSERT INTO channels (workspace, channel, department, name, description) VALUES (?, ?, ?, ?, ?)", workspace, channel, department, name, description)
+	p.update()
+	if p.isDuplicateConflict(err) {
+		return errors.New("channel already exists")
+	}
+	return err
+}
+
+func (p *Provider) MutateChannel(workspace, channel string, options ...rubix.MutateChannelOption) error {
+	if len(options) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateChannelPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+	var fields []string
+	var vals []any
+	if payload.Title != nil {
+		fields = append(fields, "name = ?")
+		vals = append(vals, *payload.Title)
+	}
+	if payload.Description != nil {
+		fields = append(fields, "description = ?")
+		vals = append(vals, *payload.Description)
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	vals = append(vals, workspace, channel)
+	q := fmt.Sprintf("UPDATE channels SET %s WHERE workspace = ? AND channel = ?", strings.Join(fields, ", "))
+	res, err := p.primaryConnection.Exec(q, vals...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}

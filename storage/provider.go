@@ -47,6 +47,24 @@ type Provider interface {
 	CreateGroup(workspace, group, name, description string, users map[string]rubix.GroupLevel) error
 	MutateGroup(workspace, group string, options ...rubix.MutateGroupOption) error
 
+	// Brands
+	GetBrand(workspace, brand string) (*rubix.Brand, error)
+	GetBrands(workspace string) ([]rubix.Brand, error)
+	CreateBrand(workspace, brand, name, description string) error
+	MutateBrand(workspace, brand string, options ...rubix.MutateBrandOption) error
+
+	// Departments
+	GetDepartment(workspace, department string) (*rubix.Department, error)
+	GetDepartments(workspace string) ([]rubix.Department, error)
+	CreateDepartment(workspace, department, name, description string) error
+	MutateDepartment(workspace, department string, options ...rubix.MutateDepartmentOption) error
+
+	// Channels
+	GetChannel(workspace, channel string) (*rubix.Channel, error)
+	GetChannels(workspace string) ([]rubix.Channel, error)
+	CreateChannel(workspace, channel, department, name, description string) error
+	MutateChannel(workspace, channel string, options ...rubix.MutateChannelOption) error
+
 	Initialize() error
 	Connect() error
 	Close() error

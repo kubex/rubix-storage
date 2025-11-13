@@ -136,5 +136,30 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `user`, `group`)"+
 		");"))
 
+	queries = append(queries, migQuery("CREATE TABLE `brands` ("+
+		"`workspace`     varchar(64) NOT NULL,"+
+		"`brand`          varchar(64) NOT NULL,"+
+		"`name`          varchar(64) NOT NULL,"+
+		"`description` varchar(255) default '' not null,"+
+		"PRIMARY KEY (`workspace`, `brand`)"+
+		");"))
+
+	queries = append(queries, migQuery("CREATE TABLE `departments` ("+
+		"`workspace`     varchar(64) NOT NULL,"+
+		"`department`          varchar(64) NOT NULL,"+
+		"`name`          varchar(64) NOT NULL,"+
+		"`description` varchar(255) default '' not null,"+
+		"PRIMARY KEY (`workspace`, `department`)"+
+		");"))
+
+	queries = append(queries, migQuery("CREATE TABLE `channels` ("+
+		"`workspace`     varchar(64) NOT NULL,"+
+		"`channel`          varchar(64) NOT NULL,"+
+		"`department`          varchar(64) NOT NULL,"+
+		"`name`          varchar(64) NOT NULL,"+
+		"`description` varchar(255) default '' not null,"+
+		"PRIMARY KEY (`workspace`, `channel`)"+
+		");"))
+
 	return queries
 }
