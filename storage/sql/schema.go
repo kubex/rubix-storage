@@ -120,5 +120,21 @@ func migrations() []migration {
 		"ADD `options` text null"+
 		";"))
 
+	queries = append(queries, migQuery("CREATE TABLE `groups` ("+
+		"`workspace`     varchar(64) NOT NULL,"+
+		"`group`          varchar(64) NOT NULL,"+
+		"`name`          varchar(64) NOT NULL,"+
+		"`description` varchar(255) default '' not null,"+
+		"PRIMARY KEY (`workspace`, `group`)"+
+		");"))
+
+	queries = append(queries, migQuery("CREATE TABLE `user_groups` ("+
+		"`workspace` varchar(64) NOT NULL,"+
+		"`user`      varchar(64) NOT NULL,"+
+		"`group`      varchar(64) NOT NULL,"+
+		"`level`      varchar(64) NOT NULL,"+ // member, manager, owner
+		"PRIMARY KEY (`workspace`, `user`, `group`)"+
+		");"))
+
 	return queries
 }

@@ -727,3 +727,178 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 	return g.Wait()
 }
+
+func (p *Provider) GetGroup(workspace, group string) (*rubix.Group, error) {
+	var ret = rubix.Group{
+		Workspace: workspace,
+		ID:        group,
+	}
+
+	g := errgroup.Group{}
+	g.Go(func() error {
+		row := p.primaryConnection.QueryRow("SELECT name, description FROM `groups` WHERE workspace = ? AND `group` = ?", workspace, group)
+		return row.Scan(&ret.Name, &ret.Description)
+	})
+	g.Go(func() error {
+		rows, err := p.primaryConnection.Query("SELECT user, level FROM user_groups WHERE workspace = ? AND `group` = ?", workspace, group)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var ug rubix.UserGroup
+			ug.Workspace = workspace
+			ug.Group = group
+			var level string
+			if err := rows.Scan(&ug.User, &level); err != nil {
+				return err
+			}
+			ug.Level = rubix.GroupLevel(level)
+			ret.Users = append(ret.Users, ug.User)
+			ret.Members = append(ret.Members, ug)
+		}
+		return nil
+	})
+
+	return &ret, g.Wait()
+}
+
+func (p *Provider) GetGroups(workspace string) ([]rubix.Group, error) {
+	rows, err := p.primaryConnection.Query("SELECT `group`, name, description FROM `groups` WHERE workspace = ? ORDER BY name ASC", workspace)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var groups []rubix.Group
+	for rows.Next() {
+		var g rubix.Group
+		g.Workspace = workspace
+		if err := rows.Scan(&g.ID, &g.Name, &g.Description); err != nil {
+			return nil, err
+		}
+		groups = append(groups, g)
+	}
+	return groups, nil
+}
+
+func (p *Provider) GetUserGroups(workspace, user string) ([]rubix.UserGroup, error) {
+	rows, err := p.primaryConnection.Query("SELECT `group`, level FROM user_groups WHERE workspace = ? AND user = ?", workspace, user)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var groups []rubix.UserGroup
+	for rows.Next() {
+		var ug rubix.UserGroup
+		ug.Workspace = workspace
+		ug.User = user
+		var level string
+		if err := rows.Scan(&ug.Group, &level); err != nil {
+			return nil, err
+		}
+		ug.Level = rubix.GroupLevel(level)
+		groups = append(groups, ug)
+	}
+	return groups, nil
+}
+
+func (p *Provider) DeleteGroup(workspace, group string) error {
+	_, err := p.primaryConnection.Exec("DELETE FROM `groups` WHERE workspace = ? AND `group` = ?", workspace, group)
+	_, err = p.primaryConnection.Exec("DELETE FROM `user_groups` WHERE workspace = ? AND `group` = ?", workspace, group)
+	p.update()
+	return err
+}
+
+func (p *Provider) CreateGroup(workspace, group, name, description string, users map[string]rubix.GroupLevel) error {
+	_, err := p.primaryConnection.Exec("INSERT INTO `groups` (workspace, `group`, name, description) VALUES (?, ?, ?, ?)", workspace, group, name, description)
+	p.update()
+	if p.isDuplicateConflict(err) {
+		return errors.New("group already exists")
+	}
+	if err != nil {
+		return err
+	}
+	var opts []rubix.MutateGroupOption
+	if len(users) > 0 {
+		levelBuckets := map[rubix.GroupLevel][]string{}
+		for u, lvl := range users {
+			levelBuckets[lvl] = append(levelBuckets[lvl], u)
+		}
+		for lvl, us := range levelBuckets {
+			opts = append(opts, rubix.WithGroupUsersToAdd(lvl, us...))
+		}
+	}
+	return p.MutateGroup(workspace, group, opts...)
+}
+
+func (p *Provider) MutateGroup(workspace, group string, options ...rubix.MutateGroupOption) error {
+	if len(options) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateGroupPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+
+	g := errgroup.Group{}
+	g.Go(func() error {
+		if payload.Title != nil || payload.Description != nil {
+			var fields []string
+			var vals []any
+			if payload.Title != nil {
+				fields = append(fields, "name = ?")
+				vals = append(vals, *payload.Title)
+			}
+			if payload.Description != nil {
+				fields = append(fields, "description = ?")
+				vals = append(vals, *payload.Description)
+			}
+			vals = append(vals, workspace, group)
+			q := fmt.Sprintf("UPDATE `groups` SET %s WHERE workspace = ? AND `group` = ?", strings.Join(fields, ", "))
+			result, err := p.primaryConnection.Exec(q, vals...)
+			if err != nil {
+				return err
+			}
+			rows, err := result.RowsAffected()
+			if err != nil {
+				return err
+			}
+			if rows == 0 {
+				return rubix.ErrNoResultFound
+			}
+		}
+		return nil
+	})
+	g.Go(func() error {
+		for user, level := range payload.UsersToAdd {
+			_, err := p.primaryConnection.Exec("INSERT INTO user_groups (workspace, user, `group`, level) VALUES (?, ?, ?, ?)", workspace, user, group, string(level))
+			if p.isDuplicateConflict(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	g.Go(func() error {
+		for _, user := range payload.UsersToRem {
+			_, err := p.primaryConnection.Exec("DELETE FROM user_groups WHERE workspace = ? AND user = ? AND `group` = ?", workspace, user, group)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	g.Go(func() error {
+		for user, level := range payload.UsersLevel {
+			_, err := p.primaryConnection.Exec("UPDATE user_groups SET level = ? WHERE workspace = ? AND user = ? AND `group` = ?", string(level), workspace, user, group)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return g.Wait()
+}

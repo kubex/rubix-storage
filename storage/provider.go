@@ -39,6 +39,14 @@ type Provider interface {
 	CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition) error
 	MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error
 
+	// Groups
+	GetGroup(workspace, group string) (*rubix.Group, error)
+	GetGroups(workspace string) ([]rubix.Group, error)
+	GetUserGroups(workspace, user string) ([]rubix.UserGroup, error)
+	DeleteGroup(workspace, group string) error
+	CreateGroup(workspace, group, name, description string, users map[string]rubix.GroupLevel) error
+	MutateGroup(workspace, group string, options ...rubix.MutateGroupOption) error
+
 	Initialize() error
 	Connect() error
 	Close() error
