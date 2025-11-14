@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "modernc.org/sqlite"
 )
 
 const ProviderKey = "sql"
@@ -37,9 +38,23 @@ func (p *Provider) Connect() error {
 	if p.primaryConnection == nil {
 		var err error
 		if p.SqlLite {
-			p.primaryConnection, err = sql.Open("libsql", p.PrimaryDSN)
-			if err != nil {
-				return fmt.Errorf("failed to open db %s", err)
+			// Use the embedded SQLite driver for local files/memory; libsql for remote turso DSNs
+			if strings.HasPrefix(p.PrimaryDSN, "file:") || strings.HasPrefix(p.PrimaryDSN, ":memory:") {
+				p.primaryConnection, err = sql.Open("sqlite", p.PrimaryDSN)
+				if err != nil {
+					return fmt.Errorf("failed to open sqlite db %s", err)
+				}
+				// Improve concurrency for SQLite integration tests and general use
+				p.primaryConnection.SetMaxOpenConns(1)
+				p.primaryConnection.SetMaxIdleConns(1)
+				_, _ = p.primaryConnection.Exec("PRAGMA journal_mode=WAL;")
+				_, _ = p.primaryConnection.Exec("PRAGMA synchronous=NORMAL;")
+				_, _ = p.primaryConnection.Exec("PRAGMA busy_timeout=5000;")
+			} else {
+				p.primaryConnection, err = sql.Open("libsql", p.PrimaryDSN)
+				if err != nil {
+					return fmt.Errorf("failed to open db %s", err)
+				}
 			}
 		} else {
 			p.primaryConnection, err = sql.Open("mysql", p.PrimaryDSN+"/"+p.Database+"?parseTime=true")

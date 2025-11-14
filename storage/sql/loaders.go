@@ -219,7 +219,6 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 }
 
 func (p *Provider) SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error {
-	query := "INSERT INTO auth_data (workspace, user, `vendor`, `app`, `key`, `value`) VALUES (?, ?, ?, ?, ?, ?) "
 	uid := sql.NullString{}
 	if userUuid != "" {
 		uid.String = userUuid
@@ -230,10 +229,16 @@ func (p *Provider) SetAuthData(workspaceUuid, userUuid string, value rubix.DataR
 		aid.String = value.AppID
 		aid.Valid = true
 	}
+
 	args := []any{workspaceUuid, uid, value.VendorID, aid, value.Key, value.Value}
+	query := "INSERT INTO auth_data (workspace, user, `vendor`, `app`, `key`, `value`) VALUES (?, ?, ?, ?, ?, ?)"
 	if forceUpdate {
-		query += "ON DUPLICATE KEY UPDATE `value` = ?"
-		args = append(args, value.Value)
+		if p.SqlLite {
+			query += " ON CONFLICT(workspace, user, `vendor`, `app`, `key`) DO UPDATE SET `value` = excluded.`value`"
+		} else {
+			query += " ON DUPLICATE KEY UPDATE `value` = ?"
+			args = append(args, value.Value)
+		}
 	}
 	_, err := p.primaryConnection.Exec(query, args...)
 	return err
@@ -556,17 +561,32 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 
 func (p *Provider) GetUserRoles(workspace, user string) ([]rubix.UserRole, error) {
 
+	roleIDs, err := p.GetUserRoleIDs(workspace, user)
+	if err != nil {
+		return nil, err
+	}
+
+	var roles []rubix.UserRole
+	for _, roleID := range roleIDs {
+		roles = append(roles, rubix.UserRole{Workspace: workspace, User: user, Role: roleID})
+	}
+
+	return roles, nil
+}
+
+func (p *Provider) GetUserRoleIDs(workspace, user string) ([]string, error) {
+
 	rows, err := p.primaryConnection.Query("SELECT role FROM user_roles WHERE workspace = ? AND user = ?", workspace, user)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var roles []rubix.UserRole
+	var roles []string
 	for rows.Next() {
 
-		var role = rubix.UserRole{Workspace: workspace, User: user}
-		err = rows.Scan(&role.Role)
+		var role = ""
+		err = rows.Scan(&role)
 		if err != nil {
 			return nil, err
 		}
