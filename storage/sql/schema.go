@@ -120,20 +120,20 @@ func migrations() []migration {
 		"ADD `options` text null"+
 		";"))
 
-	queries = append(queries, migQuery("CREATE TABLE `groups` ("+
+	queries = append(queries, migQuery("CREATE TABLE `teams` ("+
 		"`workspace`     varchar(64) NOT NULL,"+
-		"`group`          varchar(64) NOT NULL,"+
+		"`team`          varchar(64) NOT NULL,"+
 		"`name`          varchar(64) NOT NULL,"+
 		"`description` varchar(255) default '' not null,"+
-		"PRIMARY KEY (`workspace`, `group`)"+
+		"PRIMARY KEY (`workspace`, `team`)"+
 		");"))
 
-	queries = append(queries, migQuery("CREATE TABLE `user_groups` ("+
+	queries = append(queries, migQuery("CREATE TABLE `user_teams` ("+
 		"`workspace` varchar(64) NOT NULL,"+
 		"`user`      varchar(64) NOT NULL,"+
-		"`group`      varchar(64) NOT NULL,"+
+		"`team`      varchar(64) NOT NULL,"+
 		"`level`      varchar(64) NOT NULL,"+ // member, manager, owner
-		"PRIMARY KEY (`workspace`, `user`, `group`)"+
+		"PRIMARY KEY (`workspace`, `user`, `team`)"+
 		");"))
 
 	queries = append(queries, migQuery("CREATE TABLE `brands` ("+
@@ -160,6 +160,9 @@ func migrations() []migration {
 		"`description` varchar(255) default '' not null,"+
 		"PRIMARY KEY (`workspace`, `channel`)"+
 		");"))
+
+	queries = append(queries, migQuery("alter table `roles` ADD `lastUpdate` datetime default CURRENT_TIMESTAMP not null;"))
+	queries = append(queries, migQuery("alter table `workspace_memberships` ADD `lastUpdate` datetime default CURRENT_TIMESTAMP not null;"))
 
 	return queries
 }

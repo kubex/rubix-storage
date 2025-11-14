@@ -39,13 +39,13 @@ type Provider interface {
 	CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition) error
 	MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error
 
-	// Groups
-	GetGroup(workspace, group string) (*rubix.Group, error)
-	GetGroups(workspace string) ([]rubix.Group, error)
-	GetUserGroups(workspace, user string) ([]rubix.UserGroup, error)
-	DeleteGroup(workspace, group string) error
-	CreateGroup(workspace, group, name, description string, users map[string]rubix.GroupLevel) error
-	MutateGroup(workspace, group string, options ...rubix.MutateGroupOption) error
+	// Teams
+	GetTeam(workspace, group string) (*rubix.Team, error)
+	GetTeams(workspace string) ([]rubix.Team, error)
+	GetUserTeams(workspace, user string) ([]rubix.UserTeam, error)
+	DeleteTeam(workspace, group string) error
+	CreateTeam(workspace, group, name, description string, users map[string]rubix.TeamLevel) error
+	MutateTeam(workspace, group string, options ...rubix.MutateTeamOption) error
 
 	// Brands
 	GetBrand(workspace, brand string) (*rubix.Brand, error)

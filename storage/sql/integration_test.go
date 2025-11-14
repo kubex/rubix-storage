@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
@@ -24,6 +25,24 @@ func newTestProvider(t *testing.T) *Provider {
 		t.Fatalf("sqlite file not created: %v", err)
 	}
 	return p
+}
+
+func membershipLastUpdate(t *testing.T, p *Provider, ws, user string) time.Time {
+	row := p.primaryConnection.QueryRow("SELECT lastUpdate FROM workspace_memberships WHERE workspace = ? AND user = ?", ws, user)
+	var tsStr string
+	if err := row.Scan(&tsStr); err != nil {
+		t.Fatalf("scan membership lastUpdate: %v", err)
+	}
+	return timeFromString(tsStr)
+}
+
+func roleLastUpdate(t *testing.T, p *Provider, ws, role string) time.Time {
+	row := p.primaryConnection.QueryRow("SELECT lastUpdate FROM roles WHERE workspace = ? AND role = ?", ws, role)
+	var tsStr string
+	if err := row.Scan(&tsStr); err != nil {
+		t.Fatalf("scan role lastUpdate: %v", err)
+	}
+	return timeFromString(tsStr)
 }
 
 func TestIntegration_SQLite_EndToEnd(t *testing.T) {
@@ -62,6 +81,11 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if err := p.CreateRole(ws, "r-admin", "Admin", "All the power", []string{permRead}, []string{"u1"}, rubix.Condition{}); err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
+	// Capture timestamps before role/user changes
+	memBefore := membershipLastUpdate(t, p, ws, "u2")
+	roleBefore := roleLastUpdate(t, p, ws, "r-admin")
+	// Ensure time can advance for CURRENT_TIMESTAMP resolution
+	time.Sleep(1100 * time.Millisecond)
 	if err := p.MutateRole(ws, "r-admin",
 		rubix.WithUsersToAdd("u2"),
 		rubix.WithPermsToAdd(permWrite),
@@ -84,6 +108,15 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if err != nil || len(ur) != 1 || ur[0].Role != "r-admin" {
 		t.Fatalf("GetUserRoles: %+v err=%v", ur, err)
 	}
+	// Verify timestamps bumped
+	memAfterAdd := membershipLastUpdate(t, p, ws, "u2")
+	if !memAfterAdd.After(memBefore) {
+		t.Fatalf("workspace_memberships.lastUpdate did not increase after adding user to role: before=%v after=%v", memBefore, memAfterAdd)
+	}
+	roleAfterPerms := roleLastUpdate(t, p, ws, "r-admin")
+	if !roleAfterPerms.After(roleBefore) {
+		t.Fatalf("roles.lastUpdate did not increase after permission change: before=%v after=%v", roleBefore, roleAfterPerms)
+	}
 	// Permission checks: role should include the write permission
 	role, err = p.GetRole(ws, "r-admin")
 	if err != nil {
@@ -99,28 +132,48 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if !found {
 		t.Fatalf("expected role to have write permission, got %+v", role.Permissions)
 	}
+	// Change permission options should bump role lastUpdate
+	time.Sleep(1100 * time.Millisecond)
+	if err := p.MutateRole(ws, "r-admin", rubix.WithPermOptionToAdd(map[string]map[string][]string{
+		permWrite: {"scope": []string{"team:eng"}},
+	})); err != nil {
+		t.Fatalf("MutateRole options: %v", err)
+	}
+	roleAfterOpts := roleLastUpdate(t, p, ws, "r-admin")
+	if !roleAfterOpts.After(roleAfterPerms) {
+		t.Fatalf("roles.lastUpdate did not increase after options change: before=%v after=%v", roleAfterPerms, roleAfterOpts)
+	}
+	// Removing the user from role should bump membership lastUpdate again
+	time.Sleep(1100 * time.Millisecond)
+	if err := p.MutateRole(ws, "r-admin", rubix.WithUsersToRemove("u2")); err != nil {
+		t.Fatalf("MutateRole remove user: %v", err)
+	}
+	memAfterRem := membershipLastUpdate(t, p, ws, "u2")
+	if !memAfterRem.After(memAfterAdd) {
+		t.Fatalf("workspace_memberships.lastUpdate did not increase after removing user from role: before=%v after=%v", memAfterAdd, memAfterRem)
+	}
 
 	// Groups with levels
-	if err := p.CreateGroup(ws, "engineering", "Engineering", "Eng team", map[string]rubix.GroupLevel{"u1": rubix.GroupLevelOwner}); err != nil {
-		t.Fatalf("CreateGroup: %v", err)
+	if err := p.CreateTeam(ws, "engineering", "Engineering", "Eng team", map[string]rubix.TeamLevel{"u1": rubix.TeamLevelOwner}); err != nil {
+		t.Fatalf("CreateTeam: %v", err)
 	}
-	if err := p.MutateGroup(ws, "engineering",
-		rubix.WithGroupUsersToAdd(rubix.GroupLevelMember, "u2"),
+	if err := p.MutateTeam(ws, "engineering",
+		rubix.WithTeamUsersToAdd(rubix.TeamLevelMember, "u2"),
 	); err != nil {
-		t.Fatalf("MutateGroup add: %v", err)
+		t.Fatalf("MutateTeam add: %v", err)
 	}
-	if err := p.MutateGroup(ws, "engineering",
-		rubix.WithGroupUsersLevel(rubix.GroupLevelManager, "u2"),
+	if err := p.MutateTeam(ws, "engineering",
+		rubix.WithTeamUsersLevel(rubix.TeamLevelManager, "u2"),
 	); err != nil {
-		t.Fatalf("MutateGroup level: %v", err)
+		t.Fatalf("MutateTeam level: %v", err)
 	}
-	g, err := p.GetGroup(ws, "engineering")
+	g, err := p.GetTeam(ws, "engineering")
 	if err != nil || len(g.Members) != 2 {
-		t.Fatalf("GetGroup members=%d err=%v", len(g.Members), err)
+		t.Fatalf("GetTeam members=%d err=%v", len(g.Members), err)
 	}
-	ugs, err := p.GetUserGroups(ws, "u2")
-	if err != nil || len(ugs) != 1 || ugs[0].Level != rubix.GroupLevelManager {
-		t.Fatalf("GetUserGroups: %+v err=%v", ugs, err)
+	ugs, err := p.GetUserTeams(ws, "u2")
+	if err != nil || len(ugs) != 1 || ugs[0].Level != rubix.TeamLevelManager {
+		t.Fatalf("GetUserTeams: %+v err=%v", ugs, err)
 	}
 
 	// Brands / Departments / Channels
