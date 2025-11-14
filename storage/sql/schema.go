@@ -161,8 +161,8 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `channel`)"+
 		");"))
 
-	queries = append(queries, migQuery("alter table `roles` ADD `lastUpdate` datetime default CURRENT_TIMESTAMP not null;"))
-	queries = append(queries, migQuery("alter table `workspace_memberships` ADD `lastUpdate` datetime default CURRENT_TIMESTAMP not null;"))
+	queries = append(queries, migQuery("alter table `roles` ADD `lastUpdate` datetime default '';"))
+	queries = append(queries, migQuery("alter table `workspace_memberships` ADD `lastUpdate` datetime default '';"))
 
 	return queries
 }
