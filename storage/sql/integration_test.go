@@ -153,7 +153,7 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 		t.Fatalf("workspace_memberships.lastUpdate did not increase after removing user from role: before=%v after=%v", memAfterAdd, memAfterRem)
 	}
 
-	// Groups with levels
+	// Teams with levels
 	if err := p.CreateTeam(ws, "engineering", "Engineering", "Eng team", map[string]rubix.TeamLevel{"u1": rubix.TeamLevelOwner}); err != nil {
 		t.Fatalf("CreateTeam: %v", err)
 	}

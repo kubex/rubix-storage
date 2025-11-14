@@ -783,19 +783,19 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	return g.Wait()
 }
 
-func (p *Provider) GetTeam(workspace, group string) (*rubix.Team, error) {
+func (p *Provider) GetTeam(workspace, team string) (*rubix.Team, error) {
 	var ret = rubix.Team{
 		Workspace: workspace,
-		ID:        group,
+		ID:        team,
 	}
 
 	g := errgroup.Group{}
 	g.Go(func() error {
-		row := p.primaryConnection.QueryRow("SELECT name, description FROM `teams` WHERE workspace = ? AND `team` = ?", workspace, group)
+		row := p.primaryConnection.QueryRow("SELECT name, description FROM `teams` WHERE workspace = ? AND `team` = ?", workspace, team)
 		return row.Scan(&ret.Name, &ret.Description)
 	})
 	g.Go(func() error {
-		rows, err := p.primaryConnection.Query("SELECT user, level FROM user_groups WHERE workspace = ? AND `group` = ?", workspace, group)
+		rows, err := p.primaryConnection.Query("SELECT user, level FROM user_teams WHERE workspace = ? AND `team` = ?", workspace, team)
 		if err != nil {
 			return err
 		}
@@ -803,7 +803,7 @@ func (p *Provider) GetTeam(workspace, group string) (*rubix.Team, error) {
 		for rows.Next() {
 			var ug rubix.UserTeam
 			ug.Workspace = workspace
-			ug.Team = group
+			ug.Team = team
 			var level string
 			if err := rows.Scan(&ug.User, &level); err != nil {
 				return err
@@ -819,30 +819,30 @@ func (p *Provider) GetTeam(workspace, group string) (*rubix.Team, error) {
 }
 
 func (p *Provider) GetTeams(workspace string) ([]rubix.Team, error) {
-	rows, err := p.primaryConnection.Query("SELECT `group`, name, description FROM `groups` WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.primaryConnection.Query("SELECT `team`, name, description FROM `teams` WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var groups []rubix.Team
+	var teams []rubix.Team
 	for rows.Next() {
 		var g rubix.Team
 		g.Workspace = workspace
 		if err := rows.Scan(&g.ID, &g.Name, &g.Description); err != nil {
 			return nil, err
 		}
-		groups = append(groups, g)
+		teams = append(teams, g)
 	}
-	return groups, nil
+	return teams, nil
 }
 
 func (p *Provider) GetUserTeams(workspace, user string) ([]rubix.UserTeam, error) {
-	rows, err := p.primaryConnection.Query("SELECT `group`, level FROM user_groups WHERE workspace = ? AND user = ?", workspace, user)
+	rows, err := p.primaryConnection.Query("SELECT `team`, level FROM user_teams WHERE workspace = ? AND user = ?", workspace, user)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var groups []rubix.UserTeam
+	var teams []rubix.UserTeam
 	for rows.Next() {
 		var ug rubix.UserTeam
 		ug.Workspace = workspace
@@ -852,23 +852,23 @@ func (p *Provider) GetUserTeams(workspace, user string) ([]rubix.UserTeam, error
 			return nil, err
 		}
 		ug.Level = rubix.TeamLevel(level)
-		groups = append(groups, ug)
+		teams = append(teams, ug)
 	}
-	return groups, nil
+	return teams, nil
 }
 
-func (p *Provider) DeleteGroup(workspace, group string) error {
-	_, err := p.primaryConnection.Exec("DELETE FROM `groups` WHERE workspace = ? AND `group` = ?", workspace, group)
-	_, err = p.primaryConnection.Exec("DELETE FROM `user_groups` WHERE workspace = ? AND `group` = ?", workspace, group)
+func (p *Provider) DeleteTeam(workspace, team string) error {
+	_, err := p.primaryConnection.Exec("DELETE FROM `teams` WHERE workspace = ? AND `team` = ?", workspace, team)
+	_, err = p.primaryConnection.Exec("DELETE FROM `user_teams` WHERE workspace = ? AND `team` = ?", workspace, team)
 	p.update()
 	return err
 }
 
-func (p *Provider) CreateTeam(workspace, group, name, description string, users map[string]rubix.TeamLevel) error {
-	_, err := p.primaryConnection.Exec("INSERT INTO `groups` (workspace, `group`, name, description) VALUES (?, ?, ?, ?)", workspace, group, name, description)
+func (p *Provider) CreateTeam(workspace, team, name, description string, users map[string]rubix.TeamLevel) error {
+	_, err := p.primaryConnection.Exec("INSERT INTO `teams` (workspace, `team`, name, description) VALUES (?, ?, ?, ?)", workspace, team, name, description)
 	p.update()
 	if p.isDuplicateConflict(err) {
-		return errors.New("group already exists")
+		return errors.New("team already exists")
 	}
 	if err != nil {
 		return err
@@ -883,10 +883,10 @@ func (p *Provider) CreateTeam(workspace, group, name, description string, users 
 			opts = append(opts, rubix.WithTeamUsersToAdd(lvl, us...))
 		}
 	}
-	return p.MutateTeam(workspace, group, opts...)
+	return p.MutateTeam(workspace, team, opts...)
 }
 
-func (p *Provider) MutateTeam(workspace, group string, options ...rubix.MutateTeamOption) error {
+func (p *Provider) MutateTeam(workspace, team string, options ...rubix.MutateTeamOption) error {
 	if len(options) == 0 {
 		return nil
 	}
@@ -909,8 +909,8 @@ func (p *Provider) MutateTeam(workspace, group string, options ...rubix.MutateTe
 				fields = append(fields, "description = ?")
 				vals = append(vals, *payload.Description)
 			}
-			vals = append(vals, workspace, group)
-			q := fmt.Sprintf("UPDATE `groups` SET %s WHERE workspace = ? AND `group` = ?", strings.Join(fields, ", "))
+			vals = append(vals, workspace, team)
+			q := fmt.Sprintf("UPDATE `teams` SET %s WHERE workspace = ? AND `team` = ?", strings.Join(fields, ", "))
 			result, err := p.primaryConnection.Exec(q, vals...)
 			if err != nil {
 				return err
@@ -927,7 +927,7 @@ func (p *Provider) MutateTeam(workspace, group string, options ...rubix.MutateTe
 	})
 	g.Go(func() error {
 		for user, level := range payload.UsersToAdd {
-			_, err := p.primaryConnection.Exec("INSERT INTO user_groups (workspace, user, `group`, level) VALUES (?, ?, ?, ?)", workspace, user, group, string(level))
+			_, err := p.primaryConnection.Exec("INSERT INTO user_teams (workspace, user, `team`, level) VALUES (?, ?, ?, ?)", workspace, user, team, string(level))
 			if p.isDuplicateConflict(err) {
 				continue
 			}
@@ -939,7 +939,7 @@ func (p *Provider) MutateTeam(workspace, group string, options ...rubix.MutateTe
 	})
 	g.Go(func() error {
 		for _, user := range payload.UsersToRem {
-			_, err := p.primaryConnection.Exec("DELETE FROM user_groups WHERE workspace = ? AND user = ? AND `group` = ?", workspace, user, group)
+			_, err := p.primaryConnection.Exec("DELETE FROM user_teams WHERE workspace = ? AND user = ? AND `team` = ?", workspace, user, team)
 			if err != nil {
 				return err
 			}
@@ -948,7 +948,7 @@ func (p *Provider) MutateTeam(workspace, group string, options ...rubix.MutateTe
 	})
 	g.Go(func() error {
 		for user, level := range payload.UsersLevel {
-			_, err := p.primaryConnection.Exec("UPDATE user_groups SET level = ? WHERE workspace = ? AND user = ? AND `group` = ?", string(level), workspace, user, group)
+			_, err := p.primaryConnection.Exec("UPDATE user_teams SET level = ? WHERE workspace = ? AND user = ? AND `team` = ?", string(level), workspace, user, team)
 			if err != nil {
 				return err
 			}
