@@ -39,6 +39,11 @@ type Provider interface {
 	CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition) error
 	MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error
 
+	// Role Resources
+	GetRoleResources(workspace, role string) ([]rubix.RoleResource, error)
+	AddRoleResources(workspace, role string, resources ...rubix.RoleResource) error
+	RemoveRoleResources(workspace, role string, resources ...rubix.RoleResource) error
+
 	// Teams
 	GetTeam(workspace, team string) (*rubix.Team, error)
 	GetTeams(workspace string) ([]rubix.Team, error)

@@ -208,6 +208,77 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 		t.Fatalf("GetChannel: %+v err=%v", ch, err)
 	}
 
+	// Role Resources
+	roleBeforeRes := roleLastUpdate(t, p, ws, "r-admin")
+	time.Sleep(1100 * time.Millisecond)
+	if err := p.AddRoleResources(ws, "r-admin",
+		rubix.RoleResource{Resource: "acme", ResourceType: rubix.ResourceTypeBrand},
+		rubix.RoleResource{Resource: "support", ResourceType: rubix.ResourceTypeDepartment},
+		rubix.RoleResource{Resource: "email", ResourceType: rubix.ResourceTypeChannel},
+	); err != nil {
+		t.Fatalf("AddRoleResources: %v", err)
+	}
+	resList, err := p.GetRoleResources(ws, "r-admin")
+	if err != nil {
+		t.Fatalf("GetRoleResources: %v", err)
+	}
+	if len(resList) != 3 {
+		t.Fatalf("expected 3 role resources, got %d", len(resList))
+	}
+	wantTypes := map[string]rubix.ResourceType{"acme": rubix.ResourceTypeBrand, "support": rubix.ResourceTypeDepartment, "email": rubix.ResourceTypeChannel}
+	for _, rr := range resList {
+		if want, ok := wantTypes[rr.Resource]; !ok || rr.ResourceType != want {
+			t.Fatalf("unexpected resource entry: %+v", rr)
+		}
+	}
+	// GetRole includes resources
+	roleWithRes, err := p.GetRole(ws, "r-admin")
+	if err != nil {
+		t.Fatalf("GetRole with resources: %v", err)
+	}
+	if len(roleWithRes.Resources) < 3 {
+		t.Fatalf("expected role to have at least 3 resources, got %d", len(roleWithRes.Resources))
+	}
+	// lastUpdate bumped on add
+	roleAfterAdd := roleLastUpdate(t, p, ws, "r-admin")
+	if !roleAfterAdd.After(roleBeforeRes) {
+		t.Fatalf("roles.lastUpdate did not increase after adding resources: before=%v after=%v", roleBeforeRes, roleAfterAdd)
+	}
+	// Adding duplicates should not bump lastUpdate
+	time.Sleep(1100 * time.Millisecond)
+	if err := p.AddRoleResources(ws, "r-admin",
+		rubix.RoleResource{Resource: "acme", ResourceType: rubix.ResourceTypeBrand},
+		rubix.RoleResource{Resource: "support", ResourceType: rubix.ResourceTypeDepartment},
+		rubix.RoleResource{Resource: "email", ResourceType: rubix.ResourceTypeChannel},
+	); err != nil {
+		t.Fatalf("AddRoleResources duplicates: %v", err)
+	}
+	roleAfterDupAdd := roleLastUpdate(t, p, ws, "r-admin")
+	if roleAfterDupAdd.After(roleAfterAdd) {
+		t.Fatalf("roles.lastUpdate increased after duplicate resource add: before=%v after=%v", roleAfterAdd, roleAfterDupAdd)
+	}
+	// Remove one resource and verify lastUpdate increases
+	time.Sleep(1100 * time.Millisecond)
+	if err := p.RemoveRoleResources(ws, "r-admin", rubix.RoleResource{Resource: "email"}); err != nil {
+		t.Fatalf("RemoveRoleResources: %v", err)
+	}
+	resList, err = p.GetRoleResources(ws, "r-admin")
+	if err != nil {
+		t.Fatalf("GetRoleResources after remove: %v", err)
+	}
+	if len(resList) != 2 {
+		t.Fatalf("expected 2 role resources after removal, got %d", len(resList))
+	}
+	for _, rr := range resList {
+		if rr.Resource == "email" {
+			t.Fatalf("resource 'email' should have been removed")
+		}
+	}
+	roleAfterRemRes := roleLastUpdate(t, p, ws, "r-admin")
+	if !roleAfterRemRes.After(roleAfterDupAdd) {
+		t.Fatalf("roles.lastUpdate did not increase after removing resource: before=%v after=%v", roleAfterDupAdd, roleAfterRemRes)
+	}
+
 	// Auth data
 	ga := app.GlobalAppID{VendorID: "vendor", AppID: "app"}
 	if err := p.SetAuthData(ws, "u1", rubix.DataResult{VendorID: ga.VendorID, AppID: ga.AppID, Key: "token", Value: "abc"}, true); err != nil {

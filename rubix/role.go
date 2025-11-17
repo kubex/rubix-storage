@@ -7,6 +7,7 @@ type Role struct {
 	Description string
 	Users       []string         // Not on roles table
 	Permissions []RolePermission // Not on roles table
+	Resources   []RoleResource   // Not on roles table
 	Conditions  Condition
 }
 
@@ -23,6 +24,21 @@ type RolePermission struct {
 	Resource   string              `json:"resource"`
 	Allow      bool                `json:"allow"`
 	Options    map[string][]string `json:"options"`
+}
+
+type ResourceType string
+
+const (
+	ResourceTypeBrand      ResourceType = "brand"
+	ResourceTypeDepartment ResourceType = "department"
+	ResourceTypeChannel    ResourceType = "channel"
+)
+
+type RoleResource struct {
+	Workspace    string       `json:"workspace"`
+	Role         string       `json:"role"`
+	Resource     string       `json:"resource"`
+	ResourceType ResourceType `json:"resource_type"`
 }
 
 type MutateRolePayload struct {

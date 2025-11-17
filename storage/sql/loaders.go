@@ -543,6 +543,25 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 
 		return nil
 	})
+	g.Go(func() error {
+		rows, err := p.primaryConnection.Query("SELECT resource, resource_type FROM role_resources WHERE workspace = ? AND role = ?", workspace, role)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var rr rubix.RoleResource
+			var rt string
+			if err := rows.Scan(&rr.Resource, &rt); err != nil {
+				return err
+			}
+			rr.Workspace = workspace
+			rr.Role = role
+			rr.ResourceType = rubix.ResourceType(rt)
+			ret.Resources = append(ret.Resources, rr)
+		}
+		return nil
+	})
 
 	return &ret, g.Wait()
 }
@@ -781,6 +800,71 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	})
 
 	return g.Wait()
+}
+
+// --- Role Resources ---
+func (p *Provider) GetRoleResources(workspace, role string) ([]rubix.RoleResource, error) {
+	rows, err := p.primaryConnection.Query("SELECT resource, resource_type FROM role_resources WHERE workspace = ? AND role = ?", workspace, role)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.RoleResource
+	for rows.Next() {
+		var it rubix.RoleResource
+		var rt string
+		it.Workspace = workspace
+		it.Role = role
+		if err := rows.Scan(&it.Resource, &rt); err != nil {
+			return nil, err
+		}
+		it.ResourceType = rubix.ResourceType(rt)
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) AddRoleResources(workspace, role string, resources ...rubix.RoleResource) error {
+	if len(resources) == 0 {
+		return nil
+	}
+	defer p.update()
+	anyChange := false
+	for _, rr := range resources {
+		_, err := p.primaryConnection.Exec("INSERT INTO role_resources (workspace, role, resource, resource_type) VALUES (?, ?, ?, ?)", workspace, role, rr.Resource, string(rr.ResourceType))
+		if p.isDuplicateConflict(err) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		anyChange = true
+	}
+	if anyChange {
+		_, _ = p.primaryConnection.Exec("UPDATE roles SET lastUpdate = CURRENT_TIMESTAMP WHERE workspace = ? AND role = ?", workspace, role)
+	}
+	return nil
+}
+
+func (p *Provider) RemoveRoleResources(workspace, role string, resources ...rubix.RoleResource) error {
+	if len(resources) == 0 {
+		return nil
+	}
+	defer p.update()
+	anyChange := false
+	for _, rr := range resources {
+		res, err := p.primaryConnection.Exec("DELETE FROM role_resources WHERE workspace = ? AND role = ? AND resource = ?", workspace, role, rr.Resource)
+		if err != nil {
+			return err
+		}
+		if rows, _ := res.RowsAffected(); rows > 0 {
+			anyChange = true
+		}
+	}
+	if anyChange {
+		_, _ = p.primaryConnection.Exec("UPDATE roles SET lastUpdate = CURRENT_TIMESTAMP WHERE workspace = ? AND role = ?", workspace, role)
+	}
+	return nil
 }
 
 func (p *Provider) GetTeam(workspace, team string) (*rubix.Team, error) {
