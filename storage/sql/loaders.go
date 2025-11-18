@@ -566,6 +566,30 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	return &ret, g.Wait()
 }
 
+func (p *Provider) GetRolePermissions(workspace, role string) ([]rubix.RolePermission, error) {
+	rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, options FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var perms []rubix.RolePermission
+	for rows.Next() {
+		var rp = rubix.RolePermission{Workspace: workspace, Role: role}
+		var optionsStr sql.NullString
+		if err := rows.Scan(&rp.Permission, &rp.Resource, &rp.Allow, &optionsStr); err != nil {
+			return nil, err
+		}
+		if optionsStr.Valid {
+			if err := json.Unmarshal([]byte(optionsStr.String), &rp.Options); err != nil {
+				return nil, err
+			}
+		}
+		perms = append(perms, rp)
+	}
+	return perms, nil
+}
+
 func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 
 	rows, err := p.primaryConnection.Query("SELECT role, name, description FROM roles WHERE workspace = ? ORDER BY name ASC", workspace)
