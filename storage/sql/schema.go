@@ -172,5 +172,7 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `role`, `resource`)"+
 		");"))
 
+	queries = append(queries, migQuery("alter table `channels` ADD `maxLevel` int default 0;"))
+
 	return queries
 }
