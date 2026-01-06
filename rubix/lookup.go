@@ -25,6 +25,14 @@ type DataResult struct {
 	Value    string
 }
 
+type Setting struct {
+	Workspace string
+	Vendor    string
+	App       string
+	Key       string
+	Value     app.PropertyValue
+}
+
 func NewLookup(WorkspaceUUID, UserUUID string, AppID app.GlobalAppID, geoLocation string, ipAddress string, mfa bool, verifiedAccount bool, sessionIssued time.Time) Lookup {
 	return Lookup{
 		WorkspaceUUID:   WorkspaceUUID,

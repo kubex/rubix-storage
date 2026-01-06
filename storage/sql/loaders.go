@@ -1295,3 +1295,87 @@ func (p *Provider) MutateChannel(workspace, channel string, options ...rubix.Mut
 	}
 	return nil
 }
+
+func (p *Provider) GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error) {
+	var conditions []string
+	var args []any
+
+	conditions = append(conditions, "workspace = ?")
+	args = append(args, workspace)
+
+	if vendor != "" {
+		conditions = append(conditions, "vendor = ?")
+		args = append(args, vendor)
+	}
+
+	if app != "" {
+		conditions = append(conditions, "app = ?")
+		args = append(args, app)
+	} else if vendor != "" {
+		// Only filter by NULL app if vendor is specified (to get vendor-level settings)
+		conditions = append(conditions, "app IS NULL")
+	}
+
+	if len(keys) > 0 {
+		var placeholders []string
+		for _, key := range keys {
+			placeholders = append(placeholders, "?")
+			args = append(args, key)
+		}
+		conditions = append(conditions, "`key` IN ("+strings.Join(placeholders, ",")+")")
+	}
+
+	query := "SELECT workspace, vendor, app, `key`, `value` FROM settings WHERE " + strings.Join(conditions, " AND ") + " ORDER BY vendor ASC, app ASC, `key` ASC"
+
+	rows, err := p.primaryConnection.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var settings []rubix.Setting
+	for rows.Next() {
+		var setting rubix.Setting
+		var val sql.NullString
+		var appID sql.NullString
+		if err := rows.Scan(&setting.Workspace, &setting.Vendor, &appID, &setting.Key, &val); err != nil {
+			return nil, err
+		}
+		if val.Valid {
+			_ = json.Unmarshal([]byte(val.String), &setting.Value)
+		}
+		setting.App = appID.String
+		settings = append(settings, setting)
+	}
+
+	return settings, nil
+}
+
+func (p *Provider) SetSetting(workspace, vendor, app, key string, value app.PropertyValue) error {
+	appID := sql.NullString{}
+	if app != "" {
+		appID.String = app
+		appID.Valid = true
+	}
+
+	jsnVal, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	args := []any{workspace, vendor, appID, key, string(jsnVal)}
+	query := "INSERT INTO settings (workspace, vendor, app, `key`, `value`) VALUES (?, ?, ?, ?, ?)"
+	if p.SqlLite {
+		query += " ON CONFLICT(workspace, vendor, app, `key`) DO UPDATE SET `value` = excluded.`value`"
+	} else {
+		query += " ON DUPLICATE KEY UPDATE `value` = ?"
+		args = append(args, value)
+	}
+
+	_, err = p.primaryConnection.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}

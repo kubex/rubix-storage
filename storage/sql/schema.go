@@ -174,5 +174,14 @@ func migrations() []migration {
 
 	queries = append(queries, migQuery("alter table `channels` ADD `maxLevel` int default 0;"))
 
+	queries = append(queries, migQuery("CREATE TABLE `settings` ("+
+		"`workspace` varchar(64) NOT NULL,"+
+		"`vendor`    varchar(64) NOT NULL,"+
+		"`app`       varchar(64) NULL,"+
+		"`key`       varchar(64) NOT NULL,"+
+		"`value`     text        NOT NULL,"+ // json
+		"PRIMARY KEY (`workspace`, `vendor`, `app`, `key`)"+
+		");"))
+
 	return queries
 }
