@@ -1336,13 +1336,9 @@ func (p *Provider) GetSettings(workspace, vendor, app string, keys ...string) ([
 	var settings []rubix.Setting
 	for rows.Next() {
 		var setting rubix.Setting
-		var val sql.NullString
 		var appID sql.NullString
-		if err := rows.Scan(&setting.Workspace, &setting.Vendor, &appID, &setting.Key, &val); err != nil {
+		if err := rows.Scan(&setting.Workspace, &setting.Vendor, &appID, &setting.Key, &setting.Value); err != nil {
 			return nil, err
-		}
-		if val.Valid {
-			_ = json.Unmarshal([]byte(val.String), &setting.Value)
 		}
 		setting.App = appID.String
 		settings = append(settings, setting)
@@ -1351,19 +1347,14 @@ func (p *Provider) GetSettings(workspace, vendor, app string, keys ...string) ([
 	return settings, nil
 }
 
-func (p *Provider) SetSetting(workspace, vendor, app, key string, value app.PropertyValue) error {
+func (p *Provider) SetSetting(workspace, vendor, app, key, value string) error {
 	appID := sql.NullString{}
 	if app != "" {
 		appID.String = app
 		appID.Valid = true
 	}
 
-	jsnVal, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-
-	args := []any{workspace, vendor, appID, key, string(jsnVal)}
+	args := []any{workspace, vendor, appID, key, value}
 	query := "INSERT INTO settings (workspace, vendor, app, `key`, `value`) VALUES (?, ?, ?, ?, ?)"
 	if p.SqlLite {
 		query += " ON CONFLICT(workspace, vendor, app, `key`) DO UPDATE SET `value` = excluded.`value`"
@@ -1372,7 +1363,7 @@ func (p *Provider) SetSetting(workspace, vendor, app, key string, value app.Prop
 		args = append(args, value)
 	}
 
-	_, err = p.primaryConnection.Exec(query, args...)
+	_, err := p.primaryConnection.Exec(query, args...)
 	if err != nil {
 		return err
 	}

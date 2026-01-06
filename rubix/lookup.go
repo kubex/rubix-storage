@@ -30,7 +30,7 @@ type Setting struct {
 	Vendor    string
 	App       string
 	Key       string
-	Value     app.PropertyValue
+	Value     string
 }
 
 func NewLookup(WorkspaceUUID, UserUUID string, AppID app.GlobalAppID, geoLocation string, ipAddress string, mfa bool, verifiedAccount bool, sessionIssued time.Time) Lookup {

@@ -18,7 +18,7 @@ type Provider interface {
 	SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error
 
 	GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error)
-	SetSetting(workspace, vendor, app, key string, value app.PropertyValue) error
+	SetSetting(workspace, vendor, app, key, value string) error
 
 	AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string) error
 
