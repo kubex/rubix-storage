@@ -57,6 +57,22 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 		t.Fatalf("GetWorkspaceUUIDByAlias: got %q err %v", got, err)
 	}
 
+	// Workspace access condition
+	cond := rubix.Condition{RequireMFA: true, AllowedLocations: []string{"US", "GB"}}
+	if err := p.SetWorkspaceAccessCondition(ws, cond); err != nil {
+		t.Fatalf("SetWorkspaceAccessCondition: %v", err)
+	}
+	wsObj, err := p.RetrieveWorkspace(ws)
+	if err != nil || wsObj == nil {
+		t.Fatalf("RetrieveWorkspace after setting condition: %v", err)
+	}
+	if !wsObj.AccessCondition.RequireMFA {
+		t.Fatalf("expected RequireMFA=true, got false")
+	}
+	if len(wsObj.AccessCondition.AllowedLocations) != 2 || wsObj.AccessCondition.AllowedLocations[0] != "US" {
+		t.Fatalf("expected AllowedLocations=[US GB], got %v", wsObj.AccessCondition.AllowedLocations)
+	}
+
 	// Users and membership
 	if err := p.CreateUser("u1", "Alice", "alice@example.com"); err != nil {
 		t.Fatalf("CreateUser u1: %v", err)

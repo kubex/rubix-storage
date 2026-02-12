@@ -15,6 +15,8 @@ type Provider interface {
 	RetrieveWorkspaceByDomain(domain string) (*rubix.Workspace, error)
 
 	GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error)
+	SetWorkspaceAccessCondition(workspaceUuid string, condition rubix.Condition) error
+
 	SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error
 
 	GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error)

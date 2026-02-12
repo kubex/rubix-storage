@@ -218,6 +218,19 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 	return resp, err
 }
 
+func (p *Provider) SetWorkspaceAccessCondition(workspaceUuid string, condition rubix.Condition) error {
+	conditionBytes, err := json.Marshal(condition)
+	if err != nil {
+		return err
+	}
+	_, err = p.primaryConnection.Exec("UPDATE workspaces SET accessCondition = ? WHERE uuid = ?", string(conditionBytes), workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
 func (p *Provider) SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error {
 	uid := sql.NullString{}
 	if userUuid != "" {
