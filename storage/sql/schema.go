@@ -185,5 +185,7 @@ func migrations() []migration {
 
 	queries = append(queries, migQuery("alter table `workspaces` ADD `oidcProvider` text null;"))
 
+	queries = append(queries, migQuery("alter table `workspaces` ADD `emailDomainWhitelist` text null;"))
+
 	return queries
 }

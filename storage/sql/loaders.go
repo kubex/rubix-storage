@@ -188,7 +188,7 @@ func (p *Provider) retrieveWorkspaceBy(field, match string) (*rubix.Workspace, e
 
 func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[string]*rubix.Workspace, error) {
 	resp := make(map[string]*rubix.Workspace)
-	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts,accessCondition,oidcProvider FROM workspaces WHERE "+where, args...)
+	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts,accessCondition,oidcProvider,emailDomainWhitelist FROM workspaces WHERE "+where, args...)
 	if err != nil {
 		return resp, err
 	}
@@ -200,10 +200,11 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		footerPartsJson := sql.NullString{}
 		accessConditionJson := sql.NullString{}
 		oidcProviderJson := sql.NullString{}
+		emailDomainWhitelistJson := sql.NullString{}
 		sysVendors := sql.NullString{}
 		icon := sql.NullString{}
 		defaultApp := sql.NullString{}
-		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson, &accessConditionJson, &oidcProviderJson)
+		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson, &accessConditionJson, &oidcProviderJson, &emailDomainWhitelistJson)
 		if scanErr != nil {
 			continue
 		}
@@ -214,6 +215,7 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		json.Unmarshal([]byte(footerPartsJson.String), &located.FooterParts)
 		json.Unmarshal([]byte(accessConditionJson.String), &located.AccessCondition)
 		json.Unmarshal([]byte(oidcProviderJson.String), &located.OIDCProvider)
+		json.Unmarshal([]byte(emailDomainWhitelistJson.String), &located.EmailDomainWhitelist)
 		resp[located.Uuid] = &located
 	}
 
@@ -239,6 +241,19 @@ func (p *Provider) SetWorkspaceOIDCProvider(workspaceUuid string, provider rubix
 		return err
 	}
 	_, err = p.primaryConnection.Exec("UPDATE workspaces SET oidcProvider = ? WHERE uuid = ?", string(providerBytes), workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) SetWorkspaceEmailDomainWhitelist(workspaceUuid string, domains []string) error {
+	domainsBytes, err := json.Marshal(domains)
+	if err != nil {
+		return err
+	}
+	_, err = p.primaryConnection.Exec("UPDATE workspaces SET emailDomainWhitelist = ? WHERE uuid = ?", string(domainsBytes), workspaceUuid)
 	if err != nil {
 		return err
 	}

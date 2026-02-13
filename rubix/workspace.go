@@ -19,6 +19,7 @@ type Workspace struct {
 	FooterParts           map[string]string `json:"footerParts"`
 	AccessCondition       Condition         `json:"accessCondition"`
 	OIDCProvider          OIDCProvider      `json:"oidcProvider"`
+	EmailDomainWhitelist  []string          `json:"emailDomainWhitelist"`
 }
 
 func WorkspaceFromJson(jsonBytes []byte) (*Workspace, error) {

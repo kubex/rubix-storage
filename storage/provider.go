@@ -17,6 +17,7 @@ type Provider interface {
 	GetAuthData(workspaceUuid, userUuid string, appIDs ...app.GlobalAppID) ([]rubix.DataResult, error)
 	SetWorkspaceAccessCondition(workspaceUuid string, condition rubix.Condition) error
 	SetWorkspaceOIDCProvider(workspaceUuid string, provider rubix.OIDCProvider) error
+	SetWorkspaceEmailDomainWhitelist(workspaceUuid string, domains []string) error
 
 	SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error
 
