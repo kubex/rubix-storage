@@ -183,5 +183,7 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `vendor`, `app`, `key`)"+
 		");"))
 
+	queries = append(queries, migQuery("alter table `workspaces` ADD `oidcProvider` text null;"))
+
 	return queries
 }
