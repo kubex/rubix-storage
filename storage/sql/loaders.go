@@ -1339,6 +1339,154 @@ func (p *Provider) MutateChannel(workspace, channel string, options ...rubix.Mut
 	return nil
 }
 
+// --- Distributors ---
+func (p *Provider) GetDistributor(workspace, distributor string) (*rubix.Distributor, error) {
+	ret := &rubix.Distributor{Workspace: workspace, ID: distributor}
+	row := p.primaryConnection.QueryRow("SELECT name, description FROM distributors WHERE workspace = ? AND distributor = ?", workspace, distributor)
+	if err := row.Scan(&ret.Name, &ret.Description); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (p *Provider) GetDistributors(workspace string) ([]rubix.Distributor, error) {
+	rows, err := p.primaryConnection.Query("SELECT distributor, name, description FROM distributors WHERE workspace = ? ORDER BY name ASC", workspace)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.Distributor
+	for rows.Next() {
+		var it rubix.Distributor
+		it.Workspace = workspace
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description); err != nil {
+			return nil, err
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) CreateDistributor(workspace, distributor, name, description string) error {
+	_, err := p.primaryConnection.Exec("INSERT INTO distributors (workspace, distributor, name, description) VALUES (?, ?, ?, ?)", workspace, distributor, name, description)
+	p.update()
+	if p.isDuplicateConflict(err) {
+		return errors.New("distributor already exists")
+	}
+	return err
+}
+
+func (p *Provider) MutateDistributor(workspace, distributor string, options ...rubix.MutateDistributorOption) error {
+	if len(options) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateDistributorPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+	var fields []string
+	var vals []any
+	if payload.Title != nil {
+		fields = append(fields, "name = ?")
+		vals = append(vals, *payload.Title)
+	}
+	if payload.Description != nil {
+		fields = append(fields, "description = ?")
+		vals = append(vals, *payload.Description)
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	vals = append(vals, workspace, distributor)
+	q := fmt.Sprintf("UPDATE distributors SET %s WHERE workspace = ? AND distributor = ?", strings.Join(fields, ", "))
+	res, err := p.primaryConnection.Exec(q, vals...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}
+
+// --- BPOs ---
+func (p *Provider) GetBPO(workspace, bpo string) (*rubix.BPO, error) {
+	ret := &rubix.BPO{Workspace: workspace, ID: bpo}
+	row := p.primaryConnection.QueryRow("SELECT name, description FROM bpos WHERE workspace = ? AND bpo = ?", workspace, bpo)
+	if err := row.Scan(&ret.Name, &ret.Description); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (p *Provider) GetBPOs(workspace string) ([]rubix.BPO, error) {
+	rows, err := p.primaryConnection.Query("SELECT bpo, name, description FROM bpos WHERE workspace = ? ORDER BY name ASC", workspace)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.BPO
+	for rows.Next() {
+		var it rubix.BPO
+		it.Workspace = workspace
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description); err != nil {
+			return nil, err
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) CreateBPO(workspace, bpo, name, description string) error {
+	_, err := p.primaryConnection.Exec("INSERT INTO bpos (workspace, bpo, name, description) VALUES (?, ?, ?, ?)", workspace, bpo, name, description)
+	p.update()
+	if p.isDuplicateConflict(err) {
+		return errors.New("bpo already exists")
+	}
+	return err
+}
+
+func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOption) error {
+	if len(options) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateBPOPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+	var fields []string
+	var vals []any
+	if payload.Title != nil {
+		fields = append(fields, "name = ?")
+		vals = append(vals, *payload.Title)
+	}
+	if payload.Description != nil {
+		fields = append(fields, "description = ?")
+		vals = append(vals, *payload.Description)
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	vals = append(vals, workspace, bpo)
+	q := fmt.Sprintf("UPDATE bpos SET %s WHERE workspace = ? AND bpo = ?", strings.Join(fields, ", "))
+	res, err := p.primaryConnection.Exec(q, vals...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}
+
 func (p *Provider) GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error) {
 	var conditions []string
 	var args []any

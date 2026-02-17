@@ -224,6 +224,38 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 		t.Fatalf("GetChannel: %+v err=%v", ch, err)
 	}
 
+	// Distributors
+	if err := p.CreateDistributor(ws, "dist-1", "Distributor One", "First distributor"); err != nil {
+		t.Fatalf("CreateDistributor: %v", err)
+	}
+	if err := p.MutateDistributor(ws, "dist-1", rubix.WithDistributorDescription("Updated distributor")); err != nil {
+		t.Fatalf("MutateDistributor: %v", err)
+	}
+	dist, err := p.GetDistributor(ws, "dist-1")
+	if err != nil || dist.Description != "Updated distributor" {
+		t.Fatalf("GetDistributor: %+v err=%v", dist, err)
+	}
+	dists, err := p.GetDistributors(ws)
+	if err != nil || len(dists) != 1 {
+		t.Fatalf("GetDistributors: len=%d err=%v", len(dists), err)
+	}
+
+	// BPOs
+	if err := p.CreateBPO(ws, "bpo-1", "BPO One", "First BPO"); err != nil {
+		t.Fatalf("CreateBPO: %v", err)
+	}
+	if err := p.MutateBPO(ws, "bpo-1", rubix.WithBPODescription("Updated BPO")); err != nil {
+		t.Fatalf("MutateBPO: %v", err)
+	}
+	bpo, err := p.GetBPO(ws, "bpo-1")
+	if err != nil || bpo.Description != "Updated BPO" {
+		t.Fatalf("GetBPO: %+v err=%v", bpo, err)
+	}
+	bpos, err := p.GetBPOs(ws)
+	if err != nil || len(bpos) != 1 {
+		t.Fatalf("GetBPOs: len=%d err=%v", len(bpos), err)
+	}
+
 	// Role Resources
 	roleBeforeRes := roleLastUpdate(t, p, ws, "r-admin")
 	time.Sleep(1100 * time.Millisecond)

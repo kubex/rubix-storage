@@ -79,6 +79,18 @@ type Provider interface {
 	CreateChannel(workspace, channel, department, name, description string) error
 	MutateChannel(workspace, channel string, options ...rubix.MutateChannelOption) error
 
+	// Distributors
+	GetDistributor(workspace, distributor string) (*rubix.Distributor, error)
+	GetDistributors(workspace string) ([]rubix.Distributor, error)
+	CreateDistributor(workspace, distributor, name, description string) error
+	MutateDistributor(workspace, distributor string, options ...rubix.MutateDistributorOption) error
+
+	// BPOs
+	GetBPO(workspace, bpo string) (*rubix.BPO, error)
+	GetBPOs(workspace string) ([]rubix.BPO, error)
+	CreateBPO(workspace, bpo, name, description string) error
+	MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOption) error
+
 	Initialize() error
 	Connect() error
 	Close() error

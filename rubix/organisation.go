@@ -28,6 +28,22 @@ type Channel struct {
 	MaxLevel int
 }
 
+// Distributor represents a distributor within a workspace
+type Distributor struct {
+	Workspace   string
+	ID          string
+	Name        string
+	Description string
+}
+
+// BPO represents a BPO within a workspace
+type BPO struct {
+	Workspace   string
+	ID          string
+	Name        string
+	Description string
+}
+
 // Mutate payloads and options for simple metadata updates
 
 type MutateBrandPayload struct {
@@ -58,6 +74,36 @@ func WithDepartmentName(title string) MutateDepartmentOption {
 
 func WithDepartmentDescription(description string) MutateDepartmentOption {
 	return func(p *MutateDepartmentPayload) { p.Description = &description }
+}
+
+type MutateDistributorPayload struct {
+	Title       *string
+	Description *string
+}
+
+type MutateDistributorOption func(*MutateDistributorPayload)
+
+func WithDistributorName(title string) MutateDistributorOption {
+	return func(p *MutateDistributorPayload) { p.Title = &title }
+}
+
+func WithDistributorDescription(description string) MutateDistributorOption {
+	return func(p *MutateDistributorPayload) { p.Description = &description }
+}
+
+type MutateBPOPayload struct {
+	Title       *string
+	Description *string
+}
+
+type MutateBPOOption func(*MutateBPOPayload)
+
+func WithBPOName(title string) MutateBPOOption {
+	return func(p *MutateBPOPayload) { p.Title = &title }
+}
+
+func WithBPODescription(description string) MutateBPOOption {
+	return func(p *MutateBPOPayload) { p.Description = &description }
 }
 
 type MutateChannelPayload struct {

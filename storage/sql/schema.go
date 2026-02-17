@@ -187,5 +187,21 @@ func migrations() []migration {
 
 	queries = append(queries, migQuery("alter table `workspaces` ADD `emailDomainWhitelist` text null;"))
 
+	queries = append(queries, migQuery("CREATE TABLE `distributors` ("+
+		"`workspace`     varchar(64) NOT NULL,"+
+		"`distributor`   varchar(64) NOT NULL,"+
+		"`name`          varchar(64) NOT NULL,"+
+		"`description` varchar(255) default '' not null,"+
+		"PRIMARY KEY (`workspace`, `distributor`)"+
+		");"))
+
+	queries = append(queries, migQuery("CREATE TABLE `bpos` ("+
+		"`workspace`     varchar(64) NOT NULL,"+
+		"`bpo`           varchar(64) NOT NULL,"+
+		"`name`          varchar(64) NOT NULL,"+
+		"`description` varchar(255) default '' not null,"+
+		"PRIMARY KEY (`workspace`, `bpo`)"+
+		");"))
+
 	return queries
 }

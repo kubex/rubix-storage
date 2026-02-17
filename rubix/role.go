@@ -29,9 +29,11 @@ type RolePermission struct {
 type ResourceType string
 
 const (
-	ResourceTypeBrand      ResourceType = "brand"
-	ResourceTypeDepartment ResourceType = "department"
-	ResourceTypeChannel    ResourceType = "channel"
+	ResourceTypeBrand       ResourceType = "brand"
+	ResourceTypeDepartment  ResourceType = "department"
+	ResourceTypeChannel     ResourceType = "channel"
+	ResourceTypeDistributor ResourceType = "distributor"
+	ResourceTypeBPO         ResourceType = "bpo"
 )
 
 type RoleResource struct {
