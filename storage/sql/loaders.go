@@ -1472,6 +1472,120 @@ func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOp
 	return nil
 }
 
+// --- OIDC Providers ---
+func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, error) {
+	rows, err := p.primaryConnection.Query(
+		"SELECT uuid, workspace, providerName, clientID, clientSecret, clientKeys, issuerURL FROM workspace_oidc_providers WHERE workspace = ?",
+		workspace,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.OIDCProvider
+	for rows.Next() {
+		var it rubix.OIDCProvider
+		clientSecret := sql.NullString{}
+		clientKeys := sql.NullString{}
+		if err := rows.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL); err != nil {
+			return nil, err
+		}
+		it.ClientSecret = clientSecret.String
+		it.ClientKeys = clientKeys.String
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider, error) {
+	row := p.primaryConnection.QueryRow(
+		"SELECT uuid, workspace, providerName, clientID, clientSecret, clientKeys, issuerURL FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
+		workspace, uuid,
+	)
+	var it rubix.OIDCProvider
+	clientSecret := sql.NullString{}
+	clientKeys := sql.NullString{}
+	if err := row.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	it.ClientSecret = clientSecret.String
+	it.ClientKeys = clientKeys.String
+	return &it, nil
+}
+
+func (p *Provider) CreateOIDCProvider(workspace string, provider rubix.OIDCProvider) error {
+	_, err := p.primaryConnection.Exec(
+		"INSERT INTO workspace_oidc_providers (uuid, workspace, providerName, clientID, clientSecret, clientKeys, issuerURL) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		provider.Uuid, workspace, provider.ProviderName, provider.ClientID, provider.ClientSecret, provider.ClientKeys, provider.IssuerURL,
+	)
+	if p.isDuplicateConflict(err) {
+		return rubix.ErrDuplicate
+	}
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) MutateOIDCProvider(workspace, uuid string, options ...rubix.MutateOIDCProviderOption) error {
+	if len(options) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateOIDCProviderPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+	var fields []string
+	var vals []any
+	if payload.ProviderName != nil {
+		fields = append(fields, "providerName = ?")
+		vals = append(vals, *payload.ProviderName)
+	}
+	if payload.ClientID != nil {
+		fields = append(fields, "clientID = ?")
+		vals = append(vals, *payload.ClientID)
+	}
+	if payload.ClientSecret != nil {
+		fields = append(fields, "clientSecret = ?")
+		vals = append(vals, *payload.ClientSecret)
+	}
+	if payload.ClientKeys != nil {
+		fields = append(fields, "clientKeys = ?")
+		vals = append(vals, *payload.ClientKeys)
+	}
+	if payload.IssuerURL != nil {
+		fields = append(fields, "issuerURL = ?")
+		vals = append(vals, *payload.IssuerURL)
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	vals = append(vals, workspace, uuid)
+	q := fmt.Sprintf("UPDATE workspace_oidc_providers SET %s WHERE workspace = ? AND uuid = ?", strings.Join(fields, ", "))
+	res, err := p.primaryConnection.Exec(q, vals...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}
+
+func (p *Provider) DeleteOIDCProvider(workspace, uuid string) error {
+	_, err := p.primaryConnection.Exec("DELETE FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?", workspace, uuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
 func (p *Provider) GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error) {
 	var conditions []string
 	var args []any

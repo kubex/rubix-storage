@@ -378,4 +378,82 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if err != nil || len(members) != 1 { // u2 is removed
 		t.Fatalf("GetWorkspaceMembers after removal: len=%d err=%v", len(members), err)
 	}
+
+	// OIDC Providers
+	oidc1 := rubix.OIDCProvider{
+		Uuid:         "oidc-1",
+		ProviderName: "Okta",
+		ClientID:     "client-abc",
+		ClientSecret: "secret-xyz",
+		IssuerURL:    "https://okta.example.com",
+	}
+	if err := p.CreateOIDCProvider(ws, oidc1); err != nil {
+		t.Fatalf("CreateOIDCProvider: %v", err)
+	}
+	oidc2 := rubix.OIDCProvider{
+		Uuid:         "oidc-2",
+		ProviderName: "Auth0",
+		ClientID:     "client-def",
+		IssuerURL:    "https://auth0.example.com",
+	}
+	if err := p.CreateOIDCProvider(ws, oidc2); err != nil {
+		t.Fatalf("CreateOIDCProvider 2: %v", err)
+	}
+
+	// Duplicate should return ErrDuplicate
+	if err := p.CreateOIDCProvider(ws, oidc1); err != rubix.ErrDuplicate {
+		t.Fatalf("expected ErrDuplicate, got %v", err)
+	}
+
+	// GetOIDCProviders
+	providers, err := p.GetOIDCProviders(ws)
+	if err != nil || len(providers) != 2 {
+		t.Fatalf("GetOIDCProviders: len=%d err=%v", len(providers), err)
+	}
+
+	// GetOIDCProvider
+	got, err := p.GetOIDCProvider(ws, "oidc-1")
+	if err != nil {
+		t.Fatalf("GetOIDCProvider: %v", err)
+	}
+	if got.ProviderName != "Okta" || got.ClientID != "client-abc" || got.ClientSecret != "secret-xyz" || got.IssuerURL != "https://okta.example.com" {
+		t.Fatalf("GetOIDCProvider mismatch: %+v", got)
+	}
+
+	// GetOIDCProvider not found
+	if _, err := p.GetOIDCProvider(ws, "nonexistent"); err != rubix.ErrNoResultFound {
+		t.Fatalf("expected ErrNoResultFound, got %v", err)
+	}
+
+	// MutateOIDCProvider
+	if err := p.MutateOIDCProvider(ws, "oidc-1",
+		rubix.WithOIDCProviderName("Okta SSO"),
+		rubix.WithOIDCClientSecret("new-secret"),
+	); err != nil {
+		t.Fatalf("MutateOIDCProvider: %v", err)
+	}
+	got, err = p.GetOIDCProvider(ws, "oidc-1")
+	if err != nil {
+		t.Fatalf("GetOIDCProvider after mutate: %v", err)
+	}
+	if got.ProviderName != "Okta SSO" || got.ClientSecret != "new-secret" {
+		t.Fatalf("MutateOIDCProvider mismatch: %+v", got)
+	}
+
+	// MutateOIDCProvider not found
+	if err := p.MutateOIDCProvider(ws, "nonexistent", rubix.WithOIDCProviderName("X")); err != rubix.ErrNoResultFound {
+		t.Fatalf("expected ErrNoResultFound on mutate, got %v", err)
+	}
+
+	// DeleteOIDCProvider
+	if err := p.DeleteOIDCProvider(ws, "oidc-2"); err != nil {
+		t.Fatalf("DeleteOIDCProvider: %v", err)
+	}
+	providers, err = p.GetOIDCProviders(ws)
+	if err != nil || len(providers) != 1 {
+		t.Fatalf("GetOIDCProviders after delete: len=%d err=%v", len(providers), err)
+	}
+	if providers[0].Uuid != "oidc-1" {
+		t.Fatalf("expected oidc-1 to remain, got %s", providers[0].Uuid)
+	}
 }
