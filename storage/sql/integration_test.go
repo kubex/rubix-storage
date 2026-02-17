@@ -385,6 +385,7 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 		ProviderName: "Okta",
 		ClientID:     "client-abc",
 		ClientSecret: "secret-xyz",
+		ClientKeys:   `{"key":"value"}`,
 		IssuerURL:    "https://okta.example.com",
 	}
 	if err := p.CreateOIDCProvider(ws, oidc1); err != nil {
@@ -416,13 +417,18 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetOIDCProvider: %v", err)
 	}
-	if got.ProviderName != "Okta" || got.ClientID != "client-abc" || got.ClientSecret != "secret-xyz" || got.IssuerURL != "https://okta.example.com" {
+	if got.Uuid != "oidc-1" || got.Workspace != ws || got.ProviderName != "Okta" || got.ClientID != "client-abc" || got.ClientSecret != "secret-xyz" || got.ClientKeys != `{"key":"value"}` || got.IssuerURL != "https://okta.example.com" {
 		t.Fatalf("GetOIDCProvider mismatch: %+v", got)
 	}
 
 	// GetOIDCProvider not found
 	if _, err := p.GetOIDCProvider(ws, "nonexistent"); err != rubix.ErrNoResultFound {
 		t.Fatalf("expected ErrNoResultFound, got %v", err)
+	}
+
+	// MutateOIDCProvider no-op (zero options)
+	if err := p.MutateOIDCProvider(ws, "oidc-1"); err != nil {
+		t.Fatalf("MutateOIDCProvider no-op: %v", err)
 	}
 
 	// MutateOIDCProvider
