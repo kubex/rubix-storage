@@ -203,5 +203,17 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `bpo`)"+
 		");"))
 
+	queries = append(queries, migQuery("CREATE TABLE `workspace_oidc_providers` ("+
+		"`uuid`           varchar(64)  NOT NULL,"+
+		"`workspace`      varchar(64)  NOT NULL,"+
+		"`providerName`   varchar(120) NOT NULL,"+
+		"`clientID`       varchar(255) NOT NULL,"+
+		"`clientSecret`   varchar(255) NULL,"+
+		"`clientKeys`     text NULL,"+
+		"`issuerURL`      varchar(255) NOT NULL,"+
+		"PRIMARY KEY (`uuid`)"+
+		");"))
+	queries = append(queries, migQuery("CREATE INDEX `oidc_workspace` ON `workspace_oidc_providers`(`workspace`);"))
+
 	return queries
 }

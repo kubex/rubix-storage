@@ -18,7 +18,7 @@ type Workspace struct {
 	DefaultApp            app.GlobalAppID   `json:"defaultApp"`
 	FooterParts           map[string]string `json:"footerParts"`
 	AccessCondition       Condition         `json:"accessCondition"`
-	OIDCProvider          OIDCProvider      `json:"oidcProvider"`
+	OIDCProviders         []OIDCProvider    `json:"oidcProviders"`
 	EmailDomainWhitelist  []string          `json:"emailDomainWhitelist"`
 }
 
