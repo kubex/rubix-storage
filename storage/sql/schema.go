@@ -212,6 +212,7 @@ func migrations() []migration {
 		"`uuid`           varchar(64)  NOT NULL,"+
 		"`workspace`      varchar(64)  NOT NULL,"+
 		"`providerName`   varchar(120) NOT NULL,"+
+		"`displayName`    varchar(255) NOT NULL DEFAULT '',"+
 		"`clientID`       varchar(255) NOT NULL,"+
 		"`clientSecret`   varchar(255) NULL,"+
 		"`clientKeys`     text NULL,"+
