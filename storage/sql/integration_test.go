@@ -396,6 +396,7 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 		ClientSecret: "secret-xyz",
 		ClientKeys:   `{"key":"value"}`,
 		IssuerURL:    "https://okta.example.com",
+		BpoID:        "bpo-1",
 	}
 	if err := p.CreateOIDCProvider(ws, oidc1); err != nil {
 		t.Fatalf("CreateOIDCProvider: %v", err)
@@ -426,7 +427,7 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetOIDCProvider: %v", err)
 	}
-	if got.Uuid != "oidc-1" || got.Workspace != ws || got.ProviderName != "Okta" || got.DisplayName != "Okta SSO Login" || got.ClientID != "client-abc" || got.ClientSecret != "secret-xyz" || got.ClientKeys != `{"key":"value"}` || got.IssuerURL != "https://okta.example.com" {
+	if got.Uuid != "oidc-1" || got.Workspace != ws || got.ProviderName != "Okta" || got.DisplayName != "Okta SSO Login" || got.ClientID != "client-abc" || got.ClientSecret != "secret-xyz" || got.ClientKeys != `{"key":"value"}` || got.IssuerURL != "https://okta.example.com" || got.BpoID != "bpo-1" {
 		t.Fatalf("GetOIDCProvider mismatch: %+v", got)
 	}
 
@@ -445,6 +446,7 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 		rubix.WithOIDCProviderName("Okta SSO"),
 		rubix.WithOIDCDisplayName("Sign in with Okta"),
 		rubix.WithOIDCClientSecret("new-secret"),
+		rubix.WithOIDCBpoID("bpo-2"),
 	); err != nil {
 		t.Fatalf("MutateOIDCProvider: %v", err)
 	}
@@ -452,7 +454,7 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetOIDCProvider after mutate: %v", err)
 	}
-	if got.ProviderName != "Okta SSO" || got.DisplayName != "Sign in with Okta" || got.ClientSecret != "new-secret" {
+	if got.ProviderName != "Okta SSO" || got.DisplayName != "Sign in with Okta" || got.ClientSecret != "new-secret" || got.BpoID != "bpo-2" {
 		t.Fatalf("MutateOIDCProvider mismatch: %+v", got)
 	}
 

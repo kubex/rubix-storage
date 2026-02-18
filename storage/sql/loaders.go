@@ -1491,7 +1491,7 @@ func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOp
 // --- OIDC Providers ---
 func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, error) {
 	rows, err := p.primaryConnection.Query(
-		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL FROM workspace_oidc_providers WHERE workspace = ?",
+		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID FROM workspace_oidc_providers WHERE workspace = ?",
 		workspace,
 	)
 	if err != nil {
@@ -1503,7 +1503,7 @@ func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, err
 		var it rubix.OIDCProvider
 		clientSecret := sql.NullString{}
 		clientKeys := sql.NullString{}
-		if err := rows.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL); err != nil {
+		if err := rows.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID); err != nil {
 			return nil, err
 		}
 		it.ClientSecret = clientSecret.String
@@ -1515,13 +1515,13 @@ func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, err
 
 func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider, error) {
 	row := p.primaryConnection.QueryRow(
-		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
+		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
 		workspace, uuid,
 	)
 	var it rubix.OIDCProvider
 	clientSecret := sql.NullString{}
 	clientKeys := sql.NullString{}
-	if err := row.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL); err != nil {
+	if err := row.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1534,8 +1534,8 @@ func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider,
 
 func (p *Provider) CreateOIDCProvider(workspace string, provider rubix.OIDCProvider) error {
 	_, err := p.primaryConnection.Exec(
-		"INSERT INTO workspace_oidc_providers (uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		provider.Uuid, workspace, provider.ProviderName, provider.DisplayName, provider.ClientID, provider.ClientSecret, provider.ClientKeys, provider.IssuerURL,
+		"INSERT INTO workspace_oidc_providers (uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		provider.Uuid, workspace, provider.ProviderName, provider.DisplayName, provider.ClientID, provider.ClientSecret, provider.ClientKeys, provider.IssuerURL, provider.BpoID,
 	)
 	if p.isDuplicateConflict(err) {
 		return rubix.ErrDuplicate
@@ -1581,6 +1581,10 @@ func (p *Provider) MutateOIDCProvider(workspace, uuid string, options ...rubix.M
 	if payload.IssuerURL != nil {
 		fields = append(fields, "issuerURL = ?")
 		vals = append(vals, *payload.IssuerURL)
+	}
+	if payload.BpoID != nil {
+		fields = append(fields, "bpoID = ?")
+		vals = append(vals, *payload.BpoID)
 	}
 	if len(fields) == 0 {
 		return nil

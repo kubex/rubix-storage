@@ -221,5 +221,7 @@ func migrations() []migration {
 		");"))
 	queries = append(queries, migQuery("CREATE INDEX `oidc_workspace` ON `workspace_oidc_providers`(`workspace`);"))
 
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `bpoID` varchar(64) NOT NULL DEFAULT '';"))
+
 	return queries
 }

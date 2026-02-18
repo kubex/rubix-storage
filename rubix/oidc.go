@@ -9,6 +9,7 @@ type OIDCProvider struct {
 	ClientSecret string `json:"clientSecret"`
 	ClientKeys   string `json:"clientKeys"`
 	IssuerURL    string `json:"issuerURL"`
+	BpoID        string `json:"bpoID"`
 }
 
 func (o OIDCProvider) Configured() bool {
@@ -22,6 +23,7 @@ type MutateOIDCProviderPayload struct {
 	ClientSecret *string
 	ClientKeys   *string
 	IssuerURL    *string
+	BpoID        *string
 }
 
 type MutateOIDCProviderOption func(*MutateOIDCProviderPayload)
@@ -48,4 +50,8 @@ func WithOIDCClientKeys(keys string) MutateOIDCProviderOption {
 
 func WithOIDCIssuerURL(url string) MutateOIDCProviderOption {
 	return func(p *MutateOIDCProviderPayload) { p.IssuerURL = &url }
+}
+
+func WithOIDCBpoID(bpoID string) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.BpoID = &bpoID }
 }
