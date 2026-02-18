@@ -228,11 +228,15 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if err := p.CreateDistributor(ws, "dist-1", "Distributor One", "First distributor"); err != nil {
 		t.Fatalf("CreateDistributor: %v", err)
 	}
-	if err := p.MutateDistributor(ws, "dist-1", rubix.WithDistributorDescription("Updated distributor")); err != nil {
+	if err := p.MutateDistributor(ws, "dist-1",
+		rubix.WithDistributorDescription("Updated distributor"),
+		rubix.WithDistributorWebsiteURL("https://example.com"),
+		rubix.WithDistributorLogoURL("https://example.com/logo.png"),
+	); err != nil {
 		t.Fatalf("MutateDistributor: %v", err)
 	}
 	dist, err := p.GetDistributor(ws, "dist-1")
-	if err != nil || dist.Description != "Updated distributor" {
+	if err != nil || dist.Description != "Updated distributor" || dist.WebsiteURL != "https://example.com" || dist.LogoURL != "https://example.com/logo.png" {
 		t.Fatalf("GetDistributor: %+v err=%v", dist, err)
 	}
 	dists, err := p.GetDistributors(ws)
@@ -244,11 +248,15 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if err := p.CreateBPO(ws, "bpo-1", "BPO One", "First BPO"); err != nil {
 		t.Fatalf("CreateBPO: %v", err)
 	}
-	if err := p.MutateBPO(ws, "bpo-1", rubix.WithBPODescription("Updated BPO")); err != nil {
+	if err := p.MutateBPO(ws, "bpo-1",
+		rubix.WithBPODescription("Updated BPO"),
+		rubix.WithBPOWebsiteURL("https://bpo.example.com"),
+		rubix.WithBPOLogoURL("https://bpo.example.com/logo.png"),
+	); err != nil {
 		t.Fatalf("MutateBPO: %v", err)
 	}
 	bpo, err := p.GetBPO(ws, "bpo-1")
-	if err != nil || bpo.Description != "Updated BPO" {
+	if err != nil || bpo.Description != "Updated BPO" || bpo.WebsiteURL != "https://bpo.example.com" || bpo.LogoURL != "https://bpo.example.com/logo.png" {
 		t.Fatalf("GetBPO: %+v err=%v", bpo, err)
 	}
 	bpos, err := p.GetBPOs(ws)

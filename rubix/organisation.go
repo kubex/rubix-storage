@@ -34,6 +34,8 @@ type Distributor struct {
 	ID          string
 	Name        string
 	Description string
+	WebsiteURL  string
+	LogoURL     string
 }
 
 // BPO represents a BPO within a workspace
@@ -42,6 +44,8 @@ type BPO struct {
 	ID          string
 	Name        string
 	Description string
+	WebsiteURL  string
+	LogoURL     string
 }
 
 // Mutate payloads and options for simple metadata updates
@@ -79,6 +83,8 @@ func WithDepartmentDescription(description string) MutateDepartmentOption {
 type MutateDistributorPayload struct {
 	Title       *string
 	Description *string
+	WebsiteURL  *string
+	LogoURL     *string
 }
 
 type MutateDistributorOption func(*MutateDistributorPayload)
@@ -91,9 +97,19 @@ func WithDistributorDescription(description string) MutateDistributorOption {
 	return func(p *MutateDistributorPayload) { p.Description = &description }
 }
 
+func WithDistributorWebsiteURL(url string) MutateDistributorOption {
+	return func(p *MutateDistributorPayload) { p.WebsiteURL = &url }
+}
+
+func WithDistributorLogoURL(url string) MutateDistributorOption {
+	return func(p *MutateDistributorPayload) { p.LogoURL = &url }
+}
+
 type MutateBPOPayload struct {
 	Title       *string
 	Description *string
+	WebsiteURL  *string
+	LogoURL     *string
 }
 
 type MutateBPOOption func(*MutateBPOPayload)
@@ -104,6 +120,14 @@ func WithBPOName(title string) MutateBPOOption {
 
 func WithBPODescription(description string) MutateBPOOption {
 	return func(p *MutateBPOPayload) { p.Description = &description }
+}
+
+func WithBPOWebsiteURL(url string) MutateBPOOption {
+	return func(p *MutateBPOPayload) { p.WebsiteURL = &url }
+}
+
+func WithBPOLogoURL(url string) MutateBPOOption {
+	return func(p *MutateBPOPayload) { p.LogoURL = &url }
 }
 
 type MutateChannelPayload struct {

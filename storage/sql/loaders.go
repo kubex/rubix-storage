@@ -1327,8 +1327,8 @@ func (p *Provider) MutateChannel(workspace, channel string, options ...rubix.Mut
 // --- Distributors ---
 func (p *Provider) GetDistributor(workspace, distributor string) (*rubix.Distributor, error) {
 	ret := &rubix.Distributor{Workspace: workspace, ID: distributor}
-	row := p.primaryConnection.QueryRow("SELECT name, description FROM distributors WHERE workspace = ? AND distributor = ?", workspace, distributor)
-	if err := row.Scan(&ret.Name, &ret.Description); err != nil {
+	row := p.primaryConnection.QueryRow("SELECT name, description, website_url, logo_url FROM distributors WHERE workspace = ? AND distributor = ?", workspace, distributor)
+	if err := row.Scan(&ret.Name, &ret.Description, &ret.WebsiteURL, &ret.LogoURL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1338,7 +1338,7 @@ func (p *Provider) GetDistributor(workspace, distributor string) (*rubix.Distrib
 }
 
 func (p *Provider) GetDistributors(workspace string) ([]rubix.Distributor, error) {
-	rows, err := p.primaryConnection.Query("SELECT distributor, name, description FROM distributors WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.primaryConnection.Query("SELECT distributor, name, description, website_url, logo_url FROM distributors WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1347,7 +1347,7 @@ func (p *Provider) GetDistributors(workspace string) ([]rubix.Distributor, error
 	for rows.Next() {
 		var it rubix.Distributor
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.Name, &it.Description); err != nil {
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.WebsiteURL, &it.LogoURL); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
@@ -1383,6 +1383,14 @@ func (p *Provider) MutateDistributor(workspace, distributor string, options ...r
 		fields = append(fields, "description = ?")
 		vals = append(vals, *payload.Description)
 	}
+	if payload.WebsiteURL != nil {
+		fields = append(fields, "website_url = ?")
+		vals = append(vals, *payload.WebsiteURL)
+	}
+	if payload.LogoURL != nil {
+		fields = append(fields, "logo_url = ?")
+		vals = append(vals, *payload.LogoURL)
+	}
 	if len(fields) == 0 {
 		return nil
 	}
@@ -1401,8 +1409,8 @@ func (p *Provider) MutateDistributor(workspace, distributor string, options ...r
 // --- BPOs ---
 func (p *Provider) GetBPO(workspace, bpo string) (*rubix.BPO, error) {
 	ret := &rubix.BPO{Workspace: workspace, ID: bpo}
-	row := p.primaryConnection.QueryRow("SELECT name, description FROM bpos WHERE workspace = ? AND bpo = ?", workspace, bpo)
-	if err := row.Scan(&ret.Name, &ret.Description); err != nil {
+	row := p.primaryConnection.QueryRow("SELECT name, description, website_url, logo_url FROM bpos WHERE workspace = ? AND bpo = ?", workspace, bpo)
+	if err := row.Scan(&ret.Name, &ret.Description, &ret.WebsiteURL, &ret.LogoURL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1412,7 +1420,7 @@ func (p *Provider) GetBPO(workspace, bpo string) (*rubix.BPO, error) {
 }
 
 func (p *Provider) GetBPOs(workspace string) ([]rubix.BPO, error) {
-	rows, err := p.primaryConnection.Query("SELECT bpo, name, description FROM bpos WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.primaryConnection.Query("SELECT bpo, name, description, website_url, logo_url FROM bpos WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1421,7 +1429,7 @@ func (p *Provider) GetBPOs(workspace string) ([]rubix.BPO, error) {
 	for rows.Next() {
 		var it rubix.BPO
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.Name, &it.Description); err != nil {
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.WebsiteURL, &it.LogoURL); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
@@ -1456,6 +1464,14 @@ func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOp
 	if payload.Description != nil {
 		fields = append(fields, "description = ?")
 		vals = append(vals, *payload.Description)
+	}
+	if payload.WebsiteURL != nil {
+		fields = append(fields, "website_url = ?")
+		vals = append(vals, *payload.WebsiteURL)
+	}
+	if payload.LogoURL != nil {
+		fields = append(fields, "logo_url = ?")
+		vals = append(vals, *payload.LogoURL)
 	}
 	if len(fields) == 0 {
 		return nil

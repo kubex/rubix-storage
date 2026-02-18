@@ -203,6 +203,11 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `bpo`)"+
 		");"))
 
+	queries = append(queries, migQuery("alter table `distributors` ADD `website_url` varchar(255) default '' not null;"))
+	queries = append(queries, migQuery("alter table `distributors` ADD `logo_url` varchar(255) default '' not null;"))
+	queries = append(queries, migQuery("alter table `bpos` ADD `website_url` varchar(255) default '' not null;"))
+	queries = append(queries, migQuery("alter table `bpos` ADD `logo_url` varchar(255) default '' not null;"))
+
 	queries = append(queries, migQuery("CREATE TABLE `workspace_oidc_providers` ("+
 		"`uuid`           varchar(64)  NOT NULL,"+
 		"`workspace`      varchar(64)  NOT NULL,"+
