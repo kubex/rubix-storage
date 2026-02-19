@@ -1619,7 +1619,7 @@ func (p *Provider) DeleteOIDCProvider(workspace, uuid string) error {
 }
 
 // --- SCIM Group Mappings ---
-func (p *Provider) GetSCIMGroupMappings(providerUUID string) ([]rubix.SCIMGroupMapping, error) {
+func (p *Provider) GetSCIMGroupMappings(workspace, providerUUID string) ([]rubix.SCIMGroupMapping, error) {
 	rows, err := p.primaryConnection.Query(
 		"SELECT providerUUID, scimGroupID, scimGroupName, rubixTeamID, defaultLevel FROM scim_group_mappings WHERE providerUUID = ?",
 		providerUUID,
@@ -1639,7 +1639,7 @@ func (p *Provider) GetSCIMGroupMappings(providerUUID string) ([]rubix.SCIMGroupM
 	return items, nil
 }
 
-func (p *Provider) SetSCIMGroupMapping(mapping rubix.SCIMGroupMapping) error {
+func (p *Provider) SetSCIMGroupMapping(workspace string, mapping rubix.SCIMGroupMapping) error {
 	args := []any{mapping.ProviderUUID, mapping.ScimGroupID, mapping.ScimGroupName, mapping.RubixTeamID, mapping.DefaultLevel}
 	query := "INSERT INTO scim_group_mappings (providerUUID, scimGroupID, scimGroupName, rubixTeamID, defaultLevel) VALUES (?, ?, ?, ?, ?)"
 	if p.SqlLite {
@@ -1656,7 +1656,7 @@ func (p *Provider) SetSCIMGroupMapping(mapping rubix.SCIMGroupMapping) error {
 	return nil
 }
 
-func (p *Provider) DeleteSCIMGroupMapping(providerUUID, scimGroupID string) error {
+func (p *Provider) DeleteSCIMGroupMapping(workspace, providerUUID, scimGroupID string) error {
 	_, err := p.primaryConnection.Exec("DELETE FROM scim_group_mappings WHERE providerUUID = ? AND scimGroupID = ?", providerUUID, scimGroupID)
 	if err != nil {
 		return err
@@ -1666,7 +1666,7 @@ func (p *Provider) DeleteSCIMGroupMapping(providerUUID, scimGroupID string) erro
 }
 
 // --- SCIM Role Mappings ---
-func (p *Provider) GetSCIMRoleMappings(providerUUID string) ([]rubix.SCIMRoleMapping, error) {
+func (p *Provider) GetSCIMRoleMappings(workspace, providerUUID string) ([]rubix.SCIMRoleMapping, error) {
 	rows, err := p.primaryConnection.Query(
 		"SELECT providerUUID, scimAttribute, rubixRoleID FROM scim_role_mappings WHERE providerUUID = ?",
 		providerUUID,
@@ -1686,7 +1686,7 @@ func (p *Provider) GetSCIMRoleMappings(providerUUID string) ([]rubix.SCIMRoleMap
 	return items, nil
 }
 
-func (p *Provider) SetSCIMRoleMapping(mapping rubix.SCIMRoleMapping) error {
+func (p *Provider) SetSCIMRoleMapping(workspace string, mapping rubix.SCIMRoleMapping) error {
 	args := []any{mapping.ProviderUUID, mapping.ScimAttribute, mapping.RubixRoleID}
 	query := "INSERT INTO scim_role_mappings (providerUUID, scimAttribute, rubixRoleID) VALUES (?, ?, ?)"
 	if p.SqlLite {
@@ -1703,7 +1703,7 @@ func (p *Provider) SetSCIMRoleMapping(mapping rubix.SCIMRoleMapping) error {
 	return nil
 }
 
-func (p *Provider) DeleteSCIMRoleMapping(providerUUID, scimAttribute string) error {
+func (p *Provider) DeleteSCIMRoleMapping(workspace, providerUUID, scimAttribute string) error {
 	_, err := p.primaryConnection.Exec("DELETE FROM scim_role_mappings WHERE providerUUID = ? AND scimAttribute = ?", providerUUID, scimAttribute)
 	if err != nil {
 		return err
@@ -1713,7 +1713,7 @@ func (p *Provider) DeleteSCIMRoleMapping(providerUUID, scimAttribute string) err
 }
 
 // --- SCIM Activity Log ---
-func (p *Provider) GetSCIMActivityLog(providerUUID string, limit int) ([]rubix.SCIMActivityLog, error) {
+func (p *Provider) GetSCIMActivityLog(workspace, providerUUID string, limit int) ([]rubix.SCIMActivityLog, error) {
 	if limit <= 0 {
 		limit = 100
 	}
@@ -1738,7 +1738,7 @@ func (p *Provider) GetSCIMActivityLog(providerUUID string, limit int) ([]rubix.S
 	return items, nil
 }
 
-func (p *Provider) AddSCIMActivityLog(entry rubix.SCIMActivityLog) error {
+func (p *Provider) AddSCIMActivityLog(workspace string, entry rubix.SCIMActivityLog) error {
 	detail := sql.NullString{}
 	if entry.Detail != "" {
 		detail.String = entry.Detail

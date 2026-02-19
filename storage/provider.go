@@ -23,15 +23,19 @@ type Provider interface {
 	DeleteOIDCProvider(workspace, uuid string) error
 	SetWorkspaceEmailDomainWhitelist(workspaceUuid string, domains []string) error
 
-	// SCIM
-	GetSCIMGroupMappings(providerUUID string) ([]rubix.SCIMGroupMapping, error)
-	SetSCIMGroupMapping(mapping rubix.SCIMGroupMapping) error
-	DeleteSCIMGroupMapping(providerUUID, scimGroupID string) error
-	GetSCIMRoleMappings(providerUUID string) ([]rubix.SCIMRoleMapping, error)
-	SetSCIMRoleMapping(mapping rubix.SCIMRoleMapping) error
-	DeleteSCIMRoleMapping(providerUUID, scimAttribute string) error
-	GetSCIMActivityLog(providerUUID string, limit int) ([]rubix.SCIMActivityLog, error)
-	AddSCIMActivityLog(entry rubix.SCIMActivityLog) error
+	// SCIM Group Mappings
+	GetSCIMGroupMappings(workspace, providerUUID string) ([]rubix.SCIMGroupMapping, error)
+	SetSCIMGroupMapping(workspace string, mapping rubix.SCIMGroupMapping) error
+	DeleteSCIMGroupMapping(workspace, providerUUID, scimGroupID string) error
+
+	// SCIM Role Mappings
+	GetSCIMRoleMappings(workspace, providerUUID string) ([]rubix.SCIMRoleMapping, error)
+	SetSCIMRoleMapping(workspace string, mapping rubix.SCIMRoleMapping) error
+	DeleteSCIMRoleMapping(workspace, providerUUID, scimAttribute string) error
+
+	// SCIM Activity Log
+	GetSCIMActivityLog(workspace, providerUUID string, limit int) ([]rubix.SCIMActivityLog, error)
+	AddSCIMActivityLog(workspace string, entry rubix.SCIMActivityLog) error
 
 	SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error
 
