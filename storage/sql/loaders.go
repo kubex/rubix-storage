@@ -397,6 +397,29 @@ func (p *Provider) MutateUser(workspace, user string, options ...rubix.MutateUse
 	}
 
 	g := errgroup.Group{}
+
+	// Update user name/email in users table
+	if payload.Name != nil || payload.Email != nil {
+		g.Go(func() error {
+			var fields []string
+			var vals []any
+			if payload.Name != nil {
+				fields = append(fields, "name = ?")
+				vals = append(vals, *payload.Name)
+			}
+			if payload.Email != nil {
+				fields = append(fields, "email = ?")
+				vals = append(vals, *payload.Email)
+			}
+			if len(fields) > 0 {
+				vals = append(vals, user)
+				_, err := p.primaryConnection.Exec("UPDATE users SET "+strings.Join(fields, ", ")+" WHERE user = ?", vals...)
+				return err
+			}
+			return nil
+		})
+	}
+
 	g.Go(func() error {
 
 		for _, role := range payload.RolesToAdd {
