@@ -1491,7 +1491,7 @@ func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOp
 // --- OIDC Providers ---
 func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, error) {
 	rows, err := p.primaryConnection.Query(
-		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID FROM workspace_oidc_providers WHERE workspace = ?",
+		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken FROM workspace_oidc_providers WHERE workspace = ?",
 		workspace,
 	)
 	if err != nil {
@@ -1503,7 +1503,7 @@ func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, err
 		var it rubix.OIDCProvider
 		clientSecret := sql.NullString{}
 		clientKeys := sql.NullString{}
-		if err := rows.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID); err != nil {
+		if err := rows.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken); err != nil {
 			return nil, err
 		}
 		it.ClientSecret = clientSecret.String
@@ -1515,13 +1515,13 @@ func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, err
 
 func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider, error) {
 	row := p.primaryConnection.QueryRow(
-		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
+		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
 		workspace, uuid,
 	)
 	var it rubix.OIDCProvider
 	clientSecret := sql.NullString{}
 	clientKeys := sql.NullString{}
-	if err := row.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID); err != nil {
+	if err := row.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1534,8 +1534,8 @@ func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider,
 
 func (p *Provider) CreateOIDCProvider(workspace string, provider rubix.OIDCProvider) error {
 	_, err := p.primaryConnection.Exec(
-		"INSERT INTO workspace_oidc_providers (uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		provider.Uuid, workspace, provider.ProviderName, provider.DisplayName, provider.ClientID, provider.ClientSecret, provider.ClientKeys, provider.IssuerURL, provider.BpoID,
+		"INSERT INTO workspace_oidc_providers (uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		provider.Uuid, workspace, provider.ProviderName, provider.DisplayName, provider.ClientID, provider.ClientSecret, provider.ClientKeys, provider.IssuerURL, provider.BpoID, provider.ScimEnabled, provider.ScimBearerToken,
 	)
 	if p.isDuplicateConflict(err) {
 		return rubix.ErrDuplicate
@@ -1586,6 +1586,14 @@ func (p *Provider) MutateOIDCProvider(workspace, uuid string, options ...rubix.M
 		fields = append(fields, "bpoID = ?")
 		vals = append(vals, *payload.BpoID)
 	}
+	if payload.ScimEnabled != nil {
+		fields = append(fields, "scimEnabled = ?")
+		vals = append(vals, *payload.ScimEnabled)
+	}
+	if payload.ScimBearerToken != nil {
+		fields = append(fields, "scimBearerToken = ?")
+		vals = append(vals, *payload.ScimBearerToken)
+	}
 	if len(fields) == 0 {
 		return nil
 	}
@@ -1608,6 +1616,139 @@ func (p *Provider) DeleteOIDCProvider(workspace, uuid string) error {
 	}
 	p.update()
 	return nil
+}
+
+// --- SCIM Group Mappings ---
+func (p *Provider) GetSCIMGroupMappings(providerUUID string) ([]rubix.SCIMGroupMapping, error) {
+	rows, err := p.primaryConnection.Query(
+		"SELECT providerUUID, scimGroupID, scimGroupName, rubixTeamID, defaultLevel FROM scim_group_mappings WHERE providerUUID = ?",
+		providerUUID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.SCIMGroupMapping
+	for rows.Next() {
+		var it rubix.SCIMGroupMapping
+		if err := rows.Scan(&it.ProviderUUID, &it.ScimGroupID, &it.ScimGroupName, &it.RubixTeamID, &it.DefaultLevel); err != nil {
+			return nil, err
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) SetSCIMGroupMapping(mapping rubix.SCIMGroupMapping) error {
+	args := []any{mapping.ProviderUUID, mapping.ScimGroupID, mapping.ScimGroupName, mapping.RubixTeamID, mapping.DefaultLevel}
+	query := "INSERT INTO scim_group_mappings (providerUUID, scimGroupID, scimGroupName, rubixTeamID, defaultLevel) VALUES (?, ?, ?, ?, ?)"
+	if p.SqlLite {
+		query += " ON CONFLICT(providerUUID, scimGroupID) DO UPDATE SET scimGroupName = excluded.scimGroupName, rubixTeamID = excluded.rubixTeamID, defaultLevel = excluded.defaultLevel"
+	} else {
+		query += " ON DUPLICATE KEY UPDATE scimGroupName = ?, rubixTeamID = ?, defaultLevel = ?"
+		args = append(args, mapping.ScimGroupName, mapping.RubixTeamID, mapping.DefaultLevel)
+	}
+	_, err := p.primaryConnection.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) DeleteSCIMGroupMapping(providerUUID, scimGroupID string) error {
+	_, err := p.primaryConnection.Exec("DELETE FROM scim_group_mappings WHERE providerUUID = ? AND scimGroupID = ?", providerUUID, scimGroupID)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+// --- SCIM Role Mappings ---
+func (p *Provider) GetSCIMRoleMappings(providerUUID string) ([]rubix.SCIMRoleMapping, error) {
+	rows, err := p.primaryConnection.Query(
+		"SELECT providerUUID, scimAttribute, rubixRoleID FROM scim_role_mappings WHERE providerUUID = ?",
+		providerUUID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.SCIMRoleMapping
+	for rows.Next() {
+		var it rubix.SCIMRoleMapping
+		if err := rows.Scan(&it.ProviderUUID, &it.ScimAttribute, &it.RubixRoleID); err != nil {
+			return nil, err
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) SetSCIMRoleMapping(mapping rubix.SCIMRoleMapping) error {
+	args := []any{mapping.ProviderUUID, mapping.ScimAttribute, mapping.RubixRoleID}
+	query := "INSERT INTO scim_role_mappings (providerUUID, scimAttribute, rubixRoleID) VALUES (?, ?, ?)"
+	if p.SqlLite {
+		query += " ON CONFLICT(providerUUID, scimAttribute) DO UPDATE SET rubixRoleID = excluded.rubixRoleID"
+	} else {
+		query += " ON DUPLICATE KEY UPDATE rubixRoleID = ?"
+		args = append(args, mapping.RubixRoleID)
+	}
+	_, err := p.primaryConnection.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) DeleteSCIMRoleMapping(providerUUID, scimAttribute string) error {
+	_, err := p.primaryConnection.Exec("DELETE FROM scim_role_mappings WHERE providerUUID = ? AND scimAttribute = ?", providerUUID, scimAttribute)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+// --- SCIM Activity Log ---
+func (p *Provider) GetSCIMActivityLog(providerUUID string, limit int) ([]rubix.SCIMActivityLog, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	rows, err := p.primaryConnection.Query(
+		"SELECT id, providerUUID, workspace, timestamp, operation, resource, resourceID, status, detail FROM scim_activity_log WHERE providerUUID = ? ORDER BY id DESC LIMIT ?",
+		providerUUID, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.SCIMActivityLog
+	for rows.Next() {
+		var it rubix.SCIMActivityLog
+		detail := sql.NullString{}
+		if err := rows.Scan(&it.ID, &it.ProviderUUID, &it.Workspace, &it.Timestamp, &it.Operation, &it.Resource, &it.ResourceID, &it.Status, &detail); err != nil {
+			return nil, err
+		}
+		it.Detail = detail.String
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) AddSCIMActivityLog(entry rubix.SCIMActivityLog) error {
+	detail := sql.NullString{}
+	if entry.Detail != "" {
+		detail.String = entry.Detail
+		detail.Valid = true
+	}
+	_, err := p.primaryConnection.Exec(
+		"INSERT INTO scim_activity_log (providerUUID, workspace, operation, resource, resourceID, status, detail) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		entry.ProviderUUID, entry.Workspace, entry.Operation, entry.Resource, entry.ResourceID, entry.Status, detail,
+	)
+	return err
 }
 
 func (p *Provider) GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error) {

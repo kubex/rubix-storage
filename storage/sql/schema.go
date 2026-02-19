@@ -223,5 +223,42 @@ func migrations() []migration {
 
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `bpoID` varchar(64) NOT NULL DEFAULT '';"))
 
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimEnabled` tinyint(1) NOT NULL DEFAULT 0;"))
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimBearerToken` varchar(255) NOT NULL DEFAULT '';"))
+
+	// SCIM Group Mappings
+	queries = append(queries, migQuery("CREATE TABLE `scim_group_mappings` ("+
+		"`providerUUID`  varchar(64)  NOT NULL,"+
+		"`scimGroupID`   varchar(255) NOT NULL,"+
+		"`scimGroupName` varchar(255) NOT NULL DEFAULT '',"+
+		"`rubixTeamID`   varchar(64)  NOT NULL,"+
+		"`defaultLevel`  varchar(64)  NOT NULL DEFAULT 'member',"+
+		"PRIMARY KEY (`providerUUID`, `scimGroupID`)"+
+		");"))
+
+	// SCIM Role Mappings
+	queries = append(queries, migQuery("CREATE TABLE `scim_role_mappings` ("+
+		"`providerUUID`  varchar(64)  NOT NULL,"+
+		"`scimAttribute` varchar(255) NOT NULL,"+
+		"`rubixRoleID`   varchar(64)  NOT NULL,"+
+		"PRIMARY KEY (`providerUUID`, `scimAttribute`)"+
+		");"))
+
+	// SCIM Activity Log
+	queries = append(queries, migQuery("CREATE TABLE `scim_activity_log` ("+
+		"`id`           bigint       NOT NULL AUTO_INCREMENT,"+
+		"`providerUUID` varchar(64)  NOT NULL,"+
+		"`workspace`    varchar(64)  NOT NULL,"+
+		"`timestamp`    datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
+		"`operation`    varchar(50)  NOT NULL,"+
+		"`resource`     varchar(50)  NOT NULL,"+
+		"`resourceID`   varchar(255) NOT NULL DEFAULT '',"+
+		"`status`       varchar(20)  NOT NULL,"+
+		"`detail`       text         NULL,"+
+		"PRIMARY KEY (`id`)"+
+		");"))
+	queries = append(queries, migQuery("CREATE INDEX `scim_log_provider` ON `scim_activity_log`(`providerUUID`);"))
+	queries = append(queries, migQuery("CREATE INDEX `scim_log_workspace` ON `scim_activity_log`(`workspace`);"))
+
 	return queries
 }

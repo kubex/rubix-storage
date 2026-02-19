@@ -23,6 +23,16 @@ type Provider interface {
 	DeleteOIDCProvider(workspace, uuid string) error
 	SetWorkspaceEmailDomainWhitelist(workspaceUuid string, domains []string) error
 
+	// SCIM
+	GetSCIMGroupMappings(providerUUID string) ([]rubix.SCIMGroupMapping, error)
+	SetSCIMGroupMapping(mapping rubix.SCIMGroupMapping) error
+	DeleteSCIMGroupMapping(providerUUID, scimGroupID string) error
+	GetSCIMRoleMappings(providerUUID string) ([]rubix.SCIMRoleMapping, error)
+	SetSCIMRoleMapping(mapping rubix.SCIMRoleMapping) error
+	DeleteSCIMRoleMapping(providerUUID, scimAttribute string) error
+	GetSCIMActivityLog(providerUUID string, limit int) ([]rubix.SCIMActivityLog, error)
+	AddSCIMActivityLog(entry rubix.SCIMActivityLog) error
+
 	SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error
 
 	GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error)

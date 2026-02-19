@@ -1,15 +1,17 @@
 package rubix
 
 type OIDCProvider struct {
-	Uuid         string `json:"uuid"`
-	Workspace    string `json:"workspace"`
-	ProviderName string `json:"providerName"`
-	DisplayName  string `json:"displayName"`
-	ClientID     string `json:"clientID"`
-	ClientSecret string `json:"clientSecret"`
-	ClientKeys   string `json:"clientKeys"`
-	IssuerURL    string `json:"issuerURL"`
-	BpoID        string `json:"bpoID"`
+	Uuid            string `json:"uuid"`
+	Workspace       string `json:"workspace"`
+	ProviderName    string `json:"providerName"`
+	DisplayName     string `json:"displayName"`
+	ClientID        string `json:"clientID"`
+	ClientSecret    string `json:"clientSecret"`
+	ClientKeys      string `json:"clientKeys"`
+	IssuerURL       string `json:"issuerURL"`
+	BpoID           string `json:"bpoID"`
+	ScimEnabled     bool   `json:"scimEnabled"`
+	ScimBearerToken string `json:"scimBearerToken"`
 }
 
 func (o OIDCProvider) Configured() bool {
@@ -17,13 +19,15 @@ func (o OIDCProvider) Configured() bool {
 }
 
 type MutateOIDCProviderPayload struct {
-	ProviderName *string
-	DisplayName  *string
-	ClientID     *string
-	ClientSecret *string
-	ClientKeys   *string
-	IssuerURL    *string
-	BpoID        *string
+	ProviderName    *string
+	DisplayName     *string
+	ClientID        *string
+	ClientSecret    *string
+	ClientKeys      *string
+	IssuerURL       *string
+	BpoID           *string
+	ScimEnabled     *bool
+	ScimBearerToken *string
 }
 
 type MutateOIDCProviderOption func(*MutateOIDCProviderPayload)
@@ -54,4 +58,12 @@ func WithOIDCIssuerURL(url string) MutateOIDCProviderOption {
 
 func WithOIDCBpoID(bpoID string) MutateOIDCProviderOption {
 	return func(p *MutateOIDCProviderPayload) { p.BpoID = &bpoID }
+}
+
+func WithOIDCScimEnabled(enabled bool) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.ScimEnabled = &enabled }
+}
+
+func WithOIDCScimBearerToken(token string) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.ScimBearerToken = &token }
 }
