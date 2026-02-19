@@ -20,7 +20,7 @@ type SCIMRoleMapping struct {
 
 // SCIMActivityLog records a SCIM provisioning operation
 type SCIMActivityLog struct {
-	ID           int64     `json:"id"`
+	ID           string    `json:"id"`
 	ProviderUUID string    `json:"providerUUID"`
 	Workspace    string    `json:"workspace"`
 	Timestamp    time.Time `json:"timestamp"`

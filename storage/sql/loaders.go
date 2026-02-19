@@ -1768,8 +1768,8 @@ func (p *Provider) AddSCIMActivityLog(workspace string, entry rubix.SCIMActivity
 		detail.Valid = true
 	}
 	_, err := p.primaryConnection.Exec(
-		"INSERT INTO scim_activity_log (providerUUID, workspace, operation, resource, resourceID, status, detail) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		entry.ProviderUUID, entry.Workspace, entry.Operation, entry.Resource, entry.ResourceID, entry.Status, detail,
+		"INSERT INTO scim_activity_log (id, providerUUID, workspace, operation, resource, resourceID, status, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		entry.ID, entry.ProviderUUID, entry.Workspace, entry.Operation, entry.Resource, entry.ResourceID, entry.Status, detail,
 	)
 	return err
 }

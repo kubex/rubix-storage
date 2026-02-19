@@ -246,7 +246,7 @@ func migrations() []migration {
 
 	// SCIM Activity Log
 	queries = append(queries, migQuery("CREATE TABLE `scim_activity_log` ("+
-		"`id`           bigint       NOT NULL AUTO_INCREMENT,"+
+		"`id`           varchar(64)  NOT NULL,"+
 		"`providerUUID` varchar(64)  NOT NULL,"+
 		"`workspace`    varchar(64)  NOT NULL,"+
 		"`timestamp`    datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
