@@ -60,7 +60,7 @@ type Provider interface {
 	GetRoles(workspace string) ([]rubix.Role, error)
 	GetUserRoles(workspace, user string) ([]rubix.UserRole, error)
 	DeleteRole(workspace, role string) error
-	CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition) error
+	CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition, scimManaged bool) error
 	MutateRole(workspace, role string, options ...rubix.MutateRoleOption) error
 	GetRolePermissions(workspace, role string) ([]rubix.RolePermission, error)
 
@@ -74,7 +74,7 @@ type Provider interface {
 	GetTeams(workspace string) ([]rubix.Team, error)
 	GetUserTeams(workspace, user string) ([]rubix.UserTeam, error)
 	DeleteTeam(workspace, team string) error
-	CreateTeam(workspace, team, name, description string, users map[string]rubix.TeamLevel) error
+	CreateTeam(workspace, team, name, description string, users map[string]rubix.TeamLevel, scimManaged bool) error
 	MutateTeam(workspace, team string, options ...rubix.MutateTeamOption) error
 
 	// Brands

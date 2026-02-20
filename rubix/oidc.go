@@ -1,20 +1,21 @@
 package rubix
 
 type OIDCProvider struct {
-	Uuid            string `json:"uuid"`
-	Workspace       string `json:"workspace"`
-	ProviderName    string `json:"providerName"`
-	DisplayName     string `json:"displayName"`
-	ClientID        string `json:"clientID"`
-	ClientSecret    string `json:"clientSecret"`
-	ClientKeys      string `json:"clientKeys"`
-	IssuerURL       string `json:"issuerURL"`
-	BpoID           string `json:"bpoID"`
-	ScimEnabled     bool   `json:"scimEnabled"`
-	ScimBearerToken string `json:"scimBearerToken"`
-	ScimSyncTeams   bool   `json:"scimSyncTeams"`
-	ScimSyncRoles   bool   `json:"scimSyncRoles"`
-	ScimAutoCreate  bool   `json:"scimAutoCreate"`
+	Uuid                 string `json:"uuid"`
+	Workspace            string `json:"workspace"`
+	ProviderName         string `json:"providerName"`
+	DisplayName          string `json:"displayName"`
+	ClientID             string `json:"clientID"`
+	ClientSecret         string `json:"clientSecret"`
+	ClientKeys           string `json:"clientKeys"`
+	IssuerURL            string `json:"issuerURL"`
+	BpoID                string `json:"bpoID"`
+	ScimEnabled          bool   `json:"scimEnabled"`
+	ScimBearerToken      string `json:"scimBearerToken"`
+	ScimSyncTeams        bool   `json:"scimSyncTeams"`
+	ScimSyncRoles        bool   `json:"scimSyncRoles"`
+	ScimAutoCreate       bool   `json:"scimAutoCreate"`
+	ScimDefaultGroupType string `json:"scimDefaultGroupType"` // "team" or "role", defaults to "team"
 }
 
 func (o OIDCProvider) Configured() bool {
@@ -22,18 +23,19 @@ func (o OIDCProvider) Configured() bool {
 }
 
 type MutateOIDCProviderPayload struct {
-	ProviderName    *string
-	DisplayName     *string
-	ClientID        *string
-	ClientSecret    *string
-	ClientKeys      *string
-	IssuerURL       *string
-	BpoID           *string
-	ScimEnabled     *bool
-	ScimBearerToken *string
-	ScimSyncTeams   *bool
-	ScimSyncRoles   *bool
-	ScimAutoCreate  *bool
+	ProviderName         *string
+	DisplayName          *string
+	ClientID             *string
+	ClientSecret         *string
+	ClientKeys           *string
+	IssuerURL            *string
+	BpoID                *string
+	ScimEnabled          *bool
+	ScimBearerToken      *string
+	ScimSyncTeams        *bool
+	ScimSyncRoles        *bool
+	ScimAutoCreate       *bool
+	ScimDefaultGroupType *string
 }
 
 type MutateOIDCProviderOption func(*MutateOIDCProviderPayload)
@@ -84,4 +86,8 @@ func WithOIDCScimSyncRoles(v bool) MutateOIDCProviderOption {
 
 func WithOIDCScimAutoCreate(v bool) MutateOIDCProviderOption {
 	return func(p *MutateOIDCProviderPayload) { p.ScimAutoCreate = &v }
+}
+
+func WithOIDCScimDefaultGroupType(v string) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.ScimDefaultGroupType = &v }
 }

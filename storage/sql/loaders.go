@@ -529,10 +529,10 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		row := p.primaryConnection.QueryRow("SELECT name, description, conditions FROM roles WHERE workspace = ? AND role = ?", workspace, role)
+		row := p.primaryConnection.QueryRow("SELECT name, description, conditions, scimManaged FROM roles WHERE workspace = ? AND role = ?", workspace, role)
 
 		var conditionsStr sql.NullString
-		err := row.Scan(&ret.Name, &ret.Description, &conditionsStr)
+		err := row.Scan(&ret.Name, &ret.Description, &conditionsStr, &ret.ScimManaged)
 		if errors.Is(err, sql.ErrNoRows) {
 			return rubix.ErrNoResultFound
 		}
@@ -643,7 +643,7 @@ func (p *Provider) GetRolePermissions(workspace, role string) ([]rubix.RolePermi
 
 func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 
-	rows, err := p.primaryConnection.Query("SELECT role, name, description FROM roles WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.primaryConnection.Query("SELECT role, name, description, scimManaged FROM roles WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -653,7 +653,7 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	for rows.Next() {
 
 		var role = rubix.Role{Workspace: workspace}
-		err = rows.Scan(&role.ID, &role.Name, &role.Description)
+		err = rows.Scan(&role.ID, &role.Name, &role.Description, &role.ScimManaged)
 		if err != nil {
 			return nil, err
 		}
@@ -709,9 +709,9 @@ func (p *Provider) DeleteRole(workspace, role string) error {
 	return err
 }
 
-func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition) error {
+func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition, scimManaged bool) error {
 
-	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description) VALUES (?, ?, ?, ?)", workspace, role, name, description)
+	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description, scimManaged) VALUES (?, ?, ?, ?, ?)", workspace, role, name, description, scimManaged)
 	p.update()
 
 	if p.isDuplicateConflict(err) {
@@ -950,8 +950,8 @@ func (p *Provider) GetTeam(workspace, team string) (*rubix.Team, error) {
 
 	g := errgroup.Group{}
 	g.Go(func() error {
-		row := p.primaryConnection.QueryRow("SELECT name, description FROM `teams` WHERE workspace = ? AND `team` = ?", workspace, team)
-		return row.Scan(&ret.Name, &ret.Description)
+		row := p.primaryConnection.QueryRow("SELECT name, description, scimManaged FROM `teams` WHERE workspace = ? AND `team` = ?", workspace, team)
+		return row.Scan(&ret.Name, &ret.Description, &ret.ScimManaged)
 	})
 	g.Go(func() error {
 		rows, err := p.primaryConnection.Query("SELECT user, level FROM user_teams WHERE workspace = ? AND `team` = ?", workspace, team)
@@ -978,7 +978,7 @@ func (p *Provider) GetTeam(workspace, team string) (*rubix.Team, error) {
 }
 
 func (p *Provider) GetTeams(workspace string) ([]rubix.Team, error) {
-	rows, err := p.primaryConnection.Query("SELECT `team`, name, description FROM `teams` WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.primaryConnection.Query("SELECT `team`, name, description, scimManaged FROM `teams` WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -987,7 +987,7 @@ func (p *Provider) GetTeams(workspace string) ([]rubix.Team, error) {
 	for rows.Next() {
 		var g rubix.Team
 		g.Workspace = workspace
-		if err := rows.Scan(&g.ID, &g.Name, &g.Description); err != nil {
+		if err := rows.Scan(&g.ID, &g.Name, &g.Description, &g.ScimManaged); err != nil {
 			return nil, err
 		}
 		teams = append(teams, g)
@@ -1023,8 +1023,8 @@ func (p *Provider) DeleteTeam(workspace, team string) error {
 	return err
 }
 
-func (p *Provider) CreateTeam(workspace, team, name, description string, users map[string]rubix.TeamLevel) error {
-	_, err := p.primaryConnection.Exec("INSERT INTO `teams` (workspace, `team`, name, description) VALUES (?, ?, ?, ?)", workspace, team, name, description)
+func (p *Provider) CreateTeam(workspace, team, name, description string, users map[string]rubix.TeamLevel, scimManaged bool) error {
+	_, err := p.primaryConnection.Exec("INSERT INTO `teams` (workspace, `team`, name, description, scimManaged) VALUES (?, ?, ?, ?, ?)", workspace, team, name, description, scimManaged)
 	p.update()
 	if p.isDuplicateConflict(err) {
 		return errors.New("team already exists")
@@ -1514,7 +1514,7 @@ func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOp
 // --- OIDC Providers ---
 func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, error) {
 	rows, err := p.primaryConnection.Query(
-		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate FROM workspace_oidc_providers WHERE workspace = ?",
+		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType FROM workspace_oidc_providers WHERE workspace = ?",
 		workspace,
 	)
 	if err != nil {
@@ -1526,11 +1526,14 @@ func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, err
 		var it rubix.OIDCProvider
 		clientSecret := sql.NullString{}
 		clientKeys := sql.NullString{}
-		if err := rows.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken, &it.ScimSyncTeams, &it.ScimSyncRoles, &it.ScimAutoCreate); err != nil {
+		if err := rows.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken, &it.ScimSyncTeams, &it.ScimSyncRoles, &it.ScimAutoCreate, &it.ScimDefaultGroupType); err != nil {
 			return nil, err
 		}
 		it.ClientSecret = clientSecret.String
 		it.ClientKeys = clientKeys.String
+		if it.ScimDefaultGroupType == "" {
+			it.ScimDefaultGroupType = "team"
+		}
 		items = append(items, it)
 	}
 	return items, nil
@@ -1538,13 +1541,13 @@ func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, err
 
 func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider, error) {
 	row := p.primaryConnection.QueryRow(
-		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
+		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
 		workspace, uuid,
 	)
 	var it rubix.OIDCProvider
 	clientSecret := sql.NullString{}
 	clientKeys := sql.NullString{}
-	if err := row.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken, &it.ScimSyncTeams, &it.ScimSyncRoles, &it.ScimAutoCreate); err != nil {
+	if err := row.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken, &it.ScimSyncTeams, &it.ScimSyncRoles, &it.ScimAutoCreate, &it.ScimDefaultGroupType); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1552,13 +1555,16 @@ func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider,
 	}
 	it.ClientSecret = clientSecret.String
 	it.ClientKeys = clientKeys.String
+	if it.ScimDefaultGroupType == "" {
+		it.ScimDefaultGroupType = "team"
+	}
 	return &it, nil
 }
 
 func (p *Provider) CreateOIDCProvider(workspace string, provider rubix.OIDCProvider) error {
 	_, err := p.primaryConnection.Exec(
-		"INSERT INTO workspace_oidc_providers (uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		provider.Uuid, workspace, provider.ProviderName, provider.DisplayName, provider.ClientID, provider.ClientSecret, provider.ClientKeys, provider.IssuerURL, provider.BpoID, provider.ScimEnabled, provider.ScimBearerToken, provider.ScimSyncTeams, provider.ScimSyncRoles, provider.ScimAutoCreate,
+		"INSERT INTO workspace_oidc_providers (uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		provider.Uuid, workspace, provider.ProviderName, provider.DisplayName, provider.ClientID, provider.ClientSecret, provider.ClientKeys, provider.IssuerURL, provider.BpoID, provider.ScimEnabled, provider.ScimBearerToken, provider.ScimSyncTeams, provider.ScimSyncRoles, provider.ScimAutoCreate, provider.ScimDefaultGroupType,
 	)
 	if p.isDuplicateConflict(err) {
 		return rubix.ErrDuplicate
@@ -1628,6 +1634,10 @@ func (p *Provider) MutateOIDCProvider(workspace, uuid string, options ...rubix.M
 	if payload.ScimAutoCreate != nil {
 		fields = append(fields, "scimAutoCreate = ?")
 		vals = append(vals, *payload.ScimAutoCreate)
+	}
+	if payload.ScimDefaultGroupType != nil {
+		fields = append(fields, "scimDefaultGroupType = ?")
+		vals = append(vals, *payload.ScimDefaultGroupType)
 	}
 	if len(fields) == 0 {
 		return nil

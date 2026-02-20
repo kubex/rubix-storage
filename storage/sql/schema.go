@@ -229,24 +229,7 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimSyncTeams` tinyint(1) NOT NULL DEFAULT 0;"))
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimSyncRoles` tinyint(1) NOT NULL DEFAULT 0;"))
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimAutoCreate` tinyint(1) NOT NULL DEFAULT 0;"))
-
-	// SCIM Group Mappings
-	queries = append(queries, migQuery("CREATE TABLE `scim_group_mappings` ("+
-		"`providerUUID`  varchar(64)  NOT NULL,"+
-		"`scimGroupID`   varchar(255) NOT NULL,"+
-		"`scimGroupName` varchar(255) NOT NULL DEFAULT '',"+
-		"`rubixTeamID`   varchar(64)  NOT NULL,"+
-		"`defaultLevel`  varchar(64)  NOT NULL DEFAULT 'member',"+
-		"PRIMARY KEY (`providerUUID`, `scimGroupID`)"+
-		");"))
-
-	// SCIM Role Mappings
-	queries = append(queries, migQuery("CREATE TABLE `scim_role_mappings` ("+
-		"`providerUUID`  varchar(64)  NOT NULL,"+
-		"`scimAttribute` varchar(255) NOT NULL,"+
-		"`rubixRoleID`   varchar(64)  NOT NULL,"+
-		"PRIMARY KEY (`providerUUID`, `scimAttribute`)"+
-		");"))
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimDefaultGroupType` varchar(20) NOT NULL DEFAULT 'team';"))
 
 	// SCIM Activity Log
 	queries = append(queries, migQuery("CREATE TABLE `scim_activity_log` ("+
@@ -280,6 +263,9 @@ func migrations() []migration {
 	queries = append(queries, migQuery("CREATE INDEX `wu_workspace` ON `workspace_users`(`workspace`);"))
 	queries = append(queries, migQuery("CREATE INDEX `wu_provider` ON `workspace_users`(`oidc_provider`);"))
 	queries = append(queries, migQuery("CREATE INDEX `wu_workspace_provider` ON `workspace_users`(`workspace`, `oidc_provider`);"))
+
+	queries = append(queries, migQuery("ALTER TABLE `teams` ADD `scimManaged` tinyint(1) NOT NULL DEFAULT 0;"))
+	queries = append(queries, migQuery("ALTER TABLE `roles` ADD `scimManaged` tinyint(1) NOT NULL DEFAULT 0;"))
 
 	return queries
 }

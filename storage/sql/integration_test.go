@@ -94,7 +94,7 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	// Roles
 	permRead := "perm.read"
 	permWrite := "perm.write"
-	if err := p.CreateRole(ws, "r-admin", "Admin", "All the power", []string{permRead}, []string{"u1"}, rubix.Condition{}); err != nil {
+	if err := p.CreateRole(ws, "r-admin", "Admin", "All the power", []string{permRead}, []string{"u1"}, rubix.Condition{}, false); err != nil {
 		t.Fatalf("CreateRole: %v", err)
 	}
 	// Capture timestamps before role/user changes
@@ -170,7 +170,7 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	}
 
 	// Teams with levels
-	if err := p.CreateTeam(ws, "engineering", "Engineering", "Eng team", map[string]rubix.TeamLevel{"u1": rubix.TeamLevelOwner}); err != nil {
+	if err := p.CreateTeam(ws, "engineering", "Engineering", "Eng team", map[string]rubix.TeamLevel{"u1": rubix.TeamLevelOwner}, false); err != nil {
 		t.Fatalf("CreateTeam: %v", err)
 	}
 	if err := p.MutateTeam(ws, "engineering",

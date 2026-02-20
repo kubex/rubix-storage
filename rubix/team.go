@@ -13,6 +13,7 @@ type Team struct {
 	ID          string
 	Name        string
 	Description string
+	ScimManaged bool
 	Users       []string   // Backwards-compat: user IDs only
 	Members     []UserTeam // Detailed membership with levels
 }

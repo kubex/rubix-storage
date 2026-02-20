@@ -5,6 +5,7 @@ type Role struct {
 	ID          string
 	Name        string
 	Description string
+	ScimManaged bool
 	Users       []string         // Not on roles table
 	Permissions []RolePermission // Not on roles table
 	Resources   []RoleResource   // Not on roles table
