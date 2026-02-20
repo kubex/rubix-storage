@@ -37,6 +37,14 @@ type Provider interface {
 	GetSCIMActivityLog(workspace, providerUUID string, limit int) ([]rubix.SCIMActivityLog, error)
 	AddSCIMActivityLog(workspace string, entry rubix.SCIMActivityLog) error
 
+	// Workspace Users (OIDC directory)
+	CreateWorkspaceUser(workspace string, user rubix.WorkspaceUser) error
+	GetWorkspaceUser(workspace, userID string) (*rubix.WorkspaceUser, error)
+	GetWorkspaceUsersByProvider(workspace, providerUUID string) ([]rubix.WorkspaceUser, error)
+	UpdateWorkspaceUser(workspace, userID string, opts ...rubix.MutateWorkspaceUserOption) error
+	DeleteWorkspaceUser(workspace, userID string) error
+	GetResolvedMembers(workspace string, filter rubix.MemberFilter) ([]rubix.ResolvedMember, error)
+
 	SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error
 
 	GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error)
