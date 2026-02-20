@@ -260,5 +260,22 @@ func migrations() []migration {
 	queries = append(queries, migQuery("CREATE INDEX `scim_log_provider` ON `scim_activity_log`(`providerUUID`);"))
 	queries = append(queries, migQuery("CREATE INDEX `scim_log_workspace` ON `scim_activity_log`(`workspace`);"))
 
+	// Workspace Users (OIDC directory)
+	queries = append(queries, migQuery("CREATE TABLE `workspace_users` ("+
+		"`user_id`        varchar(64)  NOT NULL,"+
+		"`workspace`      varchar(64)  NOT NULL,"+
+		"`name`           varchar(64)  NULL,"+
+		"`email`          varchar(128) NULL,"+
+		"`oidc_provider`  varchar(64)  NOT NULL,"+
+		"`scim_managed`   tinyint(1)   NOT NULL DEFAULT 0,"+
+		"`auto_created`   tinyint(1)   NOT NULL DEFAULT 0,"+
+		"`last_sync_time` datetime     NULL,"+
+		"`created_at`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
+		"PRIMARY KEY (`user_id`)"+
+		");"))
+	queries = append(queries, migQuery("CREATE INDEX `wu_workspace` ON `workspace_users`(`workspace`);"))
+	queries = append(queries, migQuery("CREATE INDEX `wu_provider` ON `workspace_users`(`oidc_provider`);"))
+	queries = append(queries, migQuery("CREATE INDEX `wu_workspace_provider` ON `workspace_users`(`workspace`, `oidc_provider`);"))
+
 	return queries
 }
