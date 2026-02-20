@@ -521,7 +521,7 @@ func (p *Provider) SetMembershipType(workspace, user string, MembershipType rubi
 func (p *Provider) SetMembershipState(workspace, user string, userState rubix.MembershipState) error {
 
 	switch userState {
-	case rubix.MembershipStatePending, rubix.MembershipStateActive, rubix.MembershipStateSuspended, rubix.MembershipStateArchived:
+	case rubix.MembershipStatePending, rubix.MembershipStateActive, rubix.MembershipStateSuspended, rubix.MembershipStateArchived, rubix.MembershipStateRejected:
 	case rubix.MembershipStateRemoved:
 		return errors.New("use RemoveUserFromWorkspace()")
 	default:
