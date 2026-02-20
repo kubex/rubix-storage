@@ -12,6 +12,9 @@ type OIDCProvider struct {
 	BpoID           string `json:"bpoID"`
 	ScimEnabled     bool   `json:"scimEnabled"`
 	ScimBearerToken string `json:"scimBearerToken"`
+	ScimSyncTeams   bool   `json:"scimSyncTeams"`
+	ScimSyncRoles   bool   `json:"scimSyncRoles"`
+	ScimAutoCreate  bool   `json:"scimAutoCreate"`
 }
 
 func (o OIDCProvider) Configured() bool {
@@ -28,6 +31,9 @@ type MutateOIDCProviderPayload struct {
 	BpoID           *string
 	ScimEnabled     *bool
 	ScimBearerToken *string
+	ScimSyncTeams   *bool
+	ScimSyncRoles   *bool
+	ScimAutoCreate  *bool
 }
 
 type MutateOIDCProviderOption func(*MutateOIDCProviderPayload)
@@ -66,4 +72,16 @@ func WithOIDCScimEnabled(enabled bool) MutateOIDCProviderOption {
 
 func WithOIDCScimBearerToken(token string) MutateOIDCProviderOption {
 	return func(p *MutateOIDCProviderPayload) { p.ScimBearerToken = &token }
+}
+
+func WithOIDCScimSyncTeams(v bool) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.ScimSyncTeams = &v }
+}
+
+func WithOIDCScimSyncRoles(v bool) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.ScimSyncRoles = &v }
+}
+
+func WithOIDCScimAutoCreate(v bool) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.ScimAutoCreate = &v }
 }
