@@ -50,6 +50,8 @@ func (ms MembershipState) Display() string {
 		return "Archived"
 	case MembershipStateRemoved:
 		return "Removed"
+	case MembershipStateRejected:
+		return "Rejected"
 	default:
 		return "Unknown"
 	}
@@ -61,6 +63,16 @@ const (
 	MembershipStateSuspended MembershipState = 2
 	MembershipStateArchived  MembershipState = 3
 	MembershipStateRemoved   MembershipState = 4
+	MembershipStateRejected  MembershipState = 5
+)
+
+type MembershipSource string
+
+const (
+	MembershipSourceAdmin       MembershipSource = "admin"
+	MembershipSourceOIDC        MembershipSource = "oidc"
+	MembershipSourceSCIM        MembershipSource = "scim"
+	MembershipSourceSelfRequest MembershipSource = "self_request"
 )
 
 type Membership struct {
@@ -73,4 +85,5 @@ type Membership struct {
 	Since      time.Time
 	State      MembershipState
 	StateSince time.Time
+	Source     MembershipSource
 }

@@ -16,6 +16,7 @@ type OIDCProvider struct {
 	ScimSyncRoles        bool   `json:"scimSyncRoles"`
 	ScimAutoCreate       bool   `json:"scimAutoCreate"`
 	ScimDefaultGroupType string `json:"scimDefaultGroupType"` // "team" or "role", defaults to "team"
+	AutoAcceptMembers    bool   `json:"autoAcceptMembers"`
 }
 
 func (o OIDCProvider) Configured() bool {
@@ -36,6 +37,7 @@ type MutateOIDCProviderPayload struct {
 	ScimSyncRoles        *bool
 	ScimAutoCreate       *bool
 	ScimDefaultGroupType *string
+	AutoAcceptMembers    *bool
 }
 
 type MutateOIDCProviderOption func(*MutateOIDCProviderPayload)
@@ -90,4 +92,8 @@ func WithOIDCScimAutoCreate(v bool) MutateOIDCProviderOption {
 
 func WithOIDCScimDefaultGroupType(v string) MutateOIDCProviderOption {
 	return func(p *MutateOIDCProviderPayload) { p.ScimDefaultGroupType = &v }
+}
+
+func WithOIDCAutoAcceptMembers(v bool) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.AutoAcceptMembers = &v }
 }
