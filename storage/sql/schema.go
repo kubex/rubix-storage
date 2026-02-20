@@ -226,6 +226,10 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimEnabled` tinyint(1) NOT NULL DEFAULT 0;"))
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimBearerToken` varchar(255) NOT NULL DEFAULT '';"))
 
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimSyncTeams` tinyint(1) NOT NULL DEFAULT 0;"))
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimSyncRoles` tinyint(1) NOT NULL DEFAULT 0;"))
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `scimAutoCreate` tinyint(1) NOT NULL DEFAULT 0;"))
+
 	// SCIM Group Mappings
 	queries = append(queries, migQuery("CREATE TABLE `scim_group_mappings` ("+
 		"`providerUUID`  varchar(64)  NOT NULL,"+
