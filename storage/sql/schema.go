@@ -267,5 +267,10 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `teams` ADD `scimManaged` tinyint(1) NOT NULL DEFAULT 0;"))
 	queries = append(queries, migQuery("ALTER TABLE `roles` ADD `scimManaged` tinyint(1) NOT NULL DEFAULT 0;"))
 
+	// Member approval queue
+	queries = append(queries, migQuery("ALTER TABLE `workspace_memberships` ADD `source` varchar(20) NOT NULL DEFAULT '';"))
+	queries = append(queries, migQuery("ALTER TABLE `workspaces` ADD `memberApprovalMode` varchar(10) NOT NULL DEFAULT 'auto';"))
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `autoAcceptMembers` tinyint(1) NOT NULL DEFAULT 0;"))
+
 	return queries
 }
