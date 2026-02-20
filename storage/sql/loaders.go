@@ -47,9 +47,13 @@ func (p *Provider) isDuplicateConflict(err error) bool {
 	return false
 }
 
-func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string) error {
+func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string, source ...rubix.MembershipSource) error {
+	src := ""
+	if len(source) > 0 {
+		src = string(source[0])
+	}
 	var err error
-	_, err = p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state, partner_id) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)", userID, workspaceID, as, rubix.MembershipStatePending, partnerId)
+	_, err = p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state, partner_id, source) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?)", userID, workspaceID, as, rubix.MembershipStatePending, partnerId, src)
 
 	if p.isDuplicateConflict(err) {
 		_, err = p.primaryConnection.Exec("UPDATE workspace_memberships SET state_since = CURRENT_TIMESTAMP, state = ?, type = ?, partner_id = ? WHERE state = ? AND user = ? AND workspace = ?", rubix.MembershipStatePending, as, partnerId, rubix.MembershipStateRemoved, userID, workspaceID)
@@ -107,7 +111,7 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) 
 		}
 	}
 
-	q := "SELECT m.user, m.type, m.partner_id, m.since, m.state, m.state_since, u.name, u.email " +
+	q := "SELECT m.user, m.type, m.partner_id, m.since, m.state, m.state_since, m.source, u.name, u.email " +
 		"FROM workspace_memberships AS m " +
 		"LEFT JOIN users AS u ON m.user = u.user " +
 		"WHERE " + strings.Join(fields, " AND ")
@@ -125,11 +129,13 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) 
 		name := sql.NullString{}
 		since := sql.NullString{}
 		stateSince := sql.NullString{}
-		if scanErr := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &since, &member.State, &stateSince, &name, &email); scanErr != nil {
+		source := sql.NullString{}
+		if scanErr := rows.Scan(&member.UserID, &member.Type, &member.PartnerID, &since, &member.State, &stateSince, &source, &name, &email); scanErr != nil {
 			return nil, scanErr
 		} else {
 			member.Email = email.String
 			member.Name = name.String
+			member.Source = rubix.MembershipSource(source.String)
 
 			if stateSince.Valid && stateSince.String != "" {
 				member.StateSince, _ = time.Parse(time.RFC3339Nano, stateSince.String)
@@ -188,7 +194,7 @@ func (p *Provider) retrieveWorkspaceBy(field, match string) (*rubix.Workspace, e
 
 func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[string]*rubix.Workspace, error) {
 	resp := make(map[string]*rubix.Workspace)
-	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts,accessCondition,emailDomainWhitelist FROM workspaces WHERE "+where, args...)
+	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts,accessCondition,emailDomainWhitelist,memberApprovalMode FROM workspaces WHERE "+where, args...)
 	if err != nil {
 		return resp, err
 	}
@@ -200,10 +206,11 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		footerPartsJson := sql.NullString{}
 		accessConditionJson := sql.NullString{}
 		emailDomainWhitelistJson := sql.NullString{}
+		memberApprovalMode := sql.NullString{}
 		sysVendors := sql.NullString{}
 		icon := sql.NullString{}
 		defaultApp := sql.NullString{}
-		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson, &accessConditionJson, &emailDomainWhitelistJson)
+		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson, &accessConditionJson, &emailDomainWhitelistJson, &memberApprovalMode)
 		if scanErr != nil {
 			continue
 		}
@@ -214,6 +221,7 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		json.Unmarshal([]byte(footerPartsJson.String), &located.FooterParts)
 		json.Unmarshal([]byte(accessConditionJson.String), &located.AccessCondition)
 		json.Unmarshal([]byte(emailDomainWhitelistJson.String), &located.EmailDomainWhitelist)
+		located.MemberApprovalMode = memberApprovalMode.String
 		resp[located.Uuid] = &located
 	}
 
@@ -239,6 +247,18 @@ func (p *Provider) SetWorkspaceEmailDomainWhitelist(workspaceUuid string, domain
 		return err
 	}
 	_, err = p.primaryConnection.Exec("UPDATE workspaces SET emailDomainWhitelist = ? WHERE uuid = ?", string(domainsBytes), workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) SetWorkspaceMemberApprovalMode(workspaceUuid string, mode string) error {
+	if mode != "queue" {
+		mode = "auto"
+	}
+	_, err := p.primaryConnection.Exec("UPDATE workspaces SET memberApprovalMode = ? WHERE uuid = ?", mode, workspaceUuid)
 	if err != nil {
 		return err
 	}
@@ -1514,7 +1534,7 @@ func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOp
 // --- OIDC Providers ---
 func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, error) {
 	rows, err := p.primaryConnection.Query(
-		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType FROM workspace_oidc_providers WHERE workspace = ?",
+		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType, autoAcceptMembers FROM workspace_oidc_providers WHERE workspace = ?",
 		workspace,
 	)
 	if err != nil {
@@ -1526,7 +1546,7 @@ func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, err
 		var it rubix.OIDCProvider
 		clientSecret := sql.NullString{}
 		clientKeys := sql.NullString{}
-		if err := rows.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken, &it.ScimSyncTeams, &it.ScimSyncRoles, &it.ScimAutoCreate, &it.ScimDefaultGroupType); err != nil {
+		if err := rows.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken, &it.ScimSyncTeams, &it.ScimSyncRoles, &it.ScimAutoCreate, &it.ScimDefaultGroupType, &it.AutoAcceptMembers); err != nil {
 			return nil, err
 		}
 		it.ClientSecret = clientSecret.String
@@ -1541,13 +1561,13 @@ func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, err
 
 func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider, error) {
 	row := p.primaryConnection.QueryRow(
-		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
+		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType, autoAcceptMembers FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
 		workspace, uuid,
 	)
 	var it rubix.OIDCProvider
 	clientSecret := sql.NullString{}
 	clientKeys := sql.NullString{}
-	if err := row.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken, &it.ScimSyncTeams, &it.ScimSyncRoles, &it.ScimAutoCreate, &it.ScimDefaultGroupType); err != nil {
+	if err := row.Scan(&it.Uuid, &it.Workspace, &it.ProviderName, &it.DisplayName, &it.ClientID, &clientSecret, &clientKeys, &it.IssuerURL, &it.BpoID, &it.ScimEnabled, &it.ScimBearerToken, &it.ScimSyncTeams, &it.ScimSyncRoles, &it.ScimAutoCreate, &it.ScimDefaultGroupType, &it.AutoAcceptMembers); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1563,8 +1583,8 @@ func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider,
 
 func (p *Provider) CreateOIDCProvider(workspace string, provider rubix.OIDCProvider) error {
 	_, err := p.primaryConnection.Exec(
-		"INSERT INTO workspace_oidc_providers (uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		provider.Uuid, workspace, provider.ProviderName, provider.DisplayName, provider.ClientID, provider.ClientSecret, provider.ClientKeys, provider.IssuerURL, provider.BpoID, provider.ScimEnabled, provider.ScimBearerToken, provider.ScimSyncTeams, provider.ScimSyncRoles, provider.ScimAutoCreate, provider.ScimDefaultGroupType,
+		"INSERT INTO workspace_oidc_providers (uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType, autoAcceptMembers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		provider.Uuid, workspace, provider.ProviderName, provider.DisplayName, provider.ClientID, provider.ClientSecret, provider.ClientKeys, provider.IssuerURL, provider.BpoID, provider.ScimEnabled, provider.ScimBearerToken, provider.ScimSyncTeams, provider.ScimSyncRoles, provider.ScimAutoCreate, provider.ScimDefaultGroupType, provider.AutoAcceptMembers,
 	)
 	if p.isDuplicateConflict(err) {
 		return rubix.ErrDuplicate
@@ -1638,6 +1658,10 @@ func (p *Provider) MutateOIDCProvider(workspace, uuid string, options ...rubix.M
 	if payload.ScimDefaultGroupType != nil {
 		fields = append(fields, "scimDefaultGroupType = ?")
 		vals = append(vals, *payload.ScimDefaultGroupType)
+	}
+	if payload.AutoAcceptMembers != nil {
+		fields = append(fields, "autoAcceptMembers = ?")
+		vals = append(vals, *payload.AutoAcceptMembers)
 	}
 	if len(fields) == 0 {
 		return nil

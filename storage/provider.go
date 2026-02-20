@@ -22,6 +22,7 @@ type Provider interface {
 	MutateOIDCProvider(workspace, uuid string, options ...rubix.MutateOIDCProviderOption) error
 	DeleteOIDCProvider(workspace, uuid string) error
 	SetWorkspaceEmailDomainWhitelist(workspaceUuid string, domains []string) error
+	SetWorkspaceMemberApprovalMode(workspaceUuid string, mode string) error
 
 	// SCIM Activity Log
 	GetSCIMActivityLog(workspace, providerUUID string, limit int) ([]rubix.SCIMActivityLog, error)
@@ -40,7 +41,7 @@ type Provider interface {
 	GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error)
 	SetSetting(workspace, vendor, app, key, value string) error
 
-	AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string) error
+	AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string, source ...rubix.MembershipSource) error
 
 	GetPermissionStatements(lookup rubix.Lookup, permissions ...app.ScopedKey) ([]app.PermissionStatement, error)
 	UserHasPermission(lookup rubix.Lookup, permissions ...app.ScopedKey) (bool, error)
