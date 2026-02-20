@@ -1848,3 +1848,196 @@ func (p *Provider) SetSetting(workspace, vendor, app, key, value string) error {
 	p.update()
 	return nil
 }
+
+// Workspace User CRUD
+
+func (p *Provider) CreateWorkspaceUser(workspace string, user rubix.WorkspaceUser) error {
+	_, err := p.primaryConnection.Exec(
+		"INSERT INTO workspace_users (user_id, workspace, name, email, oidc_provider, scim_managed, auto_created, last_sync_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		user.UserID, workspace, user.Name, user.Email, user.OIDCProvider, user.SCIMManaged, user.AutoCreated, user.LastSyncTime, user.CreatedAt,
+	)
+	if p.isDuplicateConflict(err) {
+		return rubix.ErrDuplicate
+	}
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) GetWorkspaceUser(workspace, userID string) (*rubix.WorkspaceUser, error) {
+	row := p.primaryConnection.QueryRow(
+		"SELECT user_id, workspace, name, email, oidc_provider, scim_managed, auto_created, last_sync_time, created_at FROM workspace_users WHERE workspace = ? AND user_id = ?",
+		workspace, userID,
+	)
+	var it rubix.WorkspaceUser
+	name := sql.NullString{}
+	email := sql.NullString{}
+	lastSync := sql.NullString{}
+	createdAt := sql.NullString{}
+	if err := row.Scan(&it.UserID, &it.Workspace, &name, &email, &it.OIDCProvider, &it.SCIMManaged, &it.AutoCreated, &lastSync, &createdAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	it.Name = name.String
+	it.Email = email.String
+	if lastSync.Valid && lastSync.String != "" {
+		it.LastSyncTime, _ = time.Parse(time.RFC3339Nano, lastSync.String)
+	}
+	if createdAt.Valid && createdAt.String != "" {
+		it.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAt.String)
+	}
+	return &it, nil
+}
+
+func (p *Provider) GetWorkspaceUsersByProvider(workspace, providerUUID string) ([]rubix.WorkspaceUser, error) {
+	rows, err := p.primaryConnection.Query(
+		"SELECT user_id, workspace, name, email, oidc_provider, scim_managed, auto_created, last_sync_time, created_at FROM workspace_users WHERE workspace = ? AND oidc_provider = ?",
+		workspace, providerUUID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.WorkspaceUser
+	for rows.Next() {
+		var it rubix.WorkspaceUser
+		name := sql.NullString{}
+		email := sql.NullString{}
+		lastSync := sql.NullString{}
+		createdAt := sql.NullString{}
+		if err := rows.Scan(&it.UserID, &it.Workspace, &name, &email, &it.OIDCProvider, &it.SCIMManaged, &it.AutoCreated, &lastSync, &createdAt); err != nil {
+			return nil, err
+		}
+		it.Name = name.String
+		it.Email = email.String
+		if lastSync.Valid && lastSync.String != "" {
+			it.LastSyncTime, _ = time.Parse(time.RFC3339Nano, lastSync.String)
+		}
+		if createdAt.Valid && createdAt.String != "" {
+			it.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAt.String)
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) UpdateWorkspaceUser(workspace, userID string, opts ...rubix.MutateWorkspaceUserOption) error {
+	if len(opts) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateWorkspaceUserPayload{}
+	for _, opt := range opts {
+		opt(&payload)
+	}
+	var fields []string
+	var vals []any
+	if payload.Name != nil {
+		fields = append(fields, "name = ?")
+		vals = append(vals, *payload.Name)
+	}
+	if payload.Email != nil {
+		fields = append(fields, "email = ?")
+		vals = append(vals, *payload.Email)
+	}
+	if payload.SCIMManaged != nil {
+		fields = append(fields, "scim_managed = ?")
+		vals = append(vals, *payload.SCIMManaged)
+	}
+	if payload.AutoCreated != nil {
+		fields = append(fields, "auto_created = ?")
+		vals = append(vals, *payload.AutoCreated)
+	}
+	if payload.LastSyncTime != nil {
+		fields = append(fields, "last_sync_time = ?")
+		vals = append(vals, *payload.LastSyncTime)
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	vals = append(vals, workspace, userID)
+	q := fmt.Sprintf("UPDATE workspace_users SET %s WHERE workspace = ? AND user_id = ?", strings.Join(fields, ", "))
+	res, err := p.primaryConnection.Exec(q, vals...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}
+
+func (p *Provider) DeleteWorkspaceUser(workspace, userID string) error {
+	_, err := p.primaryConnection.Exec("DELETE FROM workspace_users WHERE workspace = ? AND user_id = ?", workspace, userID)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) GetResolvedMembers(workspace string, filter rubix.MemberFilter) ([]rubix.ResolvedMember, error) {
+	// Get all memberships (or filtered by user IDs)
+	members, err := p.GetWorkspaceMembers(workspace, filter.UserIDs...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Partition into native and OIDC user IDs
+	var oidcIDs []string
+	for _, m := range members {
+		if strings.HasPrefix(m.UserID, "oidc_") {
+			oidcIDs = append(oidcIDs, m.UserID)
+		}
+	}
+
+	// Build lookup map for OIDC users from workspace_users
+	oidcUserMap := make(map[string]rubix.WorkspaceUser)
+	if len(oidcIDs) > 0 {
+		for _, uid := range oidcIDs {
+			wu, wuErr := p.GetWorkspaceUser(workspace, uid)
+			if wuErr == nil && wu != nil {
+				oidcUserMap[uid] = *wu
+			}
+		}
+	}
+
+	var resolved []rubix.ResolvedMember
+	for _, m := range members {
+		rm := rubix.ResolvedMember{Membership: m}
+
+		if wu, ok := oidcUserMap[m.UserID]; ok {
+			rm.Source = "oidc"
+			rm.ProviderID = wu.OIDCProvider
+			rm.SCIMManaged = wu.SCIMManaged
+			rm.AutoCreated = wu.AutoCreated
+			rm.LastSync = wu.LastSyncTime
+			if wu.Name != "" {
+				rm.Name = wu.Name
+			}
+			if wu.Email != "" {
+				rm.Email = wu.Email
+			}
+		} else if strings.HasPrefix(m.UserID, "oidc_") {
+			rm.Source = "oidc"
+		} else {
+			rm.Source = "native"
+		}
+
+		// Apply filters
+		if filter.Source != "" && filter.Source != rm.Source {
+			continue
+		}
+		if filter.ProviderUUID != "" && rm.ProviderID != filter.ProviderUUID {
+			continue
+		}
+
+		resolved = append(resolved, rm)
+	}
+
+	return resolved, nil
+}
