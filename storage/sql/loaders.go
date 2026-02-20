@@ -1980,6 +1980,81 @@ func (p *Provider) DeleteWorkspaceUser(workspace, userID string) error {
 	return nil
 }
 
+// MigrateOIDCUsersToWorkspaceUsers migrates existing OIDC users from the global users table
+// to workspace_users. This is idempotent and safe to run multiple times.
+func (p *Provider) MigrateOIDCUsersToWorkspaceUsers() error {
+	// Find all users with oidc_ prefix
+	rows, err := p.primaryConnection.Query("SELECT user, name, email FROM users WHERE user LIKE 'oidc_%'")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	type oidcUser struct {
+		userID string
+		name   string
+		email  string
+	}
+
+	var users []oidcUser
+	for rows.Next() {
+		var u oidcUser
+		name := sql.NullString{}
+		email := sql.NullString{}
+		if err := rows.Scan(&u.userID, &name, &email); err != nil {
+			return err
+		}
+		u.name = name.String
+		u.email = email.String
+		users = append(users, u)
+	}
+
+	for _, u := range users {
+		// Extract provider UUID from oidc_{providerUUID}_{sub}
+		parts := strings.SplitN(strings.TrimPrefix(u.userID, "oidc_"), "_", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		providerUUID := parts[0]
+
+		// Find workspace from membership
+		wsRows, err := p.primaryConnection.Query("SELECT workspace FROM workspace_memberships WHERE user = ?", u.userID)
+		if err != nil {
+			continue
+		}
+
+		for wsRows.Next() {
+			var workspace string
+			if err := wsRows.Scan(&workspace); err != nil {
+				continue
+			}
+
+			// Check if provider exists and if SCIM is enabled
+			provider, provErr := p.GetOIDCProvider(workspace, providerUUID)
+			scimManaged := false
+			if provErr == nil && provider != nil {
+				scimManaged = provider.ScimEnabled
+			}
+
+			// Insert into workspace_users (idempotent)
+			_, err := p.primaryConnection.Exec(
+				"INSERT INTO workspace_users (user_id, workspace, name, email, oidc_provider, scim_managed, auto_created, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)",
+				u.userID, workspace, u.name, u.email, providerUUID, scimManaged,
+			)
+			if p.isDuplicateConflict(err) {
+				continue // Already migrated
+			}
+		}
+		wsRows.Close()
+
+		// Remove from global users table
+		_, _ = p.primaryConnection.Exec("DELETE FROM users WHERE user = ? AND user LIKE 'oidc_%'", u.userID)
+	}
+
+	p.update()
+	return nil
+}
+
 func (p *Provider) GetResolvedMembers(workspace string, filter rubix.MemberFilter) ([]rubix.ResolvedMember, error) {
 	// Get all memberships (or filtered by user IDs)
 	members, err := p.GetWorkspaceMembers(workspace, filter.UserIDs...)

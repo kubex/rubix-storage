@@ -133,6 +133,9 @@ func (p *Provider) Initialize() error {
 				}
 			}
 		}
+
+		// Migrate existing OIDC users to workspace_users
+		_ = p.MigrateOIDCUsersToWorkspaceUsers()
 	}
 
 	return nil
