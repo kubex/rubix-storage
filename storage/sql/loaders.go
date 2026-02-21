@@ -56,7 +56,7 @@ func (p *Provider) AddUserToWorkspace(workspaceID, userID string, as rubix.Membe
 	_, err = p.primaryConnection.Exec("INSERT INTO workspace_memberships (user, workspace, type, since, state_since, state, partner_id, source) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?)", userID, workspaceID, as, rubix.MembershipStatePending, partnerId, src)
 
 	if p.isDuplicateConflict(err) {
-		_, err = p.primaryConnection.Exec("UPDATE workspace_memberships SET state_since = CURRENT_TIMESTAMP, state = ?, type = ?, partner_id = ? WHERE state = ? AND user = ? AND workspace = ?", rubix.MembershipStatePending, as, partnerId, rubix.MembershipStateRemoved, userID, workspaceID)
+		_, err = p.primaryConnection.Exec("UPDATE workspace_memberships SET state_since = CURRENT_TIMESTAMP, state = ?, type = ?, partner_id = ?, source = ? WHERE state = ? AND user = ? AND workspace = ?", rubix.MembershipStatePending, as, partnerId, src, rubix.MembershipStateRemoved, userID, workspaceID)
 		return err
 	}
 	p.update()
@@ -194,7 +194,7 @@ func (p *Provider) retrieveWorkspaceBy(field, match string) (*rubix.Workspace, e
 
 func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[string]*rubix.Workspace, error) {
 	resp := make(map[string]*rubix.Workspace)
-	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts,accessCondition,emailDomainWhitelist,memberApprovalMode FROM workspaces WHERE "+where, args...)
+	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts,accessCondition,emailDomainWhitelist,memberApprovalMode,emailDomainApproval FROM workspaces WHERE "+where, args...)
 	if err != nil {
 		return resp, err
 	}
@@ -207,10 +207,11 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		accessConditionJson := sql.NullString{}
 		emailDomainWhitelistJson := sql.NullString{}
 		memberApprovalMode := sql.NullString{}
+		emailDomainApprovalJson := sql.NullString{}
 		sysVendors := sql.NullString{}
 		icon := sql.NullString{}
 		defaultApp := sql.NullString{}
-		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson, &accessConditionJson, &emailDomainWhitelistJson, &memberApprovalMode)
+		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson, &accessConditionJson, &emailDomainWhitelistJson, &memberApprovalMode, &emailDomainApprovalJson)
 		if scanErr != nil {
 			continue
 		}
@@ -221,6 +222,7 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		json.Unmarshal([]byte(footerPartsJson.String), &located.FooterParts)
 		json.Unmarshal([]byte(accessConditionJson.String), &located.AccessCondition)
 		json.Unmarshal([]byte(emailDomainWhitelistJson.String), &located.EmailDomainWhitelist)
+		json.Unmarshal([]byte(emailDomainApprovalJson.String), &located.EmailDomainApproval)
 		located.MemberApprovalMode = memberApprovalMode.String
 		resp[located.Uuid] = &located
 	}
@@ -247,6 +249,19 @@ func (p *Provider) SetWorkspaceEmailDomainWhitelist(workspaceUuid string, domain
 		return err
 	}
 	_, err = p.primaryConnection.Exec("UPDATE workspaces SET emailDomainWhitelist = ? WHERE uuid = ?", string(domainsBytes), workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) SetWorkspaceEmailDomainApproval(workspaceUuid string, approval map[string]string) error {
+	approvalBytes, err := json.Marshal(approval)
+	if err != nil {
+		return err
+	}
+	_, err = p.primaryConnection.Exec("UPDATE workspaces SET emailDomainApproval = ? WHERE uuid = ?", string(approvalBytes), workspaceUuid)
 	if err != nil {
 		return err
 	}

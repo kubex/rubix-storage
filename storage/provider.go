@@ -22,6 +22,7 @@ type Provider interface {
 	MutateOIDCProvider(workspace, uuid string, options ...rubix.MutateOIDCProviderOption) error
 	DeleteOIDCProvider(workspace, uuid string) error
 	SetWorkspaceEmailDomainWhitelist(workspaceUuid string, domains []string) error
+	SetWorkspaceEmailDomainApproval(workspaceUuid string, approval map[string]string) error
 	SetWorkspaceMemberApprovalMode(workspaceUuid string, mode string) error
 
 	// SCIM Activity Log

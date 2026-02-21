@@ -20,7 +20,8 @@ type Workspace struct {
 	AccessCondition       Condition         `json:"accessCondition"`
 	OIDCProviders         []OIDCProvider    `json:"oidcProviders"`
 	EmailDomainWhitelist  []string          `json:"emailDomainWhitelist"`
-	MemberApprovalMode   string            `json:"memberApprovalMode"`
+	EmailDomainApproval   map[string]string `json:"emailDomainApproval"`
+	MemberApprovalMode    string            `json:"memberApprovalMode"`
 }
 
 func WorkspaceFromJson(jsonBytes []byte) (*Workspace, error) {
