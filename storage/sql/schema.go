@@ -273,5 +273,20 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `autoAcceptMembers` tinyint(1) NOT NULL DEFAULT 0;"))
 	queries = append(queries, migQuery("ALTER TABLE `workspaces` ADD `emailDomainApproval` text;"))
 
+	// IP Groups
+	queries = append(queries, migQuery("CREATE TABLE `ip_groups` ("+
+		"`workspace`    varchar(64)  NOT NULL,"+
+		"`ip_group`     varchar(64)  NOT NULL,"+
+		"`name`         varchar(64)  NOT NULL,"+
+		"`description`  varchar(255) NOT NULL DEFAULT '',"+
+		"`source`       varchar(20)  NOT NULL DEFAULT 'manual',"+
+		"`entries`      text         NULL,"+
+		"`externalUrl`  varchar(512) NOT NULL DEFAULT '',"+
+		"`jsonPath`     varchar(128) NOT NULL DEFAULT '',"+
+		"`lastSynced`   datetime     NULL,"+
+		"`entryCount`   int          NOT NULL DEFAULT 0,"+
+		"PRIMARY KEY (`workspace`, `ip_group`)"+
+		");"))
+
 	return queries
 }

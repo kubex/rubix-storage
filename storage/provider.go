@@ -109,6 +109,13 @@ type Provider interface {
 	CreateBPO(workspace, bpo, name, description string) error
 	MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOption) error
 
+	// IP Groups
+	GetIPGroup(workspace, groupID string) (*rubix.IPGroup, error)
+	GetIPGroups(workspace string) ([]rubix.IPGroup, error)
+	CreateIPGroup(workspace string, group rubix.IPGroup) error
+	MutateIPGroup(workspace, groupID string, options ...rubix.MutateIPGroupOption) error
+	DeleteIPGroup(workspace, groupID string) error
+
 	Initialize() error
 	Connect() error
 	Close() error
