@@ -151,3 +151,23 @@ func WithChannelDescription(description string) MutateChannelOption {
 func WithChannelMaxLevel(level int) MutateChannelOption {
 	return func(p *MutateChannelPayload) { p.MaxLevel = &level }
 }
+
+// BPO Management - managers, allowed teams, allowed roles
+
+type BPOManager struct {
+	Workspace string
+	BPO       string
+	User      string
+}
+
+type BPOTeam struct {
+	Workspace string
+	BPO       string
+	Team      string
+}
+
+type BPORole struct {
+	Workspace string
+	BPO       string
+	Role      string
+}
