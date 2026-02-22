@@ -1546,6 +1546,125 @@ func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOp
 	return nil
 }
 
+func (p *Provider) GetBPOManagers(workspace, bpo string) ([]string, error) {
+	rows, err := p.primaryConnection.Query("SELECT user FROM bpo_managers WHERE workspace = ? AND bpo = ? ORDER BY user", workspace, bpo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var users []string
+	for rows.Next() {
+		var user string
+		if err := rows.Scan(&user); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+func (p *Provider) SetBPOManagers(workspace, bpo string, users []string) error {
+	defer p.update()
+	if _, err := p.primaryConnection.Exec("DELETE FROM bpo_managers WHERE workspace = ? AND bpo = ?", workspace, bpo); err != nil {
+		return err
+	}
+	for _, user := range users {
+		if _, err := p.primaryConnection.Exec("INSERT INTO bpo_managers (workspace, bpo, user) VALUES (?, ?, ?)", workspace, bpo, user); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Provider) GetBPOTeams(workspace, bpo string) ([]string, error) {
+	rows, err := p.primaryConnection.Query("SELECT team FROM bpo_teams WHERE workspace = ? AND bpo = ? ORDER BY team", workspace, bpo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var teams []string
+	for rows.Next() {
+		var team string
+		if err := rows.Scan(&team); err != nil {
+			return nil, err
+		}
+		teams = append(teams, team)
+	}
+	return teams, nil
+}
+
+func (p *Provider) SetBPOTeams(workspace, bpo string, teams []string) error {
+	defer p.update()
+	if _, err := p.primaryConnection.Exec("DELETE FROM bpo_teams WHERE workspace = ? AND bpo = ?", workspace, bpo); err != nil {
+		return err
+	}
+	for _, team := range teams {
+		if _, err := p.primaryConnection.Exec("INSERT INTO bpo_teams (workspace, bpo, team) VALUES (?, ?, ?)", workspace, bpo, team); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Provider) GetBPORoles(workspace, bpo string) ([]string, error) {
+	rows, err := p.primaryConnection.Query("SELECT role FROM bpo_roles WHERE workspace = ? AND bpo = ? ORDER BY role", workspace, bpo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var roles []string
+	for rows.Next() {
+		var role string
+		if err := rows.Scan(&role); err != nil {
+			return nil, err
+		}
+		roles = append(roles, role)
+	}
+	return roles, nil
+}
+
+func (p *Provider) SetBPORoles(workspace, bpo string, roles []string) error {
+	defer p.update()
+	if _, err := p.primaryConnection.Exec("DELETE FROM bpo_roles WHERE workspace = ? AND bpo = ?", workspace, bpo); err != nil {
+		return err
+	}
+	for _, role := range roles {
+		if _, err := p.primaryConnection.Exec("INSERT INTO bpo_roles (workspace, bpo, role) VALUES (?, ?, ?)", workspace, bpo, role); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Provider) GetManagedBPOs(workspace, user string) ([]string, error) {
+	rows, err := p.primaryConnection.Query("SELECT bpo FROM bpo_managers WHERE workspace = ? AND user = ? ORDER BY bpo", workspace, user)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var bpos []string
+	for rows.Next() {
+		var bpo string
+		if err := rows.Scan(&bpo); err != nil {
+			return nil, err
+		}
+		bpos = append(bpos, bpo)
+	}
+	return bpos, nil
+}
+
+func (p *Provider) SetMemberPartnerID(workspace, user, partnerID string) error {
+	defer p.update()
+	res, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET partner_id = ? WHERE workspace = ? AND user = ?", partnerID, workspace, user)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}
+
 // --- OIDC Providers ---
 func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, error) {
 	rows, err := p.primaryConnection.Query(
