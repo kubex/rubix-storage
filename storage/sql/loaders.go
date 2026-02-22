@@ -405,7 +405,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 		effect := app.PermissionEffectAllow
 		if !res.Allow {
 			effect = app.PermissionEffectDeny
-		} else if !rubix.CheckCondition(res.RoleConditions, lookup) {
+		} else if !rubix.CheckCondition(res.RoleConditions, lookup, p.ipGroupResolver(lookup.WorkspaceUUID)) {
 			continue
 		}
 
@@ -2082,6 +2082,15 @@ func (p *Provider) GetResolvedMembers(workspace string, filter rubix.MemberFilte
 	}
 
 	return resolved, nil
+}
+
+func (p *Provider) ipGroupResolver(workspace string) rubix.IPGroupResolver {
+	return func(groupID string) []string {
+		if g, err := p.GetIPGroup(workspace, groupID); err == nil {
+			return g.Entries
+		}
+		return nil
+	}
 }
 
 // --- IP Groups ---
