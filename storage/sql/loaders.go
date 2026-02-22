@@ -2083,3 +2083,136 @@ func (p *Provider) GetResolvedMembers(workspace string, filter rubix.MemberFilte
 
 	return resolved, nil
 }
+
+// --- IP Groups ---
+func (p *Provider) GetIPGroup(workspace, groupID string) (*rubix.IPGroup, error) {
+	ret := &rubix.IPGroup{Workspace: workspace, ID: groupID}
+	row := p.primaryConnection.QueryRow(
+		"SELECT name, description, source, entries, externalUrl, jsonPath, lastSynced, entryCount FROM ip_groups WHERE workspace = ? AND ip_group = ?",
+		workspace, groupID,
+	)
+	entriesJSON := sql.NullString{}
+	lastSynced := sql.NullString{}
+	if err := row.Scan(&ret.Name, &ret.Description, &ret.Source, &entriesJSON, &ret.ExternalURL, &ret.JSONPath, &lastSynced, &ret.EntryCount); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	if entriesJSON.Valid {
+		json.Unmarshal([]byte(entriesJSON.String), &ret.Entries)
+	}
+	ret.LastSynced = lastSynced.String
+	return ret, nil
+}
+
+func (p *Provider) GetIPGroups(workspace string) ([]rubix.IPGroup, error) {
+	rows, err := p.primaryConnection.Query(
+		"SELECT ip_group, name, description, source, entries, externalUrl, jsonPath, lastSynced, entryCount FROM ip_groups WHERE workspace = ? ORDER BY name ASC",
+		workspace,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.IPGroup
+	for rows.Next() {
+		var it rubix.IPGroup
+		it.Workspace = workspace
+		entriesJSON := sql.NullString{}
+		lastSynced := sql.NullString{}
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.Source, &entriesJSON, &it.ExternalURL, &it.JSONPath, &lastSynced, &it.EntryCount); err != nil {
+			return nil, err
+		}
+		if entriesJSON.Valid {
+			json.Unmarshal([]byte(entriesJSON.String), &it.Entries)
+		}
+		it.LastSynced = lastSynced.String
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) CreateIPGroup(workspace string, group rubix.IPGroup) error {
+	entriesBytes, _ := json.Marshal(group.Entries)
+	_, err := p.primaryConnection.Exec(
+		"INSERT INTO ip_groups (workspace, ip_group, name, description, source, entries, externalUrl, jsonPath, entryCount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		workspace, group.ID, group.Name, group.Description, group.Source, string(entriesBytes), group.ExternalURL, group.JSONPath, group.EntryCount,
+	)
+	if p.isDuplicateConflict(err) {
+		return errors.New("IP group already exists")
+	}
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) MutateIPGroup(workspace, groupID string, options ...rubix.MutateIPGroupOption) error {
+	if len(options) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateIPGroupPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+	var fields []string
+	var vals []any
+	if payload.Title != nil {
+		fields = append(fields, "name = ?")
+		vals = append(vals, *payload.Title)
+	}
+	if payload.Description != nil {
+		fields = append(fields, "description = ?")
+		vals = append(vals, *payload.Description)
+	}
+	if payload.Source != nil {
+		fields = append(fields, "source = ?")
+		vals = append(vals, *payload.Source)
+	}
+	if payload.Entries != nil {
+		fields = append(fields, "entries = ?")
+		entriesBytes, _ := json.Marshal(*payload.Entries)
+		vals = append(vals, string(entriesBytes))
+	}
+	if payload.ExternalURL != nil {
+		fields = append(fields, "externalUrl = ?")
+		vals = append(vals, *payload.ExternalURL)
+	}
+	if payload.JSONPath != nil {
+		fields = append(fields, "jsonPath = ?")
+		vals = append(vals, *payload.JSONPath)
+	}
+	if payload.LastSynced != nil {
+		fields = append(fields, "lastSynced = ?")
+		vals = append(vals, *payload.LastSynced)
+	}
+	if payload.EntryCount != nil {
+		fields = append(fields, "entryCount = ?")
+		vals = append(vals, *payload.EntryCount)
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	vals = append(vals, workspace, groupID)
+	q := fmt.Sprintf("UPDATE ip_groups SET %s WHERE workspace = ? AND ip_group = ?", strings.Join(fields, ", "))
+	res, err := p.primaryConnection.Exec(q, vals...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}
+
+func (p *Provider) DeleteIPGroup(workspace, groupID string) error {
+	_, err := p.primaryConnection.Exec("DELETE FROM ip_groups WHERE workspace = ? AND ip_group = ?", workspace, groupID)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
