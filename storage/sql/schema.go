@@ -208,6 +208,27 @@ func migrations() []migration {
 	queries = append(queries, migQuery("alter table `bpos` ADD `website_url` varchar(255) default '' not null;"))
 	queries = append(queries, migQuery("alter table `bpos` ADD `logo_url` varchar(255) default '' not null;"))
 
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `bpo_managers` ("+
+		"`workspace` varchar(64) NOT NULL,"+
+		"`bpo`       varchar(64) NOT NULL,"+
+		"`user`      varchar(64) NOT NULL,"+
+		"PRIMARY KEY (`workspace`, `bpo`, `user`)"+
+		");"))
+
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `bpo_teams` ("+
+		"`workspace` varchar(64) NOT NULL,"+
+		"`bpo`       varchar(64) NOT NULL,"+
+		"`team`      varchar(64) NOT NULL,"+
+		"PRIMARY KEY (`workspace`, `bpo`, `team`)"+
+		");"))
+
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `bpo_roles` ("+
+		"`workspace` varchar(64) NOT NULL,"+
+		"`bpo`       varchar(64) NOT NULL,"+
+		"`role`      varchar(64) NOT NULL,"+
+		"PRIMARY KEY (`workspace`, `bpo`, `role`)"+
+		");"))
+
 	queries = append(queries, migQuery("CREATE TABLE `workspace_oidc_providers` ("+
 		"`uuid`           varchar(64)  NOT NULL,"+
 		"`workspace`      varchar(64)  NOT NULL,"+
