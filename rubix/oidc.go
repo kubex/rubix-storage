@@ -17,6 +17,9 @@ type OIDCProvider struct {
 	ScimAutoCreate       bool   `json:"scimAutoCreate"`
 	ScimDefaultGroupType string `json:"scimDefaultGroupType"` // "team" or "role", defaults to "team"
 	AutoAcceptMembers    bool   `json:"autoAcceptMembers"`
+	AssumeMFA            bool   `json:"assumeMFA"`
+	AssumeVerified       bool   `json:"assumeVerified"`
+	MaxSessionAge        int    `json:"maxSessionAge"` // Max session lifetime in seconds, 0 = use system default
 }
 
 func (o OIDCProvider) Configured() bool {
@@ -38,6 +41,9 @@ type MutateOIDCProviderPayload struct {
 	ScimAutoCreate       *bool
 	ScimDefaultGroupType *string
 	AutoAcceptMembers    *bool
+	AssumeMFA            *bool
+	AssumeVerified       *bool
+	MaxSessionAge        *int
 }
 
 type MutateOIDCProviderOption func(*MutateOIDCProviderPayload)
@@ -96,4 +102,16 @@ func WithOIDCScimDefaultGroupType(v string) MutateOIDCProviderOption {
 
 func WithOIDCAutoAcceptMembers(v bool) MutateOIDCProviderOption {
 	return func(p *MutateOIDCProviderPayload) { p.AutoAcceptMembers = &v }
+}
+
+func WithOIDCAssumeMFA(v bool) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.AssumeMFA = &v }
+}
+
+func WithOIDCAssumeVerified(v bool) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.AssumeVerified = &v }
+}
+
+func WithOIDCMaxSessionAge(v int) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.MaxSessionAge = &v }
 }

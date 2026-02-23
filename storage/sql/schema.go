@@ -309,5 +309,9 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `ip_group`)"+
 		");"))
 
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `assumeMFA` tinyint(1) NOT NULL DEFAULT 0;"))
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `assumeVerified` tinyint(1) NOT NULL DEFAULT 0;"))
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `maxSessionAge` int NOT NULL DEFAULT 0;"))
+
 	return queries
 }
