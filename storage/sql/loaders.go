@@ -281,6 +281,68 @@ func (p *Provider) SetWorkspaceMemberApprovalMode(workspaceUuid string, mode str
 	return nil
 }
 
+func (p *Provider) SetWorkspaceName(workspaceUuid, name string) error {
+	_, err := p.primaryConnection.Exec("UPDATE workspaces SET name = ? WHERE uuid = ?", name, workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) SetWorkspaceIcon(workspaceUuid, icon string) error {
+	_, err := p.primaryConnection.Exec("UPDATE workspaces SET icon = ? WHERE uuid = ?", icon, workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) SetWorkspaceDefaultApp(workspaceUuid string, defaultApp string) error {
+	_, err := p.primaryConnection.Exec("UPDATE workspaces SET defaultApp = ? WHERE uuid = ?", defaultApp, workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) SetWorkspaceFooterParts(workspaceUuid string, parts rubix.FooterParts) error {
+	partsBytes, err := json.Marshal(parts)
+	if err != nil {
+		return err
+	}
+	_, err = p.primaryConnection.Exec("UPDATE workspaces SET footerParts = ? WHERE uuid = ?", string(partsBytes), workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) SetWorkspaceSystemVendors(workspaceUuid string, vendors []string) error {
+	_, err := p.primaryConnection.Exec("UPDATE workspaces SET systemVendors = ? WHERE uuid = ?", strings.Join(vendors, ","), workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) SetWorkspaceInstalledApplications(workspaceUuid string, apps []app.ScopedKey) error {
+	appsBytes, err := json.Marshal(apps)
+	if err != nil {
+		return err
+	}
+	_, err = p.primaryConnection.Exec("UPDATE workspaces SET installedApplications = ? WHERE uuid = ?", string(appsBytes), workspaceUuid)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
 func (p *Provider) SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error {
 	uid := sql.NullString{}
 	if userUuid != "" {

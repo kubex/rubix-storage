@@ -24,6 +24,12 @@ type Provider interface {
 	SetWorkspaceEmailDomainWhitelist(workspaceUuid string, domains []string) error
 	SetWorkspaceEmailDomainApproval(workspaceUuid string, approval map[string]string) error
 	SetWorkspaceMemberApprovalMode(workspaceUuid string, mode string) error
+	SetWorkspaceName(workspaceUuid, name string) error
+	SetWorkspaceIcon(workspaceUuid, icon string) error
+	SetWorkspaceDefaultApp(workspaceUuid string, defaultApp string) error
+	SetWorkspaceFooterParts(workspaceUuid string, parts rubix.FooterParts) error
+	SetWorkspaceSystemVendors(workspaceUuid string, vendors []string) error
+	SetWorkspaceInstalledApplications(workspaceUuid string, apps []app.ScopedKey) error
 
 	// SCIM Activity Log
 	GetSCIMActivityLog(workspace, providerUUID string, limit int) ([]rubix.SCIMActivityLog, error)
