@@ -7,29 +7,29 @@ import (
 	"github.com/kubex/definitions-go/app"
 )
 
-type FooterPart struct {
+type MetricTicker struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
 }
 
-// FooterParts is an ordered list of footer name/URL pairs.
+// MetricTickers is an ordered list of metric ticker name/URL pairs.
 // Supports unmarshaling from both the legacy map format {"name":"url"}
 // and the current array format [{"name":"...","url":"..."}].
-type FooterParts []FooterPart
+type MetricTickers []MetricTicker
 
-func (fp FooterParts) ToMap() map[string]string {
-	m := make(map[string]string, len(fp))
-	for _, p := range fp {
-		m[p.Name] = p.URL
+func (mt MetricTickers) ToMap() map[string]string {
+	m := make(map[string]string, len(mt))
+	for _, t := range mt {
+		m[t.Name] = t.URL
 	}
 	return m
 }
 
-func (fp *FooterParts) UnmarshalJSON(data []byte) error {
+func (mt *MetricTickers) UnmarshalJSON(data []byte) error {
 	// Try array format first (current)
-	var parts []FooterPart
-	if err := json.Unmarshal(data, &parts); err == nil {
-		*fp = parts
+	var tickers []MetricTicker
+	if err := json.Unmarshal(data, &tickers); err == nil {
+		*mt = tickers
 		return nil
 	}
 	// Fall back to legacy map format
@@ -38,7 +38,7 @@ func (fp *FooterParts) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	for name, url := range m {
-		*fp = append(*fp, FooterPart{Name: name, URL: url})
+		*mt = append(*mt, MetricTicker{Name: name, URL: url})
 	}
 	return nil
 }
@@ -52,7 +52,7 @@ type Workspace struct {
 	InstalledApplications []app.ScopedKey   `json:"installedApplications"`
 	SystemVendors         []string          `json:"systemVendors"`
 	DefaultApp            app.GlobalAppID   `json:"defaultApp"`
-	FooterParts           FooterParts       `json:"footerParts"`
+	MetricTickers         MetricTickers     `json:"metricTickers"`
 	AccessCondition       Condition         `json:"accessCondition"`
 	OIDCProviders         []OIDCProvider    `json:"oidcProviders"`
 	EmailDomainWhitelist  []string          `json:"emailDomainWhitelist"`

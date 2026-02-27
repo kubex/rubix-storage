@@ -27,7 +27,7 @@ type Provider interface {
 	SetWorkspaceName(workspaceUuid, name string) error
 	SetWorkspaceIcon(workspaceUuid, icon string) error
 	SetWorkspaceDefaultApp(workspaceUuid string, defaultApp string) error
-	SetWorkspaceFooterParts(workspaceUuid string, parts rubix.FooterParts) error
+	SetWorkspaceMetricTickers(workspaceUuid string, tickers rubix.MetricTickers) error
 	SetWorkspaceSystemVendors(workspaceUuid string, vendors []string) error
 	SetWorkspaceInstalledApplications(workspaceUuid string, apps []app.ScopedKey) error
 
@@ -131,6 +131,16 @@ type Provider interface {
 	CreateIPGroup(workspace string, group rubix.IPGroup) error
 	MutateIPGroup(workspace, groupID string, options ...rubix.MutateIPGroupOption) error
 	DeleteIPGroup(workspace, groupID string) error
+
+	// Platform Applications
+	GetPlatformApplications() ([]rubix.PlatformApplication, error)
+	StorePlatformApplication(application rubix.PlatformApplication) error
+	RemovePlatformApplication(vendorID, appID, releaseChannel string) error
+
+	// Platform Vendors
+	GetPlatformVendors() ([]rubix.PlatformVendor, error)
+	StorePlatformVendor(vendor rubix.PlatformVendor) error
+	RemovePlatformVendor(vendorID string) error
 
 	Initialize() error
 	Connect() error

@@ -203,7 +203,7 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 	for rows.Next() {
 		located := rubix.Workspace{}
 		installedApplicationsJson := sql.NullString{}
-		footerPartsJson := sql.NullString{}
+		metricTickersJson := sql.NullString{}
 		accessConditionJson := sql.NullString{}
 		emailDomainWhitelistJson := sql.NullString{}
 		memberApprovalMode := sql.NullString{}
@@ -211,7 +211,7 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		sysVendors := sql.NullString{}
 		icon := sql.NullString{}
 		defaultApp := sql.NullString{}
-		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &footerPartsJson, &accessConditionJson, &emailDomainWhitelistJson, &memberApprovalMode, &emailDomainApprovalJson)
+		scanErr := rows.Scan(&located.Uuid, &located.Alias, &located.Domain, &located.Name, &icon, &installedApplicationsJson, &defaultApp, &sysVendors, &metricTickersJson, &accessConditionJson, &emailDomainWhitelistJson, &memberApprovalMode, &emailDomainApprovalJson)
 		if scanErr != nil {
 			continue
 		}
@@ -219,7 +219,7 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		located.Icon = icon.String
 		located.DefaultApp = app.IDFromString(defaultApp.String)
 		json.Unmarshal([]byte(installedApplicationsJson.String), &located.InstalledApplications)
-		json.Unmarshal([]byte(footerPartsJson.String), &located.FooterParts)
+		json.Unmarshal([]byte(metricTickersJson.String), &located.MetricTickers)
 		json.Unmarshal([]byte(accessConditionJson.String), &located.AccessCondition)
 		json.Unmarshal([]byte(emailDomainWhitelistJson.String), &located.EmailDomainWhitelist)
 		json.Unmarshal([]byte(emailDomainApprovalJson.String), &located.EmailDomainApproval)
@@ -308,12 +308,12 @@ func (p *Provider) SetWorkspaceDefaultApp(workspaceUuid string, defaultApp strin
 	return nil
 }
 
-func (p *Provider) SetWorkspaceFooterParts(workspaceUuid string, parts rubix.FooterParts) error {
-	partsBytes, err := json.Marshal(parts)
+func (p *Provider) SetWorkspaceMetricTickers(workspaceUuid string, tickers rubix.MetricTickers) error {
+	tickersBytes, err := json.Marshal(tickers)
 	if err != nil {
 		return err
 	}
-	_, err = p.primaryConnection.Exec("UPDATE workspaces SET footerParts = ? WHERE uuid = ?", string(partsBytes), workspaceUuid)
+	_, err = p.primaryConnection.Exec("UPDATE workspaces SET footerParts = ? WHERE uuid = ?", string(tickersBytes), workspaceUuid)
 	if err != nil {
 		return err
 	}

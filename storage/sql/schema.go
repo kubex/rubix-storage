@@ -313,5 +313,31 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `assumeVerified` tinyint(1) NOT NULL DEFAULT 0;"))
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `maxSessionAge` int NOT NULL DEFAULT 0;"))
 
+	// Platform Applications
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `platform_applications` ("+
+		"`vendor_id`          varchar(64)  NOT NULL,"+
+		"`app_id`             varchar(64)  NOT NULL,"+
+		"`release_channel`    varchar(64)  NOT NULL DEFAULT '',"+
+		"`signature_key`      varchar(255) NOT NULL DEFAULT '',"+
+		"`endpoint`           varchar(512) NOT NULL,"+
+		"`simple_app`         tinyint(1)   NOT NULL DEFAULT 0,"+
+		"`framed`             tinyint(1)   NOT NULL DEFAULT 0,"+
+		"`allow_scripts`      tinyint(1)   NOT NULL DEFAULT 0,"+
+		"`cookie_passthrough` text         NULL,"+
+		"`globally_available` tinyint(1)   NOT NULL DEFAULT 0,"+
+		"PRIMARY KEY (`vendor_id`, `app_id`, `release_channel`)"+
+		");"))
+
+	// Platform Vendors
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `platform_vendors` ("+
+		"`vendor_id`    varchar(64)  NOT NULL,"+
+		"`name`         varchar(120) NOT NULL DEFAULT '',"+
+		"`description`  varchar(255) NOT NULL DEFAULT '',"+
+		"`logo_url`     varchar(512) NOT NULL DEFAULT '',"+
+		"`icon`         varchar(64)  NOT NULL DEFAULT '',"+
+		"`discovery`    varchar(512) NOT NULL DEFAULT '',"+
+		"PRIMARY KEY (`vendor_id`)"+
+		");"))
+
 	return queries
 }
