@@ -218,13 +218,19 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 		located.SystemVendors = strings.Split(sysVendors.String, ",")
 		located.Icon = icon.String
 		located.DefaultApp = app.IDFromString(defaultApp.String)
-		json.Unmarshal([]byte(installedApplicationsJson.String), &located.InstalledApplications)
 		json.Unmarshal([]byte(metricTickersJson.String), &located.MetricTickers)
 		json.Unmarshal([]byte(accessConditionJson.String), &located.AccessCondition)
 		json.Unmarshal([]byte(emailDomainWhitelistJson.String), &located.EmailDomainWhitelist)
 		json.Unmarshal([]byte(emailDomainApprovalJson.String), &located.EmailDomainApproval)
 		located.MemberApprovalMode = memberApprovalMode.String
 		resp[located.Uuid] = &located
+	}
+
+	// Load InstalledApplications from workspace_applications table
+	for uuid, ws := range resp {
+		if wsApps, appErr := p.GetWorkspaceApplications(uuid); appErr == nil {
+			ws.InstalledApplications = wsApps
+		}
 	}
 
 	return resp, err
@@ -331,16 +337,77 @@ func (p *Provider) SetWorkspaceSystemVendors(workspaceUuid string, vendors []str
 }
 
 func (p *Provider) SetWorkspaceInstalledApplications(workspaceUuid string, apps []app.ScopedKey) error {
+	// Write to JSON column (backward compatibility, will be removed later)
 	appsBytes, err := json.Marshal(apps)
 	if err != nil {
 		return err
 	}
-	_, err = p.primaryConnection.Exec("UPDATE workspaces SET installedApplications = ? WHERE uuid = ?", string(appsBytes), workspaceUuid)
-	if err != nil {
+	if _, err = p.primaryConnection.Exec("UPDATE workspaces SET installedApplications = ? WHERE uuid = ?", string(appsBytes), workspaceUuid); err != nil {
 		return err
 	}
+
+	// Sync to workspace_applications table: delete all, re-insert
+	if _, err = p.primaryConnection.Exec("DELETE FROM workspace_applications WHERE workspace_uuid = ?", workspaceUuid); err != nil {
+		return err
+	}
+	for _, sk := range apps {
+		if _, err = p.primaryConnection.Exec(
+			"INSERT INTO workspace_applications (workspace_uuid, vendor_id, app_id, release_channel) VALUES (?, ?, ?, ?)",
+			workspaceUuid, sk.VendorID, sk.AppID, sk.Key,
+		); err != nil {
+			return err
+		}
+	}
+
 	p.update()
 	return nil
+}
+
+func (p *Provider) GetWorkspaceApplications(workspaceUuid string) ([]app.ScopedKey, error) {
+	rows, err := p.primaryConnection.Query(
+		"SELECT vendor_id, app_id, release_channel FROM workspace_applications WHERE workspace_uuid = ?",
+		workspaceUuid,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var apps []app.ScopedKey
+	for rows.Next() {
+		var vendorID, appID, releaseChannel string
+		if err := rows.Scan(&vendorID, &appID, &releaseChannel); err != nil {
+			return nil, err
+		}
+		gaid := app.NewID(vendorID, appID)
+		apps = append(apps, app.NewScopedKey(releaseChannel, &gaid))
+	}
+	return apps, rows.Err()
+}
+
+func (p *Provider) SetWorkspaceApplication(workspaceUuid, vendorID, appID, releaseChannel string) error {
+	query := "INSERT INTO workspace_applications (workspace_uuid, vendor_id, app_id, release_channel) VALUES (?, ?, ?, ?)"
+	if p.SqlLite {
+		query += " ON CONFLICT(workspace_uuid, vendor_id, app_id) DO UPDATE SET release_channel=excluded.release_channel"
+	} else {
+		query = strings.Replace(query, "INSERT INTO", "REPLACE INTO", 1)
+	}
+	_, err := p.primaryConnection.Exec(query, workspaceUuid, vendorID, appID, releaseChannel)
+	if err == nil {
+		p.update()
+	}
+	return err
+}
+
+func (p *Provider) RemoveWorkspaceApplication(workspaceUuid, vendorID, appID string) error {
+	_, err := p.primaryConnection.Exec(
+		"DELETE FROM workspace_applications WHERE workspace_uuid = ? AND vendor_id = ? AND app_id = ?",
+		workspaceUuid, vendorID, appID,
+	)
+	if err == nil {
+		p.update()
+	}
+	return err
 }
 
 func (p *Provider) SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error {
@@ -2140,8 +2207,6 @@ func (p *Provider) DeleteWorkspaceUser(workspace, userID string) error {
 	return nil
 }
 
-// MigrateOIDCUsersToWorkspaceUsers migrates existing OIDC users from the global users table
-// to workspace_users. This is idempotent and safe to run multiple times.
 func (p *Provider) MigrateOIDCUsersToWorkspaceUsers() error {
 	// Find all users with oidc_ prefix
 	rows, err := p.primaryConnection.Query("SELECT user, name, email FROM users WHERE user LIKE 'oidc_%'")

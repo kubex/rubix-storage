@@ -475,3 +475,103 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 		t.Fatalf("expected oidc-1 to remain, got %s", providers[0].Uuid)
 	}
 }
+
+func TestWorkspaceApplications(t *testing.T) {
+	p := newTestProvider(t)
+	defer func() { _ = p.Close() }()
+
+	ws := "ws-apps"
+	if err := p.CreateWorkspace(ws, "Apps Test", "apps-test", "apps.local"); err != nil {
+		t.Fatalf("CreateWorkspace: %v", err)
+	}
+
+	// SetWorkspaceInstalledApplications dual-writes to JSON column and new table
+	appList := []app.ScopedKey{
+		app.NewScopedKey("stable", &app.GlobalAppID{VendorID: "v1", AppID: "a1"}),
+		app.NewScopedKey("beta", &app.GlobalAppID{VendorID: "v1", AppID: "a2"}),
+		app.NewScopedKey("", &app.GlobalAppID{VendorID: "v2", AppID: "a3"}),
+	}
+	if err := p.SetWorkspaceInstalledApplications(ws, appList); err != nil {
+		t.Fatalf("SetWorkspaceInstalledApplications: %v", err)
+	}
+
+	// GetWorkspaceApplications reads from new table
+	got, err := p.GetWorkspaceApplications(ws)
+	if err != nil {
+		t.Fatalf("GetWorkspaceApplications: %v", err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("expected 3 apps, got %d", len(got))
+	}
+
+	// RetrieveWorkspace should use the new table data
+	wsObj, err := p.RetrieveWorkspace(ws)
+	if err != nil || wsObj == nil {
+		t.Fatalf("RetrieveWorkspace: %v", err)
+	}
+	if len(wsObj.InstalledApplications) != 3 {
+		t.Fatalf("expected 3 installed apps from RetrieveWorkspace, got %d", len(wsObj.InstalledApplications))
+	}
+
+	// SetWorkspaceApplication upsert — add a new app
+	if err := p.SetWorkspaceApplication(ws, "v3", "a4", "canary"); err != nil {
+		t.Fatalf("SetWorkspaceApplication (new): %v", err)
+	}
+	got, err = p.GetWorkspaceApplications(ws)
+	if err != nil {
+		t.Fatalf("GetWorkspaceApplications after add: %v", err)
+	}
+	if len(got) != 4 {
+		t.Fatalf("expected 4 apps after add, got %d", len(got))
+	}
+
+	// SetWorkspaceApplication upsert — update release channel
+	if err := p.SetWorkspaceApplication(ws, "v1", "a1", "canary"); err != nil {
+		t.Fatalf("SetWorkspaceApplication (upsert): %v", err)
+	}
+	got, err = p.GetWorkspaceApplications(ws)
+	if err != nil {
+		t.Fatalf("GetWorkspaceApplications after upsert: %v", err)
+	}
+	if len(got) != 4 {
+		t.Fatalf("expected 4 apps after upsert, got %d", len(got))
+	}
+	// Verify the channel was updated
+	found := false
+	for _, sk := range got {
+		if sk.VendorID == "v1" && sk.AppID == "a1" && sk.Key == "canary" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected v1/a1 to have release_channel=canary after upsert")
+	}
+
+	// RemoveWorkspaceApplication
+	if err := p.RemoveWorkspaceApplication(ws, "v2", "a3"); err != nil {
+		t.Fatalf("RemoveWorkspaceApplication: %v", err)
+	}
+	got, err = p.GetWorkspaceApplications(ws)
+	if err != nil {
+		t.Fatalf("GetWorkspaceApplications after remove: %v", err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("expected 3 apps after remove, got %d", len(got))
+	}
+
+	// Overwrite all via SetWorkspaceInstalledApplications
+	newList := []app.ScopedKey{
+		app.NewScopedKey("prod", &app.GlobalAppID{VendorID: "vx", AppID: "ax"}),
+	}
+	if err := p.SetWorkspaceInstalledApplications(ws, newList); err != nil {
+		t.Fatalf("SetWorkspaceInstalledApplications (overwrite): %v", err)
+	}
+	got, err = p.GetWorkspaceApplications(ws)
+	if err != nil {
+		t.Fatalf("GetWorkspaceApplications after overwrite: %v", err)
+	}
+	if len(got) != 1 || got[0].VendorID != "vx" || got[0].AppID != "ax" || got[0].Key != "prod" {
+		t.Fatalf("expected single app vx/ax/prod after overwrite, got %+v", got)
+	}
+}

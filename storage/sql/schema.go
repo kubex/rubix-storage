@@ -339,5 +339,17 @@ func migrations() []migration {
 		"PRIMARY KEY (`vendor_id`)"+
 		");"))
 
+	// Workspace Applications (replaces JSON installedApplications column on workspaces)
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `workspace_applications` ("+
+		"`workspace_uuid`  varchar(64) NOT NULL,"+
+		"`vendor_id`       varchar(64) NOT NULL,"+
+		"`app_id`          varchar(64) NOT NULL,"+
+		"`release_channel` varchar(64) NOT NULL DEFAULT '',"+
+		"PRIMARY KEY (`workspace_uuid`, `vendor_id`, `app_id`)"+
+		");"))
+
+	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `allowed_workspaces` text NOT NULL DEFAULT '';"))
+	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `workspace_available` tinyint(1) NOT NULL DEFAULT 0;"))
+
 	return queries
 }

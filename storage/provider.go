@@ -31,6 +31,11 @@ type Provider interface {
 	SetWorkspaceSystemVendors(workspaceUuid string, vendors []string) error
 	SetWorkspaceInstalledApplications(workspaceUuid string, apps []app.ScopedKey) error
 
+	// Workspace Applications (relational table)
+	GetWorkspaceApplications(workspaceUuid string) ([]app.ScopedKey, error)
+	SetWorkspaceApplication(workspaceUuid, vendorID, appID, releaseChannel string) error
+	RemoveWorkspaceApplication(workspaceUuid, vendorID, appID string) error
+
 	// SCIM Activity Log
 	GetSCIMActivityLog(workspace, providerUUID string, limit int) ([]rubix.SCIMActivityLog, error)
 	AddSCIMActivityLog(workspace string, entry rubix.SCIMActivityLog) error
