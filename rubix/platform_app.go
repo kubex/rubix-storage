@@ -16,14 +16,16 @@ type PlatformApplication struct {
 	GloballyAvailable  bool     `json:"globallyAvailable"`
 	AllowedWorkspaces  []string `json:"allowedWorkspaces"`
 	WorkspaceAvailable bool     `json:"workspaceAvailable"`
+	Discovered         bool     `json:"discovered"` // True if added via vendor service discovery
 }
 
 // PlatformVendor represents a vendor registered at the platform level.
 type PlatformVendor struct {
-	VendorID    string `json:"vendorID"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	LogoURL     string `json:"logoURL"`
-	Icon        string `json:"icon"`
-	Discovery   string `json:"discovery"`
+	VendorID       string `json:"vendorID"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	LogoURL        string `json:"logoURL"`
+	Icon           string `json:"icon"`
+	Discovery      string `json:"discovery"`
+	DiscoveryToken string `json:"discoveryToken"`
 }
