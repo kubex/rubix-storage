@@ -7,6 +7,8 @@ type PlatformApplication struct {
 	ReleaseChannel     string   `json:"releaseChannel"`
 	SignatureKey       string   `json:"signatureKey"`
 	Endpoint           string   `json:"endpoint"`
+	ApiEndpoint        string   `json:"apiEndpoint"`
+	McpEndpoint        string   `json:"mcpEndpoint"`
 	SimpleApp          bool     `json:"simpleApp"`
 	Framed             bool     `json:"framed"`
 	AllowScripts       bool     `json:"allowScripts"`

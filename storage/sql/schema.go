@@ -351,5 +351,8 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `allowed_workspaces` text NOT NULL DEFAULT '';"))
 	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `workspace_available` tinyint(1) NOT NULL DEFAULT 0;"))
 
+	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `api_endpoint` varchar(512) NOT NULL DEFAULT '';"))
+	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `mcp_endpoint` varchar(512) NOT NULL DEFAULT '';"))
+
 	return queries
 }
