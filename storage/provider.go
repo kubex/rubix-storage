@@ -137,6 +137,11 @@ type Provider interface {
 	MutateIPGroup(workspace, groupID string, options ...rubix.MutateIPGroupOption) error
 	DeleteIPGroup(workspace, groupID string) error
 
+	// App Activation
+	CompleteActivationStep(workspace, user, vendor, app, stepID string) error
+	ResetActivationSteps(workspace, vendor, app string) error
+	GetActivationState(workspace, user, vendor, app string) ([]rubix.ActivationState, error)
+
 	// Platform Applications
 	GetPlatformApplications() ([]rubix.PlatformApplication, error)
 	StorePlatformApplication(application rubix.PlatformApplication) error
