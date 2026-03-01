@@ -357,5 +357,16 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `platform_vendors` ADD `discovery_token` varchar(512) NOT NULL DEFAULT '';"))
 	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `discovered` tinyint(1) NOT NULL DEFAULT 0;"))
 
+	// App Activation State
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `app_activation_state` ("+
+		"`workspace` varchar(64) NOT NULL,"+
+		"`user`      varchar(64) NOT NULL DEFAULT '',"+
+		"`vendor`    varchar(64) NOT NULL,"+
+		"`app`       varchar(64) NOT NULL,"+
+		"`step_id`   varchar(64) NOT NULL,"+
+		"`completed_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
+		"PRIMARY KEY (`workspace`, `user`, `vendor`, `app`, `step_id`)"+
+		");"))
+
 	return queries
 }
