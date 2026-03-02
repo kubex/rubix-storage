@@ -152,6 +152,40 @@ func (p *Provider) update() {
 	}
 }
 
+func (p *Provider) ConnectionStats() sql.DBStats {
+	if p.primaryConnection == nil {
+		return sql.DBStats{}
+	}
+	return p.primaryConnection.Stats()
+}
+
+func (p *Provider) ConnectionPing() error {
+	if p.primaryConnection == nil {
+		return errors.New("no connection")
+	}
+	return p.primaryConnection.Ping()
+}
+
+func (p *Provider) MigrationCount() (int, error) {
+	if p.primaryConnection == nil {
+		return 0, errors.New("no connection")
+	}
+	var count int
+	err := p.primaryConnection.QueryRow("SELECT COUNT(*) FROM rubix_migrations WHERE applied = 1").Scan(&count)
+	return count, err
+}
+
+func (p *Provider) StorageType() string {
+	if p.SqlLite {
+		return "SQLite"
+	}
+	return "MySQL"
+}
+
+func (p *Provider) DatabaseName() string {
+	return p.Database
+}
+
 func FromJson(data []byte) (*Provider, error) {
 	p := &Provider{}
 	if err := json.Unmarshal(data, &p); err == nil {
