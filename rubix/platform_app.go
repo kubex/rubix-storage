@@ -17,6 +17,8 @@ type PlatformApplication struct {
 	AllowedWorkspaces  []string `json:"allowedWorkspaces"`
 	WorkspaceAvailable bool     `json:"workspaceAvailable"`
 	Discovered         bool     `json:"discovered"` // True if added via vendor service discovery
+	SystemApp          bool     `json:"systemApp,omitempty"`
+	AllowedUsers       []string `json:"allowedUsers,omitempty"`
 }
 
 // PlatformVendor represents a vendor registered at the platform level.
