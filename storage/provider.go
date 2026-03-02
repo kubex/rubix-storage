@@ -152,6 +152,26 @@ type Provider interface {
 	StorePlatformVendor(vendor rubix.PlatformVendor) error
 	RemovePlatformVendor(vendorID string) error
 
+	// Blueprints
+	GetBlueprints() ([]rubix.Blueprint, error)
+	GetBlueprint(id string) (*rubix.Blueprint, error)
+	StoreBlueprint(blueprint rubix.Blueprint) error
+	RemoveBlueprint(id string) error
+
+	GetBlueprintVersions(blueprintID string) ([]rubix.BlueprintVersion, error)
+	GetBlueprintVersion(blueprintID, version string) (*rubix.BlueprintVersion, error)
+	StoreBlueprintVersion(version rubix.BlueprintVersion) error
+
+	GetWorkspaceBlueprints(workspaceUUID string) ([]rubix.WorkspaceBlueprint, error)
+	SubscribeWorkspaceBlueprint(sub rubix.WorkspaceBlueprint) error
+	UnsubscribeWorkspaceBlueprint(workspaceUUID, blueprintID string) error
+	UpdateWorkspaceBlueprintStatus(workspaceUUID, blueprintID, status string) error
+	UpdateWorkspaceBlueprintVersion(workspaceUUID, blueprintID, version string) error
+
+	GetWorkspaceBlueprintResources(workspaceUUID, blueprintID string) ([]rubix.WorkspaceBlueprintResource, error)
+	SetWorkspaceBlueprintResource(resource rubix.WorkspaceBlueprintResource) error
+	RemoveWorkspaceBlueprintResource(workspaceUUID, blueprintID, resourceType, resourceKey string) error
+
 	Initialize() error
 	Connect() error
 	Close() error
