@@ -360,6 +360,8 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `system_app` tinyint(1) NOT NULL DEFAULT 0;"))
 	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `allowed_users` text NOT NULL DEFAULT '';"))
 
+	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `provide_blueprints` tinyint(1) NOT NULL DEFAULT 0;"))
+
 	// App Activation State
 	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `app_activation_state` ("+
 		"`workspace` varchar(64) NOT NULL,"+

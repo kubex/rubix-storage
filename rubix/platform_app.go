@@ -19,6 +19,7 @@ type PlatformApplication struct {
 	Discovered         bool     `json:"discovered"` // True if added via vendor service discovery
 	SystemApp          bool     `json:"systemApp,omitempty"`
 	AllowedUsers       []string `json:"allowedUsers,omitempty"`
+	ProvideBlueprints  bool     `json:"provideBlueprints,omitempty"`
 }
 
 // PlatformVendor represents a vendor registered at the platform level.

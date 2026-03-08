@@ -8,7 +8,7 @@ import (
 )
 
 func (p *Provider) GetPlatformApplications() ([]rubix.PlatformApplication, error) {
-	rows, err := p.primaryConnection.Query("SELECT vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users FROM platform_applications")
+	rows, err := p.primaryConnection.Query("SELECT vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users, provide_blueprints FROM platform_applications")
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +20,7 @@ func (p *Provider) GetPlatformApplications() ([]rubix.PlatformApplication, error
 		var cookieJSON string
 		var allowedJSON string
 		var allowedUsersJSON string
-		if err := rows.Scan(&a.VendorID, &a.AppID, &a.ReleaseChannel, &a.SignatureKey, &a.Endpoint, &a.SimpleApp, &a.Framed, &a.AllowScripts, &cookieJSON, &a.GloballyAvailable, &allowedJSON, &a.WorkspaceAvailable, &a.ApiEndpoint, &a.McpEndpoint, &a.Discovered, &a.SystemApp, &allowedUsersJSON); err != nil {
+		if err := rows.Scan(&a.VendorID, &a.AppID, &a.ReleaseChannel, &a.SignatureKey, &a.Endpoint, &a.SimpleApp, &a.Framed, &a.AllowScripts, &cookieJSON, &a.GloballyAvailable, &allowedJSON, &a.WorkspaceAvailable, &a.ApiEndpoint, &a.McpEndpoint, &a.Discovered, &a.SystemApp, &allowedUsersJSON, &a.ProvideBlueprints); err != nil {
 			return nil, err
 		}
 		if cookieJSON != "" {
@@ -62,14 +62,14 @@ func (p *Provider) StorePlatformApplication(application rubix.PlatformApplicatio
 		}
 	}
 
-	query := "INSERT INTO platform_applications (vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO platform_applications (vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users, provide_blueprints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	if p.SqlLite {
-		query += " ON CONFLICT(vendor_id, app_id, release_channel) DO UPDATE SET signature_key=excluded.signature_key, endpoint=excluded.endpoint, simple_app=excluded.simple_app, framed=excluded.framed, allow_scripts=excluded.allow_scripts, cookie_passthrough=excluded.cookie_passthrough, globally_available=excluded.globally_available, allowed_workspaces=excluded.allowed_workspaces, workspace_available=excluded.workspace_available, api_endpoint=excluded.api_endpoint, mcp_endpoint=excluded.mcp_endpoint, discovered=excluded.discovered, system_app=excluded.system_app, allowed_users=excluded.allowed_users"
+		query += " ON CONFLICT(vendor_id, app_id, release_channel) DO UPDATE SET signature_key=excluded.signature_key, endpoint=excluded.endpoint, simple_app=excluded.simple_app, framed=excluded.framed, allow_scripts=excluded.allow_scripts, cookie_passthrough=excluded.cookie_passthrough, globally_available=excluded.globally_available, allowed_workspaces=excluded.allowed_workspaces, workspace_available=excluded.workspace_available, api_endpoint=excluded.api_endpoint, mcp_endpoint=excluded.mcp_endpoint, discovered=excluded.discovered, system_app=excluded.system_app, allowed_users=excluded.allowed_users, provide_blueprints=excluded.provide_blueprints"
 	} else {
 		query = strings.Replace(query, "INSERT INTO", "REPLACE INTO", 1)
 	}
 
-	_, err := p.primaryConnection.Exec(query, application.VendorID, application.AppID, application.ReleaseChannel, application.SignatureKey, application.Endpoint, application.SimpleApp, application.Framed, application.AllowScripts, cookieJSON, application.GloballyAvailable, allowedJSON, application.WorkspaceAvailable, application.ApiEndpoint, application.McpEndpoint, application.Discovered, application.SystemApp, allowedUsersJSON)
+	_, err := p.primaryConnection.Exec(query, application.VendorID, application.AppID, application.ReleaseChannel, application.SignatureKey, application.Endpoint, application.SimpleApp, application.Framed, application.AllowScripts, cookieJSON, application.GloballyAvailable, allowedJSON, application.WorkspaceAvailable, application.ApiEndpoint, application.McpEndpoint, application.Discovered, application.SystemApp, allowedUsersJSON, application.ProvideBlueprints)
 	if err == nil {
 		p.update()
 	}
