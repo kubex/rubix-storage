@@ -1,15 +1,16 @@
 package rubix
 
 type Role struct {
-	Workspace   string
-	ID          string
-	Name        string
-	Description string
-	ScimManaged bool
-	Users       []string         // Not on roles table
-	Permissions []RolePermission // Not on roles table
-	Resources   []RoleResource   // Not on roles table
-	Conditions  Condition
+	Workspace    string
+	ID           string
+	Name         string
+	Description  string
+	ScimManaged  bool
+	BlueprintKey string           // Links this role to a blueprint role definition
+	Users        []string         // Not on roles table
+	Permissions  []RolePermission // Not on roles table
+	Resources    []RoleResource   // Not on roles table
+	Conditions   Condition
 }
 
 type UserRole struct {
@@ -47,6 +48,7 @@ type RoleResource struct {
 type MutateRolePayload struct {
 	Title           *string
 	Description     *string
+	BlueprintKey    *string
 	UsersToAdd      []string
 	UsersToRem      []string
 	PermsToAdd      []string
@@ -96,6 +98,12 @@ func WithPermsToAdd(perms ...string) MutateRoleOption {
 func WithPermsToRemove(perms ...string) MutateRoleOption {
 	return func(p *MutateRolePayload) {
 		p.PermsToRem = append(p.PermsToRem, perms...)
+	}
+}
+
+func WithBlueprintKey(key string) MutateRoleOption {
+	return func(p *MutateRolePayload) {
+		p.BlueprintKey = &key
 	}
 }
 

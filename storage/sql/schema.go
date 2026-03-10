@@ -416,5 +416,23 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace_uuid`, `blueprint_id`, `resource_type`, `resource_key`)"+
 		");"))
 
+	// Service Providers
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `service_providers` ("+
+		"`workspace`        varchar(64)                           not null,"+
+		"`service_id`       varchar(64)                           not null,"+
+		"`service_provider` varchar(255)                          not null,"+
+		"`name`             varchar(255) default ''               not null,"+
+		"`description`      text         default ''               not null,"+
+		"`labels`           text         default ''               not null,"+
+		"`state`            varchar(20)  default 'active'         not null,"+
+		"`user_access`      tinyint(1)   default 0                not null,"+
+		"`token`            varchar(128) default ''               not null,"+
+		"`created_at`       datetime     default CURRENT_TIMESTAMP not null,"+
+		"PRIMARY KEY (`workspace`, `service_id`)"+
+		");"))
+	queries = append(queries, migQuery("create index sp_workspace_provider on service_providers(workspace, service_provider);"))
+
+	queries = append(queries, migQuery("ALTER TABLE `roles` ADD `blueprint_key` varchar(255) NOT NULL DEFAULT '';"))
+
 	return queries
 }

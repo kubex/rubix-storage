@@ -693,10 +693,10 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		row := p.primaryConnection.QueryRow("SELECT name, description, conditions, scimManaged FROM roles WHERE workspace = ? AND role = ?", workspace, role)
+		row := p.primaryConnection.QueryRow("SELECT name, description, conditions, scimManaged, blueprint_key FROM roles WHERE workspace = ? AND role = ?", workspace, role)
 
 		var conditionsStr sql.NullString
-		err := row.Scan(&ret.Name, &ret.Description, &conditionsStr, &ret.ScimManaged)
+		err := row.Scan(&ret.Name, &ret.Description, &conditionsStr, &ret.ScimManaged, &ret.BlueprintKey)
 		if errors.Is(err, sql.ErrNoRows) {
 			return rubix.ErrNoResultFound
 		}
@@ -807,7 +807,7 @@ func (p *Provider) GetRolePermissions(workspace, role string) ([]rubix.RolePermi
 
 func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 
-	rows, err := p.primaryConnection.Query("SELECT role, name, description, scimManaged FROM roles WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.primaryConnection.Query("SELECT role, name, description, scimManaged, blueprint_key FROM roles WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -817,7 +817,7 @@ func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 	for rows.Next() {
 
 		var role = rubix.Role{Workspace: workspace}
-		err = rows.Scan(&role.ID, &role.Name, &role.Description, &role.ScimManaged)
+		err = rows.Scan(&role.ID, &role.Name, &role.Description, &role.ScimManaged, &role.BlueprintKey)
 		if err != nil {
 			return nil, err
 		}
@@ -875,7 +875,8 @@ func (p *Provider) DeleteRole(workspace, role string) error {
 
 func (p *Provider) CreateRole(workspace, role, name, description string, permissions, users []string, conditions rubix.Condition, scimManaged bool) error {
 
-	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description, scimManaged) VALUES (?, ?, ?, ?, ?)", workspace, role, name, description, scimManaged)
+	_, err := p.primaryConnection.Exec("INSERT INTO roles (workspace, role, name, description, scimManaged) VALUES (?, ?, ?, ?, ?)",
+		workspace, role, name, description, scimManaged)
 	p.update()
 
 	if p.isDuplicateConflict(err) {
@@ -903,7 +904,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		if payload.Title != nil || payload.Description != nil || payload.Conditions != nil {
+		if payload.Title != nil || payload.Description != nil || payload.Conditions != nil || payload.BlueprintKey != nil {
 
 			var fields []string
 			var vals []any
@@ -915,6 +916,10 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 			if payload.Description != nil {
 				fields = append(fields, "description = ?")
 				vals = append(vals, *payload.Description)
+			}
+			if payload.BlueprintKey != nil {
+				fields = append(fields, "blueprint_key = ?")
+				vals = append(vals, *payload.BlueprintKey)
 			}
 			if payload.Conditions != nil {
 				fields = append(fields, "conditions = ?")
@@ -2477,6 +2482,158 @@ func (p *Provider) MutateIPGroup(workspace, groupID string, options ...rubix.Mut
 
 func (p *Provider) DeleteIPGroup(workspace, groupID string) error {
 	_, err := p.primaryConnection.Exec("DELETE FROM ip_groups WHERE workspace = ? AND ip_group = ?", workspace, groupID)
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+// --- Service Providers ---
+
+func (p *Provider) CreateServiceProvider(workspace string, sp rubix.ServiceProvider) error {
+	state := string(sp.State)
+	if state == "" {
+		state = string(rubix.ServiceProviderStateActive)
+	}
+	labels := strings.Join(sp.Labels, ",")
+	_, err := p.primaryConnection.Exec(
+		"INSERT INTO `service_providers` (`workspace`, `service_id`, `service_provider`, `name`, `description`, `labels`, `state`, `user_access`, `token`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		workspace, sp.ServiceID, sp.ServiceProvider, sp.Name, sp.Description, labels, state, sp.UserAccess, sp.Token,
+	)
+	if p.isDuplicateConflict(err) {
+		return errors.New("service provider already exists")
+	}
+	if err != nil {
+		return err
+	}
+	p.update()
+	return nil
+}
+
+func (p *Provider) GetServiceProvider(workspace, serviceID string) (*rubix.ServiceProvider, error) {
+	ret := &rubix.ServiceProvider{Workspace: workspace, ServiceID: serviceID}
+	row := p.primaryConnection.QueryRow(
+		"SELECT `service_provider`, `name`, `description`, `labels`, `state`, `user_access`, `token` FROM `service_providers` WHERE `workspace` = ? AND `service_id` = ?",
+		workspace, serviceID,
+	)
+	var labels string
+	var state string
+	if err := row.Scan(&ret.ServiceProvider, &ret.Name, &ret.Description, &labels, &state, &ret.UserAccess, &ret.Token); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	ret.State = rubix.ServiceProviderState(state)
+	if labels != "" {
+		ret.Labels = strings.Split(labels, ",")
+	}
+	return ret, nil
+}
+
+func (p *Provider) GetServiceProviders(workspace string) ([]rubix.ServiceProvider, error) {
+	rows, err := p.primaryConnection.Query(
+		"SELECT `service_id`, `service_provider`, `name`, `description`, `labels`, `state`, `user_access`, `token` FROM `service_providers` WHERE `workspace` = ? ORDER BY `name` ASC",
+		workspace,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.ServiceProvider
+	for rows.Next() {
+		var it rubix.ServiceProvider
+		it.Workspace = workspace
+		var labels string
+		var state string
+		if err := rows.Scan(&it.ServiceID, &it.ServiceProvider, &it.Name, &it.Description, &labels, &state, &it.UserAccess, &it.Token); err != nil {
+			return nil, err
+		}
+		it.State = rubix.ServiceProviderState(state)
+		if labels != "" {
+			it.Labels = strings.Split(labels, ",")
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) GetServiceProvidersByType(workspace, serviceProvider string) ([]rubix.ServiceProvider, error) {
+	rows, err := p.primaryConnection.Query(
+		"SELECT `service_id`, `service_provider`, `name`, `description`, `labels`, `state`, `user_access`, `token` FROM `service_providers` WHERE `workspace` = ? AND `service_provider` = ? ORDER BY `name` ASC",
+		workspace, serviceProvider,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []rubix.ServiceProvider
+	for rows.Next() {
+		var it rubix.ServiceProvider
+		it.Workspace = workspace
+		var labels string
+		var state string
+		if err := rows.Scan(&it.ServiceID, &it.ServiceProvider, &it.Name, &it.Description, &labels, &state, &it.UserAccess, &it.Token); err != nil {
+			return nil, err
+		}
+		it.State = rubix.ServiceProviderState(state)
+		if labels != "" {
+			it.Labels = strings.Split(labels, ",")
+		}
+		items = append(items, it)
+	}
+	return items, nil
+}
+
+func (p *Provider) MutateServiceProvider(workspace, serviceID string, options ...rubix.MutateServiceProviderOption) error {
+	if len(options) == 0 {
+		return nil
+	}
+	defer p.update()
+	payload := rubix.MutateServiceProviderPayload{}
+	for _, opt := range options {
+		opt(&payload)
+	}
+	var fields []string
+	var vals []any
+	if payload.Name != nil {
+		fields = append(fields, "`name` = ?")
+		vals = append(vals, *payload.Name)
+	}
+	if payload.Description != nil {
+		fields = append(fields, "`description` = ?")
+		vals = append(vals, *payload.Description)
+	}
+	if payload.Labels != nil {
+		fields = append(fields, "`labels` = ?")
+		vals = append(vals, strings.Join(*payload.Labels, ","))
+	}
+	if payload.State != nil {
+		fields = append(fields, "`state` = ?")
+		vals = append(vals, string(*payload.State))
+	}
+	if payload.UserAccess != nil {
+		fields = append(fields, "`user_access` = ?")
+		vals = append(vals, *payload.UserAccess)
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	vals = append(vals, workspace, serviceID)
+	q := fmt.Sprintf("UPDATE `service_providers` SET %s WHERE `workspace` = ? AND `service_id` = ?", strings.Join(fields, ", "))
+	res, err := p.primaryConnection.Exec(q, vals...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return rubix.ErrNoResultFound
+	}
+	return nil
+}
+
+func (p *Provider) DeleteServiceProvider(workspace, serviceID string) error {
+	_, err := p.primaryConnection.Exec("DELETE FROM `service_providers` WHERE `workspace` = ? AND `service_id` = ?", workspace, serviceID)
 	if err != nil {
 		return err
 	}

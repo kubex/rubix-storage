@@ -152,6 +152,14 @@ type Provider interface {
 	StorePlatformVendor(vendor rubix.PlatformVendor) error
 	RemovePlatformVendor(vendorID string) error
 
+	// Service Providers
+	GetServiceProvider(workspace, serviceID string) (*rubix.ServiceProvider, error)
+	GetServiceProviders(workspace string) ([]rubix.ServiceProvider, error)
+	GetServiceProvidersByType(workspace, serviceProvider string) ([]rubix.ServiceProvider, error)
+	CreateServiceProvider(workspace string, sp rubix.ServiceProvider) error
+	MutateServiceProvider(workspace, serviceID string, options ...rubix.MutateServiceProviderOption) error
+	DeleteServiceProvider(workspace, serviceID string) error
+
 	// Blueprints
 	GetBlueprints() ([]rubix.Blueprint, error)
 	GetBlueprint(id string) (*rubix.Blueprint, error)
