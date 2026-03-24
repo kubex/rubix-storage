@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
+	"github.com/openbyte-os/sdk-go/app"
 	"golang.org/x/sync/errgroup"
 )
 

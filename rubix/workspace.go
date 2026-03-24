@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/kubex/definitions-go/app"
+	"github.com/openbyte-os/sdk-go/app"
 )
 
 type MetricTicker struct {

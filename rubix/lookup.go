@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/kubex/definitions-go/app"
+	"github.com/openbyte-os/sdk-go/app"
 )
 
 type Lookup struct {

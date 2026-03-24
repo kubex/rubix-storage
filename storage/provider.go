@@ -1,8 +1,8 @@
 package storage
 
 import (
-	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
+	"github.com/openbyte-os/sdk-go/app"
 )
 
 type Provider interface {

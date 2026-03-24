@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/kubex/definitions-go/app"
+	"github.com/openbyte-os/sdk-go/app"
 )
 
 func TestDataStore(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubex/definitions-go/app"
 	"github.com/kubex/rubix-storage/rubix"
+	"github.com/openbyte-os/sdk-go/app"
 )
 
 func newTestProvider(t *testing.T) *Provider {
