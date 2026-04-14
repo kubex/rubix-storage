@@ -4,8 +4,9 @@ import "time"
 
 // Blueprint represents a cached blueprint from the registry.
 type Blueprint struct {
-	ID            string    `json:"id"`            // "vendor/blueprint-name"
 	VendorID      string    `json:"vendorID"`
+	AppID         string    `json:"appID"`
+	BlueprintID   string    `json:"blueprintID"`
 	Name          string    `json:"name"`
 	Description   string    `json:"description"`
 	Icon          string    `json:"icon"`
@@ -17,6 +18,8 @@ type Blueprint struct {
 
 // BlueprintVersion represents an immutable version of a blueprint.
 type BlueprintVersion struct {
+	VendorID    string    `json:"vendorID"`
+	AppID       string    `json:"appID"`
 	BlueprintID string    `json:"blueprintID"`
 	Version     string    `json:"version"`
 	Definition  string    `json:"definition"` // JSON-encoded BlueprintDefinition
@@ -27,6 +30,8 @@ type BlueprintVersion struct {
 // WorkspaceBlueprint tracks a workspace's subscription to a blueprint.
 type WorkspaceBlueprint struct {
 	WorkspaceUUID     string    `json:"workspaceUUID"`
+	VendorID          string    `json:"vendorID"`
+	AppID             string    `json:"appID"`
 	BlueprintID       string    `json:"blueprintID"`
 	SubscribedVersion string    `json:"subscribedVersion"`
 	Status            string    `json:"status"` // "active", "update_available", "drifted"
@@ -36,6 +41,8 @@ type WorkspaceBlueprint struct {
 // WorkspaceBlueprintResource tracks per-resource state for a blueprint subscription.
 type WorkspaceBlueprintResource struct {
 	WorkspaceUUID string    `json:"workspaceUUID"`
+	VendorID      string    `json:"vendorID"`
+	AppID         string    `json:"appID"`
 	BlueprintID   string    `json:"blueprintID"`
 	ResourceType  string    `json:"resourceType"` // "app", "setting", "role", "integration"
 	ResourceKey   string    `json:"resourceKey"`

@@ -373,39 +373,51 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `user`, `vendor`, `app`, `step_id`)"+
 		");"))
 
-	// Blueprints
+	// Blueprints (v2 — composite key: vendor_id, app_id, blueprint_id)
+	queries = append(queries, migQuery("DROP TABLE IF EXISTS `blueprints`"))
 	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `blueprints` ("+
-		"`id`             varchar(128) NOT NULL PRIMARY KEY,"+
 		"`vendor_id`      varchar(64)  NOT NULL,"+
+		"`app_id`         varchar(64)  NOT NULL,"+
+		"`blueprint_id`   varchar(128) NOT NULL,"+
 		"`name`           varchar(255) NOT NULL,"+
 		"`description`    text         NOT NULL DEFAULT '',"+
 		"`icon`           varchar(64)  NOT NULL DEFAULT '',"+
 		"`latest_version` varchar(64)  NOT NULL DEFAULT '',"+
 		"`source_url`     text         NOT NULL DEFAULT '',"+
 		"`created_at`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
-		"`updated_at`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP"+
+		"`updated_at`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
+		"PRIMARY KEY (`vendor_id`, `app_id`, `blueprint_id`)"+
 		");"))
 
+	queries = append(queries, migQuery("DROP TABLE IF EXISTS `blueprint_versions`"))
 	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `blueprint_versions` ("+
+		"`vendor_id`    varchar(64)  NOT NULL,"+
+		"`app_id`       varchar(64)  NOT NULL,"+
 		"`blueprint_id` varchar(128) NOT NULL,"+
 		"`version`      varchar(64)  NOT NULL,"+
 		"`definition`   text         NOT NULL,"+
 		"`content_hash` varchar(64)  NOT NULL,"+
 		"`created_at`   datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
-		"PRIMARY KEY (`blueprint_id`, `version`)"+
+		"PRIMARY KEY (`vendor_id`, `app_id`, `blueprint_id`, `version`)"+
 		");"))
 
+	queries = append(queries, migQuery("DROP TABLE IF EXISTS `workspace_blueprints`"))
 	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `workspace_blueprints` ("+
 		"`workspace_uuid`    varchar(64)  NOT NULL,"+
+		"`vendor_id`         varchar(64)  NOT NULL,"+
+		"`app_id`            varchar(64)  NOT NULL,"+
 		"`blueprint_id`      varchar(128) NOT NULL,"+
 		"`subscribed_version` varchar(64)  NOT NULL DEFAULT '',"+
 		"`status`            varchar(32)  NOT NULL DEFAULT 'active',"+
 		"`subscribed_at`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
-		"PRIMARY KEY (`workspace_uuid`, `blueprint_id`)"+
+		"PRIMARY KEY (`workspace_uuid`, `vendor_id`, `app_id`, `blueprint_id`)"+
 		");"))
 
+	queries = append(queries, migQuery("DROP TABLE IF EXISTS `workspace_blueprint_resources`"))
 	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `workspace_blueprint_resources` ("+
 		"`workspace_uuid` varchar(64)  NOT NULL,"+
+		"`vendor_id`      varchar(64)  NOT NULL,"+
+		"`app_id`         varchar(64)  NOT NULL,"+
 		"`blueprint_id`   varchar(128) NOT NULL,"+
 		"`resource_type`  varchar(32)  NOT NULL,"+
 		"`resource_key`   varchar(255) NOT NULL,"+
@@ -413,7 +425,7 @@ func migrations() []migration {
 		"`applied_value`  text         NOT NULL DEFAULT '',"+
 		"`status`         varchar(32)  NOT NULL DEFAULT 'pending',"+
 		"`last_synced_at` datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
-		"PRIMARY KEY (`workspace_uuid`, `blueprint_id`, `resource_type`, `resource_key`)"+
+		"PRIMARY KEY (`workspace_uuid`, `vendor_id`, `app_id`, `blueprint_id`, `resource_type`, `resource_key`)"+
 		");"))
 
 	// Service Providers

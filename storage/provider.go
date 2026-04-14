@@ -162,23 +162,23 @@ type Provider interface {
 
 	// Blueprints
 	GetBlueprints() ([]rubix.Blueprint, error)
-	GetBlueprint(id string) (*rubix.Blueprint, error)
+	GetBlueprint(vendorID, appID, blueprintID string) (*rubix.Blueprint, error)
 	StoreBlueprint(blueprint rubix.Blueprint) error
-	RemoveBlueprint(id string) error
+	RemoveBlueprint(vendorID, appID, blueprintID string) error
 
-	GetBlueprintVersions(blueprintID string) ([]rubix.BlueprintVersion, error)
-	GetBlueprintVersion(blueprintID, version string) (*rubix.BlueprintVersion, error)
+	GetBlueprintVersions(vendorID, appID, blueprintID string) ([]rubix.BlueprintVersion, error)
+	GetBlueprintVersion(vendorID, appID, blueprintID, version string) (*rubix.BlueprintVersion, error)
 	StoreBlueprintVersion(version rubix.BlueprintVersion) error
 
 	GetWorkspaceBlueprints(workspaceUUID string) ([]rubix.WorkspaceBlueprint, error)
 	SubscribeWorkspaceBlueprint(sub rubix.WorkspaceBlueprint) error
-	UnsubscribeWorkspaceBlueprint(workspaceUUID, blueprintID string) error
-	UpdateWorkspaceBlueprintStatus(workspaceUUID, blueprintID, status string) error
-	UpdateWorkspaceBlueprintVersion(workspaceUUID, blueprintID, version string) error
+	UnsubscribeWorkspaceBlueprint(workspaceUUID, vendorID, appID, blueprintID string) error
+	UpdateWorkspaceBlueprintStatus(workspaceUUID, vendorID, appID, blueprintID, status string) error
+	UpdateWorkspaceBlueprintVersion(workspaceUUID, vendorID, appID, blueprintID, version string) error
 
-	GetWorkspaceBlueprintResources(workspaceUUID, blueprintID string) ([]rubix.WorkspaceBlueprintResource, error)
+	GetWorkspaceBlueprintResources(workspaceUUID, vendorID, appID, blueprintID string) ([]rubix.WorkspaceBlueprintResource, error)
 	SetWorkspaceBlueprintResource(resource rubix.WorkspaceBlueprintResource) error
-	RemoveWorkspaceBlueprintResource(workspaceUUID, blueprintID, resourceType, resourceKey string) error
+	RemoveWorkspaceBlueprintResource(workspaceUUID, vendorID, appID, blueprintID, resourceType, resourceKey string) error
 
 	Initialize() error
 	Connect() error
