@@ -2098,6 +2098,30 @@ func (p *Provider) CreateWorkspaceUser(workspace string, user rubix.WorkspaceUse
 	return nil
 }
 
+// GetUser returns user information for a user that belongs to the given
+// workspace. Membership is determined by the workspace_memberships table —
+// callers wanting the SCIM/OIDC directory entry should use GetWorkspaceUser.
+func (p *Provider) GetUser(workspace, userID string) (*rubix.User, error) {
+	row := p.primaryConnection.QueryRow(
+		"SELECT u.user, u.name, u.email FROM users AS u "+
+			"INNER JOIN workspace_memberships AS m ON m.user = u.user "+
+			"WHERE m.workspace = ? AND m.user = ?",
+		workspace, userID,
+	)
+	var user rubix.User
+	name := sql.NullString{}
+	email := sql.NullString{}
+	if err := row.Scan(&user.UserID, &name, &email); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rubix.ErrNoResultFound
+		}
+		return nil, err
+	}
+	user.Name = name.String
+	user.Email = email.String
+	return &user, nil
+}
+
 func (p *Provider) GetWorkspaceUser(workspace, userID string) (*rubix.WorkspaceUser, error) {
 	row := p.primaryConnection.QueryRow(
 		"SELECT user_id, workspace, name, email, oidc_provider, scim_managed, auto_created, last_sync_time, created_at FROM workspace_users WHERE workspace = ? AND user_id = ?",

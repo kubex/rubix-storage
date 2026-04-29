@@ -1,5 +1,11 @@
 package rubix
 
+type User struct {
+	UserID string `json:"userID"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+}
+
 type MutateUserOption func(*MutateUserPayload)
 
 type MutateUserPayload struct {
