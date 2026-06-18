@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
@@ -57,7 +58,18 @@ func (p *Provider) Connect() error {
 				}
 			}
 		} else {
-			p.primaryConnection, err = sql.Open("mysql", p.PrimaryDSN+"/"+p.Database+"?parseTime=true")
+			// readTimeout/writeTimeout/timeout give every query a hard deadline at the
+			// driver layer (the plain Query() calls carry no context), so a query on a
+			// dead/half-open connection fails fast instead of hanging indefinitely.
+			p.primaryConnection, err = sql.Open("mysql", p.PrimaryDSN+"/"+p.Database+"?parseTime=true&timeout=5s&readTimeout=15s&writeTimeout=15s")
+			if err == nil {
+				// Retire pooled connections periodically. The dev cluster runs on spot
+				// nodes, so DB backends get rescheduled to new IPs; without recycling, a
+				// connection pinned to a preempted pod stays half-open in the pool and
+				// poisons whichever process holds it until restart.
+				p.primaryConnection.SetConnMaxLifetime(3 * time.Minute)
+				p.primaryConnection.SetConnMaxIdleTime(1 * time.Minute)
+			}
 		}
 
 		// Handle any errors that may occur during connection
