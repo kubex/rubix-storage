@@ -446,5 +446,8 @@ func migrations() []migration {
 
 	queries = append(queries, migQuery("ALTER TABLE `roles` ADD `blueprint_key` varchar(255) NOT NULL DEFAULT '';"))
 
+	queries = append(queries, migQuery("ALTER TABLE `departments` ADD `status` varchar(20) NOT NULL DEFAULT 'active';"))
+	queries = append(queries, migQuery("ALTER TABLE `channels` ADD `status` varchar(20) NOT NULL DEFAULT 'active';"))
+
 	return queries
 }

@@ -1363,8 +1363,8 @@ func (p *Provider) MutateBrand(workspace, brand string, options ...rubix.MutateB
 // --- Departments ---
 func (p *Provider) GetDepartment(workspace, department string) (*rubix.Department, error) {
 	ret := &rubix.Department{Workspace: workspace, ID: department}
-	row := p.primaryConnection.QueryRow("SELECT name, description FROM departments WHERE workspace = ? AND department = ?", workspace, department)
-	if err := row.Scan(&ret.Name, &ret.Description); err != nil {
+	row := p.primaryConnection.QueryRow("SELECT name, description, status FROM departments WHERE workspace = ? AND department = ?", workspace, department)
+	if err := row.Scan(&ret.Name, &ret.Description, &ret.Status); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1374,7 +1374,7 @@ func (p *Provider) GetDepartment(workspace, department string) (*rubix.Departmen
 }
 
 func (p *Provider) GetDepartments(workspace string) ([]rubix.Department, error) {
-	rows, err := p.primaryConnection.Query("SELECT department, name, description FROM departments WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.primaryConnection.Query("SELECT department, name, description, status FROM departments WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1383,7 +1383,7 @@ func (p *Provider) GetDepartments(workspace string) ([]rubix.Department, error) 
 	for rows.Next() {
 		var it rubix.Department
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.Name, &it.Description); err != nil {
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.Status); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
@@ -1419,6 +1419,10 @@ func (p *Provider) MutateDepartment(workspace, department string, options ...rub
 		fields = append(fields, "description = ?")
 		vals = append(vals, *payload.Description)
 	}
+	if payload.Status != nil {
+		fields = append(fields, "status = ?")
+		vals = append(vals, *payload.Status)
+	}
 	if len(fields) == 0 {
 		return nil
 	}
@@ -1437,9 +1441,9 @@ func (p *Provider) MutateDepartment(workspace, department string, options ...rub
 // --- Channels ---
 func (p *Provider) GetChannel(workspace, channel string) (*rubix.Channel, error) {
 	ret := &rubix.Channel{Workspace: workspace, ID: channel}
-	row := p.primaryConnection.QueryRow("SELECT department, name, description, maxLevel FROM channels WHERE workspace = ? AND channel = ?", workspace, channel)
+	row := p.primaryConnection.QueryRow("SELECT department, name, description, maxLevel, status FROM channels WHERE workspace = ? AND channel = ?", workspace, channel)
 	var desc sql.NullString
-	if err := row.Scan(&ret.DepartmentID, &ret.Name, &desc, &ret.MaxLevel); err != nil {
+	if err := row.Scan(&ret.DepartmentID, &ret.Name, &desc, &ret.MaxLevel, &ret.Status); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1450,7 +1454,7 @@ func (p *Provider) GetChannel(workspace, channel string) (*rubix.Channel, error)
 }
 
 func (p *Provider) GetChannels(workspace string) ([]rubix.Channel, error) {
-	rows, err := p.primaryConnection.Query("SELECT channel, department, name, description, maxLevel FROM channels WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.primaryConnection.Query("SELECT channel, department, name, description, maxLevel, status FROM channels WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1460,7 +1464,7 @@ func (p *Provider) GetChannels(workspace string) ([]rubix.Channel, error) {
 		var it rubix.Channel
 		var desc sql.NullString
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.DepartmentID, &it.Name, &desc, &it.MaxLevel); err != nil {
+		if err := rows.Scan(&it.ID, &it.DepartmentID, &it.Name, &desc, &it.MaxLevel, &it.Status); err != nil {
 			return nil, err
 		}
 		it.Description = desc.String
@@ -1500,6 +1504,10 @@ func (p *Provider) MutateChannel(workspace, channel string, options ...rubix.Mut
 	if payload.MaxLevel != nil {
 		fields = append(fields, "maxLevel = ?")
 		vals = append(vals, *payload.MaxLevel)
+	}
+	if payload.Status != nil {
+		fields = append(fields, "status = ?")
+		vals = append(vals, *payload.Status)
 	}
 	if len(fields) == 0 {
 		return nil

@@ -8,13 +8,23 @@ type Brand struct {
 	Description string
 }
 
+type OrganisationStatus string
+
+const (
+	OrganisationStatusActive   OrganisationStatus = "active"
+	OrganisationStatusArchived OrganisationStatus = "archived"
+)
+
 // Department represents a department within a workspace
 type Department struct {
 	Workspace   string
 	ID          string
 	Name        string
 	Description string
+	Status      OrganisationStatus
 }
+
+func (d Department) IsArchived() bool { return d.Status == OrganisationStatusArchived }
 
 // Channel represents a channel within a department
 type Channel struct {
@@ -26,7 +36,10 @@ type Channel struct {
 	// MaxLevel sets the highest level that can be assigned within this channel
 	// 0 means no level restriction is configured
 	MaxLevel int
+	Status   OrganisationStatus
 }
+
+func (c Channel) IsArchived() bool { return c.Status == OrganisationStatusArchived }
 
 // Distributor represents a distributor within a workspace
 type Distributor struct {
@@ -68,6 +81,7 @@ func WithBrandDescription(description string) MutateBrandOption {
 type MutateDepartmentPayload struct {
 	Title       *string
 	Description *string
+	Status      *OrganisationStatus
 }
 
 type MutateDepartmentOption func(*MutateDepartmentPayload)
@@ -78,6 +92,10 @@ func WithDepartmentName(title string) MutateDepartmentOption {
 
 func WithDepartmentDescription(description string) MutateDepartmentOption {
 	return func(p *MutateDepartmentPayload) { p.Description = &description }
+}
+
+func WithDepartmentStatus(status OrganisationStatus) MutateDepartmentOption {
+	return func(p *MutateDepartmentPayload) { p.Status = &status }
 }
 
 type MutateDistributorPayload struct {
@@ -134,6 +152,7 @@ type MutateChannelPayload struct {
 	Title       *string
 	Description *string
 	MaxLevel    *int
+	Status      *OrganisationStatus
 }
 
 type MutateChannelOption func(*MutateChannelPayload)
@@ -150,6 +169,10 @@ func WithChannelDescription(description string) MutateChannelOption {
 // Pass 0 to clear or disable level restrictions
 func WithChannelMaxLevel(level int) MutateChannelOption {
 	return func(p *MutateChannelPayload) { p.MaxLevel = &level }
+}
+
+func WithChannelStatus(status OrganisationStatus) MutateChannelOption {
+	return func(p *MutateChannelPayload) { p.Status = &status }
 }
 
 // BPO Management - managers, allowed teams, allowed roles
