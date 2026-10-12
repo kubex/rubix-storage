@@ -449,5 +449,19 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `departments` ADD `status` varchar(20) NOT NULL DEFAULT 'active';"))
 	queries = append(queries, migQuery("ALTER TABLE `channels` ADD `status` varchar(20) NOT NULL DEFAULT 'active';"))
 
+	// user_id is wider than elsewhere because OIDC IDs overflow 64.
+	queries = append(queries, migQuery("CREATE TABLE `workspace_user_identities` ("+
+		"`workspace`    varchar(64)  NOT NULL,"+
+		"`vendor`       varchar(64)  NOT NULL,"+
+		"`scope`        varchar(64)  NOT NULL DEFAULT '',"+
+		"`external_id`  varchar(191) NOT NULL,"+
+		"`user_id`      varchar(128) NOT NULL,"+
+		"`source`       varchar(20)  NOT NULL DEFAULT '',"+
+		"`created_at`   datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
+		"`updated_at`   datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
+		"PRIMARY KEY (`workspace`, `vendor`, `scope`, `external_id`)"+
+		");"))
+	queries = append(queries, migQuery("CREATE INDEX `wui_workspace_user` ON `workspace_user_identities`(`workspace`, `user_id`);"))
+
 	return queries
 }

@@ -48,6 +48,12 @@ type Provider interface {
 	DeleteWorkspaceUser(workspace, userID string) error
 	GetResolvedMembers(workspace string, filter rubix.MemberFilter) ([]rubix.ResolvedMember, error)
 
+	// User Identities (external IDs linked to users)
+	LinkUserIdentity(workspace string, id rubix.UserIdentity, replace bool) error
+	UnlinkUserIdentity(workspace, vendor, scope, externalID string) error
+	ResolveUserIdentities(workspace, vendor, scope string, externalIDs ...string) (map[string]string, error)
+	GetUserIdentities(workspace string, userIDs ...string) ([]rubix.UserIdentity, error)
+
 	SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error
 
 	GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error)

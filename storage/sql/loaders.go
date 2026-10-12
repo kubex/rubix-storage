@@ -680,6 +680,9 @@ func (p *Provider) SetMembershipState(workspace, user string, userState rubix.Me
 func (p *Provider) RemoveUserFromWorkspace(workspace, user string) error {
 
 	_, err := p.primaryConnection.Exec("UPDATE workspace_memberships SET state = ? WHERE workspace = ? AND user = ?", rubix.MembershipStateRemoved, workspace, user)
+	if err == nil {
+		err = p.deleteUserIdentities(workspace, user)
+	}
 	p.update()
 	return err
 }
@@ -2238,6 +2241,9 @@ func (p *Provider) UpdateWorkspaceUser(workspace, userID string, opts ...rubix.M
 func (p *Provider) DeleteWorkspaceUser(workspace, userID string) error {
 	_, err := p.primaryConnection.Exec("DELETE FROM workspace_users WHERE workspace = ? AND user_id = ?", workspace, userID)
 	if err != nil {
+		return err
+	}
+	if err := p.deleteUserIdentities(workspace, userID); err != nil {
 		return err
 	}
 	p.update()
