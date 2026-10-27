@@ -449,5 +449,14 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `departments` ADD `status` varchar(20) NOT NULL DEFAULT 'active';"))
 	queries = append(queries, migQuery("ALTER TABLE `channels` ADD `status` varchar(20) NOT NULL DEFAULT 'active';"))
 
+	queries = append(queries, migQuery("CREATE TABLE `scheduled_task_run_groups` (`task_key` varchar(64) NOT NULL PRIMARY KEY);"))
+	queries = append(queries, migQuery("CREATE TABLE `scheduled_task_runs` ("+
+		"`task_key` varchar(64) NOT NULL,"+
+		"`run_id` varchar(160) NOT NULL,"+
+		"`finished_at` bigint NOT NULL,"+
+		"`value` longtext NOT NULL,"+
+		"PRIMARY KEY (`task_key`, `run_id`)"+
+		");"))
+	queries = append(queries, migQuery("CREATE INDEX task_run_retention_idx ON scheduled_task_runs(finished_at);"))
 	return queries
 }

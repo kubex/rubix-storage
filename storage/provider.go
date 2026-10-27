@@ -3,6 +3,7 @@ package storage
 import (
 	"github.com/kubex/rubix-storage/rubix"
 	"github.com/openbyte-os/sdk-go/app"
+	"time"
 )
 
 type Provider interface {
@@ -10,6 +11,7 @@ type Provider interface {
 	GetWorkspaceUUIDByAlias(alias string) (string, error)
 	GetUserWorkspaceUUIDs(userId string) ([]string, error)
 	GetWorkspaceMembers(workspaceUuid string, userIDs ...string) ([]rubix.Membership, error)
+	RetrieveAllWorkspaces() (map[string]*rubix.Workspace, error)
 	RetrieveWorkspaces(workspaceUuids ...string) (map[string]*rubix.Workspace, error)
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
 	RetrieveWorkspaceByDomain(domain string) (*rubix.Workspace, error)
@@ -51,6 +53,10 @@ type Provider interface {
 	SetAuthData(workspaceUuid, userUuid string, value rubix.DataResult, forceUpdate bool) error
 
 	GetSettings(workspace, vendor, app string, keys ...string) ([]rubix.Setting, error)
+	DeleteSetting(workspace, vendor, app, key string) error
+	StoreTaskRun(run rubix.TaskRun, maxRuns int, notBefore time.Time) error
+	GetTaskRuns(taskKeys []string, notBefore time.Time) ([]rubix.TaskRun, error)
+	PruneTaskRuns(notBefore time.Time) error
 	SetSetting(workspace, vendor, app, key, value string) error
 
 	AddUserToWorkspace(workspaceID, userID string, as rubix.MembershipType, partnerId string, source ...rubix.MembershipSource) error
