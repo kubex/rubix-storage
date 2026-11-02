@@ -184,12 +184,10 @@ func (p *Provider) retrieveWorkspaceBy(field, match string) (*rubix.Workspace, e
 		return nil, err
 	}
 
-	if len(resp) > 0 {
-		for _, workspace := range resp {
-			return workspace, nil
-		}
+	for _, workspace := range resp {
+		return workspace, nil
 	}
-	return nil, nil
+	return nil, rubix.ErrNoResultFound
 }
 
 func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[string]*rubix.Workspace, error) {
