@@ -13,6 +13,8 @@ type Provider interface {
 	GetWorkspaceMembers(workspaceUuid string, userIDs ...string) ([]rubix.Membership, error)
 	RetrieveAllWorkspaces() (map[string]*rubix.Workspace, error)
 	RetrieveWorkspaces(workspaceUuids ...string) (map[string]*rubix.Workspace, error)
+	// RetrieveWorkspace and RetrieveWorkspaceByDomain return rubix.ErrNoResultFound
+	// when no workspace matches.
 	RetrieveWorkspace(workspaceUuid string) (*rubix.Workspace, error)
 	RetrieveWorkspaceByDomain(domain string) (*rubix.Workspace, error)
 
