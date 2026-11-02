@@ -458,5 +458,19 @@ func migrations() []migration {
 		"PRIMARY KEY (`task_key`, `run_id`)"+
 		");"))
 	queries = append(queries, migQuery("CREATE INDEX task_run_retention_idx ON scheduled_task_runs(finished_at);"))
+
+	// Vendor Members
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `vendor_members` ("+
+		"`vendor_id` varchar(64) NOT NULL,"+
+		"`user`      varchar(64) NOT NULL,"+
+		"`is_admin`  tinyint(1)  NOT NULL DEFAULT 0,"+
+		"`added_by`  varchar(64) NOT NULL DEFAULT '',"+
+		"`since`     datetime    NOT NULL DEFAULT CURRENT_TIMESTAMP,"+
+		"PRIMARY KEY (`vendor_id`, `user`)"+
+		");"))
+	queries = append(queries, migQuery("CREATE INDEX vendor_members_user ON `vendor_members`(`user`);"))
+	queries = append(queries, migQuery("ALTER TABLE `vendor_members` ADD `is_owner` tinyint(1) NOT NULL DEFAULT 0;"))
+	queries = append(queries, migQuery("ALTER TABLE `platform_vendors` ADD `system_vendor` tinyint(1) NOT NULL DEFAULT 0;"))
+	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `status` varchar(20) NOT NULL DEFAULT '';"))
 	return queries
 }

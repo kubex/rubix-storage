@@ -20,6 +20,8 @@ type PlatformApplication struct {
 	SystemApp          bool     `json:"systemApp,omitempty"`
 	AllowedUsers       []string `json:"allowedUsers,omitempty"`
 	ProvideBlueprints  bool     `json:"provideBlueprints,omitempty"`
+	// Status is the app's lifecycle status; empty means active.
+	Status AppStatus `json:"status,omitempty"`
 }
 
 // PlatformVendor represents a vendor registered at the platform level.
@@ -31,4 +33,6 @@ type PlatformVendor struct {
 	Icon           string `json:"icon"`
 	Discovery      string `json:"discovery"`
 	DiscoveryToken string `json:"discoveryToken"`
+	// SystemVendor marks a vendor whose apps need a platform system user to approve endpoint and signature key changes.
+	SystemVendor bool `json:"systemVendor"`
 }

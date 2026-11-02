@@ -153,13 +153,33 @@ type Provider interface {
 
 	// Platform Applications
 	GetPlatformApplications() ([]rubix.PlatformApplication, error)
+	// StorePlatformApplication writes every column, including Status; callers updating an
+	// application must carry the stored Status forward.
 	StorePlatformApplication(application rubix.PlatformApplication) error
 	RemovePlatformApplication(vendorID, appID, releaseChannel string) error
 
 	// Platform Vendors
 	GetPlatformVendors() ([]rubix.PlatformVendor, error)
+	// StorePlatformVendor writes every vendor column, including SystemVendor; callers updating a
+	// vendor must carry the stored SystemVendor value forward.
 	StorePlatformVendor(vendor rubix.PlatformVendor) error
 	RemovePlatformVendor(vendorID string) error
+
+	// Vendor Members
+	// GetVendorMembers is ordered by name, email, then user ID.
+	GetVendorMembers(vendorID string) ([]rubix.VendorMember, error)
+	// GetVendorMember returns nil, nil when the user is not a member.
+	GetVendorMember(vendorID, userID string) (*rubix.VendorMember, error)
+	// GetUserVendorMemberships is ordered by vendor ID.
+	GetUserVendorMemberships(userID string) ([]rubix.VendorMember, error)
+	// StoreVendorMember upserts a member; an existing member keeps AddedBy and Since and only IsAdmin and IsOwner change.
+	// IsOwner implies IsAdmin: an owner is always stored as an admin.
+	StoreVendorMember(member rubix.VendorMember) error
+	RemoveVendorMember(vendorID, userID string) error
+	// GetUserByEmail matches the global users table case-insensitively; nil, nil when none.
+	GetUserByEmail(email string) (*rubix.User, error)
+	// GetUserByID reads the global users table; nil, nil when none.
+	GetUserByID(userID string) (*rubix.User, error)
 
 	// Service Providers
 	GetServiceProvider(workspace, serviceID string) (*rubix.ServiceProvider, error)

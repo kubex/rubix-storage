@@ -8,7 +8,7 @@ import (
 )
 
 func (p *Provider) GetPlatformApplications() ([]rubix.PlatformApplication, error) {
-	rows, err := p.primaryConnection.Query("SELECT vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users, provide_blueprints FROM platform_applications")
+	rows, err := p.primaryConnection.Query("SELECT vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users, provide_blueprints, status FROM platform_applications")
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +20,7 @@ func (p *Provider) GetPlatformApplications() ([]rubix.PlatformApplication, error
 		var cookieJSON string
 		var allowedJSON string
 		var allowedUsersJSON string
-		if err := rows.Scan(&a.VendorID, &a.AppID, &a.ReleaseChannel, &a.SignatureKey, &a.Endpoint, &a.SimpleApp, &a.Framed, &a.AllowScripts, &cookieJSON, &a.GloballyAvailable, &allowedJSON, &a.WorkspaceAvailable, &a.ApiEndpoint, &a.McpEndpoint, &a.Discovered, &a.SystemApp, &allowedUsersJSON, &a.ProvideBlueprints); err != nil {
+		if err := rows.Scan(&a.VendorID, &a.AppID, &a.ReleaseChannel, &a.SignatureKey, &a.Endpoint, &a.SimpleApp, &a.Framed, &a.AllowScripts, &cookieJSON, &a.GloballyAvailable, &allowedJSON, &a.WorkspaceAvailable, &a.ApiEndpoint, &a.McpEndpoint, &a.Discovered, &a.SystemApp, &allowedUsersJSON, &a.ProvideBlueprints, &a.Status); err != nil {
 			return nil, err
 		}
 		if cookieJSON != "" {
@@ -62,14 +62,14 @@ func (p *Provider) StorePlatformApplication(application rubix.PlatformApplicatio
 		}
 	}
 
-	query := "INSERT INTO platform_applications (vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users, provide_blueprints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO platform_applications (vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users, provide_blueprints, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 	if p.SqlLite {
-		query += " ON CONFLICT(vendor_id, app_id, release_channel) DO UPDATE SET signature_key=excluded.signature_key, endpoint=excluded.endpoint, simple_app=excluded.simple_app, framed=excluded.framed, allow_scripts=excluded.allow_scripts, cookie_passthrough=excluded.cookie_passthrough, globally_available=excluded.globally_available, allowed_workspaces=excluded.allowed_workspaces, workspace_available=excluded.workspace_available, api_endpoint=excluded.api_endpoint, mcp_endpoint=excluded.mcp_endpoint, discovered=excluded.discovered, system_app=excluded.system_app, allowed_users=excluded.allowed_users, provide_blueprints=excluded.provide_blueprints"
+		query += " ON CONFLICT(vendor_id, app_id, release_channel) DO UPDATE SET signature_key=excluded.signature_key, endpoint=excluded.endpoint, simple_app=excluded.simple_app, framed=excluded.framed, allow_scripts=excluded.allow_scripts, cookie_passthrough=excluded.cookie_passthrough, globally_available=excluded.globally_available, allowed_workspaces=excluded.allowed_workspaces, workspace_available=excluded.workspace_available, api_endpoint=excluded.api_endpoint, mcp_endpoint=excluded.mcp_endpoint, discovered=excluded.discovered, system_app=excluded.system_app, allowed_users=excluded.allowed_users, provide_blueprints=excluded.provide_blueprints, status=excluded.status"
 	} else {
 		query = strings.Replace(query, "INSERT INTO", "REPLACE INTO", 1)
 	}
 
-	_, err := p.primaryConnection.Exec(query, application.VendorID, application.AppID, application.ReleaseChannel, application.SignatureKey, application.Endpoint, application.SimpleApp, application.Framed, application.AllowScripts, cookieJSON, application.GloballyAvailable, allowedJSON, application.WorkspaceAvailable, application.ApiEndpoint, application.McpEndpoint, application.Discovered, application.SystemApp, allowedUsersJSON, application.ProvideBlueprints)
+	_, err := p.primaryConnection.Exec(query, application.VendorID, application.AppID, application.ReleaseChannel, application.SignatureKey, application.Endpoint, application.SimpleApp, application.Framed, application.AllowScripts, cookieJSON, application.GloballyAvailable, allowedJSON, application.WorkspaceAvailable, application.ApiEndpoint, application.McpEndpoint, application.Discovered, application.SystemApp, allowedUsersJSON, application.ProvideBlueprints, string(application.Status))
 	if err == nil {
 		p.update()
 	}
@@ -85,7 +85,7 @@ func (p *Provider) RemovePlatformApplication(vendorID, appID, releaseChannel str
 }
 
 func (p *Provider) GetPlatformVendors() ([]rubix.PlatformVendor, error) {
-	rows, err := p.primaryConnection.Query("SELECT vendor_id, name, description, logo_url, icon, discovery, discovery_token FROM platform_vendors")
+	rows, err := p.primaryConnection.Query("SELECT vendor_id, name, description, logo_url, icon, discovery, discovery_token, system_vendor FROM platform_vendors")
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (p *Provider) GetPlatformVendors() ([]rubix.PlatformVendor, error) {
 	var vendors []rubix.PlatformVendor
 	for rows.Next() {
 		var v rubix.PlatformVendor
-		if err := rows.Scan(&v.VendorID, &v.Name, &v.Description, &v.LogoURL, &v.Icon, &v.Discovery, &v.DiscoveryToken); err != nil {
+		if err := rows.Scan(&v.VendorID, &v.Name, &v.Description, &v.LogoURL, &v.Icon, &v.Discovery, &v.DiscoveryToken, &v.SystemVendor); err != nil {
 			return nil, err
 		}
 		vendors = append(vendors, v)
@@ -106,14 +106,14 @@ func (p *Provider) GetPlatformVendors() ([]rubix.PlatformVendor, error) {
 }
 
 func (p *Provider) StorePlatformVendor(vendor rubix.PlatformVendor) error {
-	query := "INSERT INTO platform_vendors (vendor_id, name, description, logo_url, icon, discovery, discovery_token) VALUES (?, ?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO platform_vendors (vendor_id, name, description, logo_url, icon, discovery, discovery_token, system_vendor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 	if p.SqlLite {
-		query += " ON CONFLICT(vendor_id) DO UPDATE SET name=excluded.name, description=excluded.description, logo_url=excluded.logo_url, icon=excluded.icon, discovery=excluded.discovery, discovery_token=excluded.discovery_token"
+		query += " ON CONFLICT(vendor_id) DO UPDATE SET name=excluded.name, description=excluded.description, logo_url=excluded.logo_url, icon=excluded.icon, discovery=excluded.discovery, discovery_token=excluded.discovery_token, system_vendor=excluded.system_vendor"
 	} else {
 		query = strings.Replace(query, "INSERT INTO", "REPLACE INTO", 1)
 	}
 
-	_, err := p.primaryConnection.Exec(query, vendor.VendorID, vendor.Name, vendor.Description, vendor.LogoURL, vendor.Icon, vendor.Discovery, vendor.DiscoveryToken)
+	_, err := p.primaryConnection.Exec(query, vendor.VendorID, vendor.Name, vendor.Description, vendor.LogoURL, vendor.Icon, vendor.Discovery, vendor.DiscoveryToken, vendor.SystemVendor)
 	if err == nil {
 		p.update()
 	}
@@ -121,6 +121,9 @@ func (p *Provider) StorePlatformVendor(vendor rubix.PlatformVendor) error {
 }
 
 func (p *Provider) RemovePlatformVendor(vendorID string) error {
+	if _, err := p.primaryConnection.Exec("DELETE FROM `vendor_members` WHERE `vendor_id` = ?", vendorID); err != nil {
+		return err
+	}
 	_, err := p.primaryConnection.Exec("DELETE FROM platform_vendors WHERE vendor_id = ?", vendorID)
 	if err == nil {
 		p.update()
