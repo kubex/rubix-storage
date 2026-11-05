@@ -7,6 +7,19 @@ import (
 )
 
 type Provider interface {
+	GetGatewaySourceIPs(scope rubix.GatewaySourceScope, vendor, app string) ([]rubix.GatewaySourceIP, error)
+	GetEffectiveGatewaySourceIPs(vendor, app string) ([]rubix.GatewaySourceIP, error)
+	AddGatewaySourceIP(entry rubix.GatewaySourceIP) (rubix.GatewaySourceIP, error)
+	DeleteGatewaySourceIP(scope rubix.GatewaySourceScope, vendor, app, id string) error
+
+	// Gateway credentials are global to an app. Raw tokens are returned once on
+	// create/rotate; listing and verification expose metadata only.
+	CreateGatewayCredential(vendor, app, name, actor string, expires time.Time) (rubix.IssuedGatewayCredential, error)
+	GetGatewayCredentials(vendor, app string) ([]rubix.GatewayCredential, error)
+	VerifyGatewayCredential(token string) (*rubix.GatewayCredential, error)
+	RotateGatewayCredential(vendor, app, id, actor string, overlap time.Duration) (rubix.IssuedGatewayCredential, error)
+	RevokeGatewayCredential(vendor, app, id string) error
+
 	CreateWorkspace(workspaceUuid, name, alias, domain string) error
 	GetWorkspaceUUIDByAlias(alias string) (string, error)
 	GetUserWorkspaceUUIDs(userId string) ([]string, error)

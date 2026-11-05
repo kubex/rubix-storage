@@ -472,5 +472,30 @@ func migrations() []migration {
 	queries = append(queries, migQuery("ALTER TABLE `vendor_members` ADD `is_owner` tinyint(1) NOT NULL DEFAULT 0;"))
 	queries = append(queries, migQuery("ALTER TABLE `platform_vendors` ADD `system_vendor` tinyint(1) NOT NULL DEFAULT 0;"))
 	queries = append(queries, migQuery("ALTER TABLE `platform_applications` ADD `status` varchar(20) NOT NULL DEFAULT '';"))
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `gateway_credentials` ("+
+		"`id` varchar(22) NOT NULL PRIMARY KEY,"+
+		"`vendor_id` varchar(64) NOT NULL,"+
+		"`app_id` varchar(64) NOT NULL,"+
+		"`name` varchar(128) NOT NULL,"+
+		"`prefix` varchar(26) NOT NULL,"+
+		"`created_by` varchar(255) NOT NULL,"+
+		"`created_at` bigint NOT NULL,"+
+		"`expires_at` bigint NOT NULL DEFAULT 0,"+
+		"`revoked_at` bigint NOT NULL DEFAULT 0,"+
+		"`replaced_by` varchar(22) NOT NULL DEFAULT '',"+
+		"`token_hash` varchar(64) NOT NULL"+
+		");"))
+	queries = append(queries, migQuery("CREATE INDEX gateway_credentials_app ON `gateway_credentials` (`vendor_id`,`app_id`);"))
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `gateway_source_ips` ("+
+		"`id` varchar(22) NOT NULL PRIMARY KEY,"+
+		"`scope` varchar(10) NOT NULL,"+
+		"`vendor_id` varchar(64) NOT NULL DEFAULT '',"+
+		"`app_id` varchar(64) NOT NULL DEFAULT '',"+
+		"`network` varchar(64) NOT NULL,"+
+		"`description` varchar(255) NOT NULL DEFAULT '',"+
+		"`created_by` varchar(255) NOT NULL,"+
+		"`created_at` bigint NOT NULL"+
+		");"))
+	queries = append(queries, migQuery("CREATE INDEX gateway_source_ips_scope ON `gateway_source_ips` (`scope`,`vendor_id`,`app_id`);"))
 	return queries
 }
