@@ -30,7 +30,7 @@ func (p *Provider) ResetActivationSteps(workspace, vendor, app string) error {
 }
 
 func (p *Provider) GetActivationState(workspace, user, vendor, app string) ([]rubix.ActivationState, error) {
-	rows, err := p.primaryConnection.Query(
+	rows, err := p.query(
 		"SELECT workspace, user, vendor, app, step_id, completed_at FROM app_activation_state WHERE workspace = ? AND vendor = ? AND app = ? AND (user = '' OR user = ?)",
 		workspace, vendor, app, user,
 	)

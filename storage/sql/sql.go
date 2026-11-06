@@ -93,7 +93,7 @@ func (p *Provider) Initialize() error {
 
 	if p.SqlLite {
 		createMigrations := false
-		row := p.primaryConnection.QueryRow("SELECT tbl_name FROM sqlite_master WHERE type='table' AND name = 'rubix_migrations';")
+		row := p.queryRow("SELECT tbl_name FROM sqlite_master WHERE type='table' AND name = 'rubix_migrations';")
 		if row != nil {
 			if row.Err() != nil && strings.Contains(row.Err().Error(), "no rows") {
 				createMigrations = true
@@ -113,10 +113,10 @@ func (p *Provider) Initialize() error {
 		}
 
 		processed := make(map[string]bool)
-		rows, err := p.primaryConnection.Query("SELECT migration, applied, query FROM rubix_migrations;")
+		rows, err := p.query("SELECT migration, applied, query FROM rubix_migrations;")
 		if err != nil && strings.Contains(err.Error(), "no such column") {
 			p.primaryConnection.Exec("ALTER TABLE rubix_migrations ADD COLUMN query text null;")
-			rows, err = p.primaryConnection.Query("SELECT migration, applied, query FROM rubix_migrations;")
+			rows, err = p.query("SELECT migration, applied, query FROM rubix_migrations;")
 		}
 		if err != nil {
 			return err
@@ -183,7 +183,7 @@ func (p *Provider) MigrationCount() (int, error) {
 		return 0, errors.New("no connection")
 	}
 	var count int
-	err := p.primaryConnection.QueryRow("SELECT COUNT(*) FROM rubix_migrations WHERE applied = 1").Scan(&count)
+	err := p.queryRow("SELECT COUNT(*) FROM rubix_migrations WHERE applied = 1").Scan(&count)
 	return count, err
 }
 

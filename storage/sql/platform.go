@@ -8,7 +8,7 @@ import (
 )
 
 func (p *Provider) GetPlatformApplications() ([]rubix.PlatformApplication, error) {
-	rows, err := p.primaryConnection.Query("SELECT vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users, provide_blueprints, status FROM platform_applications")
+	rows, err := p.query("SELECT vendor_id, app_id, release_channel, signature_key, endpoint, simple_app, framed, allow_scripts, cookie_passthrough, globally_available, allowed_workspaces, workspace_available, api_endpoint, mcp_endpoint, discovered, system_app, allowed_users, provide_blueprints, status FROM platform_applications")
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (p *Provider) RemovePlatformApplication(vendorID, appID, releaseChannel str
 }
 
 func (p *Provider) GetPlatformVendors() ([]rubix.PlatformVendor, error) {
-	rows, err := p.primaryConnection.Query("SELECT vendor_id, name, description, logo_url, icon, discovery, discovery_token, system_vendor FROM platform_vendors")
+	rows, err := p.query("SELECT vendor_id, name, description, logo_url, icon, discovery, discovery_token, system_vendor FROM platform_vendors")
 	if err != nil {
 		return nil, err
 	}

@@ -22,7 +22,7 @@ func (p *Provider) SetUserStatus(workspaceUuid, userUuid string, status rubix.Us
 	if status.AfterID != "" {
 
 		if status.AfterID == "latest" {
-			latest := p.primaryConnection.QueryRow("SELECT id,expiry FROM user_status WHERE workspace = ? AND user = ? AND id != '' AND expiry IS NOT NULL ORDER BY expiry DESC LIMIT 1", workspaceUuid, userUuid)
+			latest := p.queryRow("SELECT id,expiry FROM user_status WHERE workspace = ? AND user = ? AND id != '' AND expiry IS NOT NULL ORDER BY expiry DESC LIMIT 1", workspaceUuid, userUuid)
 
 			expiryTime := sql.NullString{}
 			latestErr := latest.Scan(&status.AfterID, &expiryTime)
@@ -95,7 +95,7 @@ func (p *Provider) ClearUserStatusID(workspaceUuid, userUuid, statusID string) e
 
 func (p *Provider) GetUserStatus(workspaceUuid, userUuid string) (rubix.UserStatus, error) {
 	status := rubix.UserStatus{}
-	rows, err := p.primaryConnection.Query("SELECT state, extendedState, applied, expiry, id, afterId, duration, clearOnLogout FROM user_status WHERE workspace = ? AND user = ? AND (expiry IS NULL OR expiry > ?)", workspaceUuid, userUuid, time.Now())
+	rows, err := p.query("SELECT state, extendedState, applied, expiry, id, afterId, duration, clearOnLogout FROM user_status WHERE workspace = ? AND user = ? AND (expiry IS NULL OR expiry > ?)", workspaceUuid, userUuid, time.Now())
 	if err != nil {
 		return status, err
 	}
