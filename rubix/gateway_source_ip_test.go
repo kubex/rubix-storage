@@ -15,3 +15,22 @@ func TestNormalizeIPNetwork(t *testing.T) {
 		}
 	}
 }
+
+func TestValidGatewaySourceScope(t *testing.T) {
+	for _, ids := range [][2]string{{"kx", "developer"}, {"ab", "cd"}, {"a", "b"}, {"acme", "orders"}} {
+		if !ValidGatewaySourceScope(GatewaySourceVendor, ids[0], "") {
+			t.Errorf("vendor scope rejected %q", ids[0])
+		}
+		if !ValidGatewaySourceScope(GatewaySourceApp, ids[0], ids[1]) {
+			t.Errorf("app scope rejected %q", ids)
+		}
+	}
+	for _, invalid := range []string{"", "KX", "-kx", "kx-", "k/x", "k_x", "kx\n", " kx"} {
+		if ValidGatewaySourceScope(GatewaySourceVendor, invalid, "") || ValidGatewaySourceScope(GatewaySourceApp, invalid, "orders") || ValidGatewaySourceScope(GatewaySourceApp, "kx", invalid) {
+			t.Errorf("invalid ID accepted: %q", invalid)
+		}
+	}
+	if !ValidGatewaySourceScope(GatewaySourceGlobal, "", "") || ValidGatewaySourceScope(GatewaySourceGlobal, "kx", "") || ValidGatewaySourceScope(GatewaySourceVendor, "kx", "orders") || ValidGatewaySourceScope("unknown", "", "") {
+		t.Fatal("invalid scope ownership validation")
+	}
+}

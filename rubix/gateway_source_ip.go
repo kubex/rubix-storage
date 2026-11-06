@@ -3,10 +3,9 @@ package rubix
 import (
 	"errors"
 	"net/netip"
+	"regexp"
 	"strings"
 	"time"
-
-	"github.com/openbyte-os/sdk-go/app"
 )
 
 type GatewaySourceScope string
@@ -31,14 +30,18 @@ type GatewaySourceIP struct {
 	CreatedAt   time.Time          `json:"createdAt"`
 }
 
+// Existing platform IDs include short names such as the system vendor "kx".
+// Validate their syntax without applying the SDK minimum length for new IDs.
+var gatewaySourceIDPattern = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
+
 func ValidGatewaySourceScope(scope GatewaySourceScope, vendor, application string) bool {
 	switch scope {
 	case GatewaySourceGlobal:
 		return vendor == "" && application == ""
 	case GatewaySourceVendor:
-		return vendor != "" && application == "" && app.NewID(vendor, "example").Validate(false) == nil
+		return vendor != "" && application == "" && gatewaySourceIDPattern.MatchString(vendor)
 	case GatewaySourceApp:
-		return vendor != "" && application != "" && app.NewID(vendor, application).Validate(false) == nil
+		return vendor != "" && application != "" && gatewaySourceIDPattern.MatchString(vendor) && gatewaySourceIDPattern.MatchString(application)
 	}
 	return false
 }
