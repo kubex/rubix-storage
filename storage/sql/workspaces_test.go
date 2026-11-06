@@ -50,3 +50,26 @@ func TestRetrieveWorkspace_Missing(t *testing.T) {
 		t.Fatalf("RetrieveWorkspace(present): got (%v, %v)", ws, err)
 	}
 }
+
+func TestRetrieveWorkspace_ApplicationsQueryFails(t *testing.T) {
+	p := newTestProvider(t)
+	defer p.Close()
+	if err := p.CreateWorkspace("ws", "ws", "ws", "ws.local"); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.SetWorkspaceApplication("ws", "vendor", "app", ""); err != nil {
+		t.Fatal(err)
+	}
+	// Make the installed-applications query fail while the workspace row loads.
+	if _, err := p.primaryConnection.Exec("ALTER TABLE workspace_applications RENAME TO workspace_applications_gone"); err != nil {
+		t.Fatal(err)
+	}
+
+	ws, err := p.RetrieveWorkspace("ws")
+	if err == nil {
+		t.Fatalf("expected an error, got workspace with apps %v", ws.InstalledApplications)
+	}
+	if errors.Is(err, rubix.ErrNoResultFound) {
+		t.Fatalf("expected a load failure, got ErrNoResultFound: %v", err)
+	}
+}

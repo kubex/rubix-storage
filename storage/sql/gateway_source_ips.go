@@ -10,7 +10,7 @@ import (
 )
 
 func (p *Provider) queryGatewaySourceIPs(where string, args ...any) ([]rubix.GatewaySourceIP, error) {
-	rows, err := p.primaryConnection.Query("SELECT `id`,`scope`,`vendor_id`,`app_id`,`network`,`description`,`created_by`,`created_at` FROM `gateway_source_ips` WHERE "+where+" ORDER BY `scope`,`network`,`id`", args...)
+	rows, err := p.query("SELECT `id`,`scope`,`vendor_id`,`app_id`,`network`,`description`,`created_by`,`created_at` FROM `gateway_source_ips` WHERE "+where+" ORDER BY `scope`,`network`,`id`", args...)
 	if err != nil {
 		return nil, err
 	}
