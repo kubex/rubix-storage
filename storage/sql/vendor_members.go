@@ -13,7 +13,7 @@ const vendorMemberSelect = "SELECT m.`vendor_id`, m.`user`, m.`is_admin`, m.`is_
 	"FROM `vendor_members` AS m LEFT JOIN `users` AS u ON u.`user` = m.`user` "
 
 func (p *Provider) queryVendorMembers(where, order string, args ...any) ([]rubix.VendorMember, error) {
-	rows, err := p.primaryConnection.Query(vendorMemberSelect+"WHERE "+where+" ORDER BY "+order, args...)
+	rows, err := p.query(vendorMemberSelect+"WHERE "+where+" ORDER BY "+order, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (p *Provider) GetUserByEmail(email string) (*rubix.User, error) {
 	if email == "" {
 		return nil, nil
 	}
-	return p.scanGlobalUser(p.primaryConnection.QueryRow(
+	return p.scanGlobalUser(p.queryRow(
 		"SELECT `user`, `name`, `email` FROM `users` WHERE LOWER(TRIM(`email`)) = ? ORDER BY `user` LIMIT 1", email))
 }
 
@@ -127,6 +127,6 @@ func (p *Provider) GetUserByID(userID string) (*rubix.User, error) {
 	if userID == "" {
 		return nil, nil
 	}
-	return p.scanGlobalUser(p.primaryConnection.QueryRow(
+	return p.scanGlobalUser(p.queryRow(
 		"SELECT `user`, `name`, `email` FROM `users` WHERE `user` = ?", userID))
 }

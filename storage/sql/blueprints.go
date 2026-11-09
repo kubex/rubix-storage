@@ -9,7 +9,7 @@ import (
 )
 
 func (p *Provider) GetBlueprints() ([]rubix.Blueprint, error) {
-	rows, err := p.primaryConnection.Query("SELECT vendor_id, app_id, blueprint_id, name, description, icon, latest_version, source_url, created_at, updated_at FROM blueprints ORDER BY name")
+	rows, err := p.query("SELECT vendor_id, app_id, blueprint_id, name, description, icon, latest_version, source_url, created_at, updated_at FROM blueprints ORDER BY name")
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (p *Provider) GetBlueprints() ([]rubix.Blueprint, error) {
 
 func (p *Provider) GetBlueprint(vendorID, appID, blueprintID string) (*rubix.Blueprint, error) {
 	var b rubix.Blueprint
-	err := p.primaryConnection.QueryRow("SELECT vendor_id, app_id, blueprint_id, name, description, icon, latest_version, source_url, created_at, updated_at FROM blueprints WHERE vendor_id = ? AND app_id = ? AND blueprint_id = ?", vendorID, appID, blueprintID).
+	err := p.queryRow("SELECT vendor_id, app_id, blueprint_id, name, description, icon, latest_version, source_url, created_at, updated_at FROM blueprints WHERE vendor_id = ? AND app_id = ? AND blueprint_id = ?", vendorID, appID, blueprintID).
 		Scan(&b.VendorID, &b.AppID, &b.BlueprintID, &b.Name, &b.Description, &b.Icon, &b.LatestVersion, &b.SourceURL, &b.CreatedAt, &b.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -68,7 +68,7 @@ func (p *Provider) RemoveBlueprint(vendorID, appID, blueprintID string) error {
 }
 
 func (p *Provider) GetBlueprintVersions(vendorID, appID, blueprintID string) ([]rubix.BlueprintVersion, error) {
-	rows, err := p.primaryConnection.Query("SELECT vendor_id, app_id, blueprint_id, version, definition, content_hash, created_at FROM blueprint_versions WHERE vendor_id = ? AND app_id = ? AND blueprint_id = ? ORDER BY created_at DESC", vendorID, appID, blueprintID)
+	rows, err := p.query("SELECT vendor_id, app_id, blueprint_id, version, definition, content_hash, created_at FROM blueprint_versions WHERE vendor_id = ? AND app_id = ? AND blueprint_id = ? ORDER BY created_at DESC", vendorID, appID, blueprintID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (p *Provider) GetBlueprintVersions(vendorID, appID, blueprintID string) ([]
 
 func (p *Provider) GetBlueprintVersion(vendorID, appID, blueprintID, version string) (*rubix.BlueprintVersion, error) {
 	var v rubix.BlueprintVersion
-	err := p.primaryConnection.QueryRow("SELECT vendor_id, app_id, blueprint_id, version, definition, content_hash, created_at FROM blueprint_versions WHERE vendor_id = ? AND app_id = ? AND blueprint_id = ? AND version = ?", vendorID, appID, blueprintID, version).
+	err := p.queryRow("SELECT vendor_id, app_id, blueprint_id, version, definition, content_hash, created_at FROM blueprint_versions WHERE vendor_id = ? AND app_id = ? AND blueprint_id = ? AND version = ?", vendorID, appID, blueprintID, version).
 		Scan(&v.VendorID, &v.AppID, &v.BlueprintID, &v.Version, &v.Definition, &v.ContentHash, &v.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -119,7 +119,7 @@ func (p *Provider) StoreBlueprintVersion(version rubix.BlueprintVersion) error {
 }
 
 func (p *Provider) GetWorkspaceBlueprints(workspaceUUID string) ([]rubix.WorkspaceBlueprint, error) {
-	rows, err := p.primaryConnection.Query("SELECT workspace_uuid, vendor_id, app_id, blueprint_id, subscribed_version, status, subscribed_at FROM workspace_blueprints WHERE workspace_uuid = ?", workspaceUUID)
+	rows, err := p.query("SELECT workspace_uuid, vendor_id, app_id, blueprint_id, subscribed_version, status, subscribed_at FROM workspace_blueprints WHERE workspace_uuid = ?", workspaceUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (p *Provider) UpdateWorkspaceBlueprintVersion(workspaceUUID, vendorID, appI
 }
 
 func (p *Provider) GetWorkspaceBlueprintResources(workspaceUUID, vendorID, appID, blueprintID string) ([]rubix.WorkspaceBlueprintResource, error) {
-	rows, err := p.primaryConnection.Query("SELECT workspace_uuid, vendor_id, app_id, blueprint_id, resource_type, resource_key, desired_value, applied_value, status, last_synced_at FROM workspace_blueprint_resources WHERE workspace_uuid = ? AND vendor_id = ? AND app_id = ? AND blueprint_id = ?", workspaceUUID, vendorID, appID, blueprintID)
+	rows, err := p.query("SELECT workspace_uuid, vendor_id, app_id, blueprint_id, resource_type, resource_key, desired_value, applied_value, status, last_synced_at FROM workspace_blueprint_resources WHERE workspace_uuid = ? AND vendor_id = ? AND app_id = ? AND blueprint_id = ?", workspaceUUID, vendorID, appID, blueprintID)
 	if err != nil {
 		return nil, err
 	}

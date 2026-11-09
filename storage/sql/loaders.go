@@ -30,7 +30,7 @@ func (p *Provider) CreateWorkspace(workspaceUuid, name, alias, domain string) er
 }
 
 func (p *Provider) GetWorkspaceUUIDByAlias(alias string) (string, error) {
-	q := p.primaryConnection.QueryRow("SELECT uuid FROM workspaces WHERE alias = ?", alias)
+	q := p.queryRow("SELECT uuid FROM workspaces WHERE alias = ?", alias)
 	located := ""
 	err := q.Scan(&located)
 	return located, err
@@ -75,7 +75,7 @@ func (p *Provider) CreateUser(userID, name, email string) error {
 }
 
 func (p *Provider) GetUserWorkspaceUUIDs(userId string) ([]string, error) {
-	rows, err := p.primaryConnection.Query("SELECT workspace FROM workspace_memberships WHERE user = ?", userId)
+	rows, err := p.query("SELECT workspace FROM workspace_memberships WHERE user = ?", userId)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (p *Provider) GetWorkspaceMembers(workspaceUuid string, userIDs ...string) 
 		"LEFT JOIN users AS u ON m.user = u.user " +
 		"WHERE " + strings.Join(fields, " AND ")
 
-	rows, err := p.primaryConnection.Query(q, values...)
+	rows, err := p.query(q, values...)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (p *Provider) retrieveWorkspaceBy(field, match string) (*rubix.Workspace, e
 
 func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[string]*rubix.Workspace, error) {
 	resp := make(map[string]*rubix.Workspace)
-	rows, err := p.primaryConnection.Query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts,accessCondition,emailDomainWhitelist,memberApprovalMode,emailDomainApproval FROM workspaces WHERE "+where, args...)
+	rows, err := p.query("SELECT uuid, alias, domain, name, icon, installedApplications,defaultApp,systemVendors,footerParts,accessCondition,emailDomainWhitelist,memberApprovalMode,emailDomainApproval FROM workspaces WHERE "+where, args...)
 	if err != nil {
 		return resp, err
 	}
@@ -226,9 +226,11 @@ func (p *Provider) retrieveWorkspacesByQuery(where string, args ...any) (map[str
 
 	// Load InstalledApplications from workspace_applications table
 	for uuid, ws := range resp {
-		if wsApps, appErr := p.GetWorkspaceApplications(uuid); appErr == nil {
-			ws.InstalledApplications = wsApps
+		wsApps, appErr := p.GetWorkspaceApplications(uuid)
+		if appErr != nil {
+			return nil, fmt.Errorf("load applications for workspace %q: %w", uuid, appErr)
 		}
+		ws.InstalledApplications = wsApps
 	}
 
 	return resp, err
@@ -362,7 +364,7 @@ func (p *Provider) SetWorkspaceInstalledApplications(workspaceUuid string, apps 
 }
 
 func (p *Provider) GetWorkspaceApplications(workspaceUuid string) ([]app.ScopedKey, error) {
-	rows, err := p.primaryConnection.Query(
+	rows, err := p.query(
 		"SELECT vendor_id, app_id, release_channel FROM workspace_applications WHERE workspace_uuid = ?",
 		workspaceUuid,
 	)
@@ -447,7 +449,7 @@ func (p *Provider) GetAuthData(workspaceUuid, userUuid string, appIDs ...app.Glo
 	subQuery += ")"
 
 	order := "ORDER BY user ASC, app ASC, `key` ASC"
-	rows, err := p.primaryConnection.Query("SELECT `vendor`, `app`, `key`, `value` FROM auth_data WHERE workspace = ? AND (user = ? OR user IS NULL) "+subQuery+order, workspaceUuid, userUuid)
+	rows, err := p.query("SELECT `vendor`, `app`, `key`, `value` FROM auth_data WHERE workspace = ? AND (user = ? OR user IS NULL) "+subQuery+order, workspaceUuid, userUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -487,7 +489,7 @@ func (p *Provider) GetPermissionStatements(lookup rubix.Lookup, permissions ...a
 		" AND ur.user = ? AND ur.workspace = ?" +
 		" AND rp.permission IN (?" + strings.Repeat(",?", len(permissions)-1) + ")"
 
-	rows, err := p.primaryConnection.Query(query, params...)
+	rows, err := p.query(query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -691,7 +693,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	g := errgroup.Group{}
 	g.Go(func() error {
 
-		row := p.primaryConnection.QueryRow("SELECT name, description, conditions, scimManaged, blueprint_key FROM roles WHERE workspace = ? AND role = ?", workspace, role)
+		row := p.queryRow("SELECT name, description, conditions, scimManaged, blueprint_key FROM roles WHERE workspace = ? AND role = ?", workspace, role)
 
 		var conditionsStr sql.NullString
 		err := row.Scan(&ret.Name, &ret.Description, &conditionsStr, &ret.ScimManaged, &ret.BlueprintKey)
@@ -709,7 +711,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	})
 	g.Go(func() error {
 
-		rows, err := p.primaryConnection.Query("SELECT user FROM user_roles WHERE workspace = ? AND role = ?", workspace, role)
+		rows, err := p.query("SELECT user FROM user_roles WHERE workspace = ? AND role = ?", workspace, role)
 		if err != nil {
 			return err
 		}
@@ -730,7 +732,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 	})
 	g.Go(func() error {
 
-		rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, options FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+		rows, err := p.query("SELECT permission, resource, allow, options FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
 		if err != nil {
 			return err
 		}
@@ -757,7 +759,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 		return nil
 	})
 	g.Go(func() error {
-		rows, err := p.primaryConnection.Query("SELECT resource, resource_type FROM role_resources WHERE workspace = ? AND role = ?", workspace, role)
+		rows, err := p.query("SELECT resource, resource_type FROM role_resources WHERE workspace = ? AND role = ?", workspace, role)
 		if err != nil {
 			return err
 		}
@@ -780,7 +782,7 @@ func (p *Provider) GetRole(workspace, role string) (*rubix.Role, error) {
 }
 
 func (p *Provider) GetRolePermissions(workspace, role string) ([]rubix.RolePermission, error) {
-	rows, err := p.primaryConnection.Query("SELECT permission, resource, allow, options FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
+	rows, err := p.query("SELECT permission, resource, allow, options FROM role_permissions WHERE workspace = ? AND role = ?", workspace, role)
 	if err != nil {
 		return nil, err
 	}
@@ -805,7 +807,7 @@ func (p *Provider) GetRolePermissions(workspace, role string) ([]rubix.RolePermi
 
 func (p *Provider) GetRoles(workspace string) ([]rubix.Role, error) {
 
-	rows, err := p.primaryConnection.Query("SELECT role, name, description, scimManaged, blueprint_key FROM roles WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT role, name, description, scimManaged, blueprint_key FROM roles WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -843,7 +845,7 @@ func (p *Provider) GetUserRoles(workspace, user string) ([]rubix.UserRole, error
 
 func (p *Provider) GetUserRoleIDs(workspace, user string) ([]string, error) {
 
-	rows, err := p.primaryConnection.Query("SELECT role FROM user_roles WHERE workspace = ? AND user = ?", workspace, user)
+	rows, err := p.query("SELECT role FROM user_roles WHERE workspace = ? AND user = ?", workspace, user)
 	if err != nil {
 		return nil, err
 	}
@@ -1046,7 +1048,7 @@ func (p *Provider) MutateRole(workspace, role string, options ...rubix.MutateRol
 
 // --- Role Resources ---
 func (p *Provider) GetRoleResources(workspace, role string) ([]rubix.RoleResource, error) {
-	rows, err := p.primaryConnection.Query("SELECT resource, resource_type FROM role_resources WHERE workspace = ? AND role = ?", workspace, role)
+	rows, err := p.query("SELECT resource, resource_type FROM role_resources WHERE workspace = ? AND role = ?", workspace, role)
 	if err != nil {
 		return nil, err
 	}
@@ -1117,11 +1119,11 @@ func (p *Provider) GetTeam(workspace, team string) (*rubix.Team, error) {
 
 	g := errgroup.Group{}
 	g.Go(func() error {
-		row := p.primaryConnection.QueryRow("SELECT name, description, scimManaged FROM `teams` WHERE workspace = ? AND `team` = ?", workspace, team)
+		row := p.queryRow("SELECT name, description, scimManaged FROM `teams` WHERE workspace = ? AND `team` = ?", workspace, team)
 		return row.Scan(&ret.Name, &ret.Description, &ret.ScimManaged)
 	})
 	g.Go(func() error {
-		rows, err := p.primaryConnection.Query("SELECT user, level FROM user_teams WHERE workspace = ? AND `team` = ?", workspace, team)
+		rows, err := p.query("SELECT user, level FROM user_teams WHERE workspace = ? AND `team` = ?", workspace, team)
 		if err != nil {
 			return err
 		}
@@ -1145,7 +1147,7 @@ func (p *Provider) GetTeam(workspace, team string) (*rubix.Team, error) {
 }
 
 func (p *Provider) GetTeams(workspace string) ([]rubix.Team, error) {
-	rows, err := p.primaryConnection.Query("SELECT `team`, name, description, scimManaged FROM `teams` WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT `team`, name, description, scimManaged FROM `teams` WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1163,7 +1165,7 @@ func (p *Provider) GetTeams(workspace string) ([]rubix.Team, error) {
 }
 
 func (p *Provider) GetUserTeams(workspace, user string) ([]rubix.UserTeam, error) {
-	rows, err := p.primaryConnection.Query("SELECT `team`, level FROM user_teams WHERE workspace = ? AND user = ?", workspace, user)
+	rows, err := p.query("SELECT `team`, level FROM user_teams WHERE workspace = ? AND user = ?", workspace, user)
 	if err != nil {
 		return nil, err
 	}
@@ -1287,7 +1289,7 @@ func (p *Provider) MutateTeam(workspace, team string, options ...rubix.MutateTea
 // --- Brands ---
 func (p *Provider) GetBrand(workspace, brand string) (*rubix.Brand, error) {
 	ret := &rubix.Brand{Workspace: workspace, ID: brand}
-	row := p.primaryConnection.QueryRow("SELECT name, description FROM brands WHERE workspace = ? AND brand = ?", workspace, brand)
+	row := p.queryRow("SELECT name, description FROM brands WHERE workspace = ? AND brand = ?", workspace, brand)
 	if err := row.Scan(&ret.Name, &ret.Description); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
@@ -1298,7 +1300,7 @@ func (p *Provider) GetBrand(workspace, brand string) (*rubix.Brand, error) {
 }
 
 func (p *Provider) GetBrands(workspace string) ([]rubix.Brand, error) {
-	rows, err := p.primaryConnection.Query("SELECT brand, name, description FROM brands WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT brand, name, description FROM brands WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1361,7 +1363,7 @@ func (p *Provider) MutateBrand(workspace, brand string, options ...rubix.MutateB
 // --- Departments ---
 func (p *Provider) GetDepartment(workspace, department string) (*rubix.Department, error) {
 	ret := &rubix.Department{Workspace: workspace, ID: department}
-	row := p.primaryConnection.QueryRow("SELECT name, description, status FROM departments WHERE workspace = ? AND department = ?", workspace, department)
+	row := p.queryRow("SELECT name, description, status FROM departments WHERE workspace = ? AND department = ?", workspace, department)
 	if err := row.Scan(&ret.Name, &ret.Description, &ret.Status); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
@@ -1372,7 +1374,7 @@ func (p *Provider) GetDepartment(workspace, department string) (*rubix.Departmen
 }
 
 func (p *Provider) GetDepartments(workspace string) ([]rubix.Department, error) {
-	rows, err := p.primaryConnection.Query("SELECT department, name, description, status FROM departments WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT department, name, description, status FROM departments WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1439,7 +1441,7 @@ func (p *Provider) MutateDepartment(workspace, department string, options ...rub
 // --- Channels ---
 func (p *Provider) GetChannel(workspace, channel string) (*rubix.Channel, error) {
 	ret := &rubix.Channel{Workspace: workspace, ID: channel}
-	row := p.primaryConnection.QueryRow("SELECT department, name, description, maxLevel, status FROM channels WHERE workspace = ? AND channel = ?", workspace, channel)
+	row := p.queryRow("SELECT department, name, description, maxLevel, status FROM channels WHERE workspace = ? AND channel = ?", workspace, channel)
 	var desc sql.NullString
 	if err := row.Scan(&ret.DepartmentID, &ret.Name, &desc, &ret.MaxLevel, &ret.Status); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -1452,7 +1454,7 @@ func (p *Provider) GetChannel(workspace, channel string) (*rubix.Channel, error)
 }
 
 func (p *Provider) GetChannels(workspace string) ([]rubix.Channel, error) {
-	rows, err := p.primaryConnection.Query("SELECT channel, department, name, description, maxLevel, status FROM channels WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT channel, department, name, description, maxLevel, status FROM channels WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1525,7 +1527,7 @@ func (p *Provider) MutateChannel(workspace, channel string, options ...rubix.Mut
 // --- Distributors ---
 func (p *Provider) GetDistributor(workspace, distributor string) (*rubix.Distributor, error) {
 	ret := &rubix.Distributor{Workspace: workspace, ID: distributor}
-	row := p.primaryConnection.QueryRow("SELECT name, description, website_url, logo_url FROM distributors WHERE workspace = ? AND distributor = ?", workspace, distributor)
+	row := p.queryRow("SELECT name, description, website_url, logo_url FROM distributors WHERE workspace = ? AND distributor = ?", workspace, distributor)
 	if err := row.Scan(&ret.Name, &ret.Description, &ret.WebsiteURL, &ret.LogoURL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
@@ -1536,7 +1538,7 @@ func (p *Provider) GetDistributor(workspace, distributor string) (*rubix.Distrib
 }
 
 func (p *Provider) GetDistributors(workspace string) ([]rubix.Distributor, error) {
-	rows, err := p.primaryConnection.Query("SELECT distributor, name, description, website_url, logo_url FROM distributors WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT distributor, name, description, website_url, logo_url FROM distributors WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1607,7 +1609,7 @@ func (p *Provider) MutateDistributor(workspace, distributor string, options ...r
 // --- BPOs ---
 func (p *Provider) GetBPO(workspace, bpo string) (*rubix.BPO, error) {
 	ret := &rubix.BPO{Workspace: workspace, ID: bpo}
-	row := p.primaryConnection.QueryRow("SELECT name, description, website_url, logo_url FROM bpos WHERE workspace = ? AND bpo = ?", workspace, bpo)
+	row := p.queryRow("SELECT name, description, website_url, logo_url FROM bpos WHERE workspace = ? AND bpo = ?", workspace, bpo)
 	if err := row.Scan(&ret.Name, &ret.Description, &ret.WebsiteURL, &ret.LogoURL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
@@ -1618,7 +1620,7 @@ func (p *Provider) GetBPO(workspace, bpo string) (*rubix.BPO, error) {
 }
 
 func (p *Provider) GetBPOs(workspace string) ([]rubix.BPO, error) {
-	rows, err := p.primaryConnection.Query("SELECT bpo, name, description, website_url, logo_url FROM bpos WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT bpo, name, description, website_url, logo_url FROM bpos WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1687,7 +1689,7 @@ func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOp
 }
 
 func (p *Provider) GetBPOManagers(workspace, bpo string) ([]string, error) {
-	rows, err := p.primaryConnection.Query("SELECT user FROM bpo_managers WHERE workspace = ? AND bpo = ? ORDER BY user", workspace, bpo)
+	rows, err := p.query("SELECT user FROM bpo_managers WHERE workspace = ? AND bpo = ? ORDER BY user", workspace, bpo)
 	if err != nil {
 		return nil, err
 	}
@@ -1717,7 +1719,7 @@ func (p *Provider) SetBPOManagers(workspace, bpo string, users []string) error {
 }
 
 func (p *Provider) GetBPOTeams(workspace, bpo string) ([]string, error) {
-	rows, err := p.primaryConnection.Query("SELECT team FROM bpo_teams WHERE workspace = ? AND bpo = ? ORDER BY team", workspace, bpo)
+	rows, err := p.query("SELECT team FROM bpo_teams WHERE workspace = ? AND bpo = ? ORDER BY team", workspace, bpo)
 	if err != nil {
 		return nil, err
 	}
@@ -1747,7 +1749,7 @@ func (p *Provider) SetBPOTeams(workspace, bpo string, teams []string) error {
 }
 
 func (p *Provider) GetBPORoles(workspace, bpo string) ([]string, error) {
-	rows, err := p.primaryConnection.Query("SELECT role FROM bpo_roles WHERE workspace = ? AND bpo = ? ORDER BY role", workspace, bpo)
+	rows, err := p.query("SELECT role FROM bpo_roles WHERE workspace = ? AND bpo = ? ORDER BY role", workspace, bpo)
 	if err != nil {
 		return nil, err
 	}
@@ -1777,7 +1779,7 @@ func (p *Provider) SetBPORoles(workspace, bpo string, roles []string) error {
 }
 
 func (p *Provider) GetManagedBPOs(workspace, user string) ([]string, error) {
-	rows, err := p.primaryConnection.Query("SELECT bpo FROM bpo_managers WHERE workspace = ? AND user = ? ORDER BY bpo", workspace, user)
+	rows, err := p.query("SELECT bpo FROM bpo_managers WHERE workspace = ? AND user = ? ORDER BY bpo", workspace, user)
 	if err != nil {
 		return nil, err
 	}
@@ -1807,7 +1809,7 @@ func (p *Provider) SetMemberPartnerID(workspace, user, partnerID string) error {
 
 // --- OIDC Providers ---
 func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, error) {
-	rows, err := p.primaryConnection.Query(
+	rows, err := p.query(
 		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType, autoAcceptMembers, assumeMFA, assumeVerified, maxSessionAge FROM workspace_oidc_providers WHERE workspace = ?",
 		workspace,
 	)
@@ -1834,7 +1836,7 @@ func (p *Provider) GetOIDCProviders(workspace string) ([]rubix.OIDCProvider, err
 }
 
 func (p *Provider) GetOIDCProvider(workspace, uuid string) (*rubix.OIDCProvider, error) {
-	row := p.primaryConnection.QueryRow(
+	row := p.queryRow(
 		"SELECT uuid, workspace, providerName, displayName, clientID, clientSecret, clientKeys, issuerURL, bpoID, scimEnabled, scimBearerToken, scimSyncTeams, scimSyncRoles, scimAutoCreate, scimDefaultGroupType, autoAcceptMembers, assumeMFA, assumeVerified, maxSessionAge FROM workspace_oidc_providers WHERE workspace = ? AND uuid = ?",
 		workspace, uuid,
 	)
@@ -1978,7 +1980,7 @@ func (p *Provider) GetSCIMActivityLog(workspace, providerUUID string, limit int)
 	if limit <= 0 {
 		limit = 100
 	}
-	rows, err := p.primaryConnection.Query(
+	rows, err := p.query(
 		"SELECT id, providerUUID, workspace, timestamp, operation, resource, resourceID, status, detail FROM scim_activity_log WHERE providerUUID = ? ORDER BY id DESC LIMIT ?",
 		providerUUID, limit,
 	)
@@ -2043,7 +2045,7 @@ func (p *Provider) GetSettings(workspace, vendor, app string, keys ...string) ([
 
 	query := "SELECT workspace, vendor, app, `key`, `value` FROM settings WHERE " + strings.Join(conditions, " AND ") + " ORDER BY vendor ASC, app ASC, `key` ASC"
 
-	rows, err := p.primaryConnection.Query(query, args...)
+	rows, err := p.query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -2108,7 +2110,7 @@ func (p *Provider) CreateWorkspaceUser(workspace string, user rubix.WorkspaceUse
 // workspace. Membership is determined by the workspace_memberships table —
 // callers wanting the SCIM/OIDC directory entry should use GetWorkspaceUser.
 func (p *Provider) GetUser(workspace, userID string) (*rubix.User, error) {
-	row := p.primaryConnection.QueryRow(
+	row := p.queryRow(
 		"SELECT u.user, u.name, u.email FROM users AS u "+
 			"INNER JOIN workspace_memberships AS m ON m.user = u.user "+
 			"WHERE m.workspace = ? AND m.user = ?",
@@ -2129,7 +2131,7 @@ func (p *Provider) GetUser(workspace, userID string) (*rubix.User, error) {
 }
 
 func (p *Provider) GetWorkspaceUser(workspace, userID string) (*rubix.WorkspaceUser, error) {
-	row := p.primaryConnection.QueryRow(
+	row := p.queryRow(
 		"SELECT user_id, workspace, name, email, oidc_provider, scim_managed, auto_created, last_sync_time, created_at FROM workspace_users WHERE workspace = ? AND user_id = ?",
 		workspace, userID,
 	)
@@ -2156,7 +2158,7 @@ func (p *Provider) GetWorkspaceUser(workspace, userID string) (*rubix.WorkspaceU
 }
 
 func (p *Provider) GetWorkspaceUsersByProvider(workspace, providerUUID string) ([]rubix.WorkspaceUser, error) {
-	rows, err := p.primaryConnection.Query(
+	rows, err := p.query(
 		"SELECT user_id, workspace, name, email, oidc_provider, scim_managed, auto_created, last_sync_time, created_at FROM workspace_users WHERE workspace = ? AND oidc_provider = ?",
 		workspace, providerUUID,
 	)
@@ -2244,7 +2246,7 @@ func (p *Provider) DeleteWorkspaceUser(workspace, userID string) error {
 
 func (p *Provider) MigrateOIDCUsersToWorkspaceUsers() error {
 	// Find all users with oidc_ prefix
-	rows, err := p.primaryConnection.Query("SELECT user, name, email FROM users WHERE user LIKE 'oidc_%'")
+	rows, err := p.query("SELECT user, name, email FROM users WHERE user LIKE 'oidc_%'")
 	if err != nil {
 		return err
 	}
@@ -2278,7 +2280,7 @@ func (p *Provider) MigrateOIDCUsersToWorkspaceUsers() error {
 		providerUUID := parts[0]
 
 		// Find workspace from membership
-		wsRows, err := p.primaryConnection.Query("SELECT workspace FROM workspace_memberships WHERE user = ?", u.userID)
+		wsRows, err := p.query("SELECT workspace FROM workspace_memberships WHERE user = ?", u.userID)
 		if err != nil {
 			continue
 		}
@@ -2389,7 +2391,7 @@ func (p *Provider) ipGroupResolver(workspace string) rubix.IPGroupResolver {
 // --- IP Groups ---
 func (p *Provider) GetIPGroup(workspace, groupID string) (*rubix.IPGroup, error) {
 	ret := &rubix.IPGroup{Workspace: workspace, ID: groupID}
-	row := p.primaryConnection.QueryRow(
+	row := p.queryRow(
 		"SELECT name, description, source, entries, externalUrl, jsonPath, lastSynced, entryCount FROM ip_groups WHERE workspace = ? AND ip_group = ?",
 		workspace, groupID,
 	)
@@ -2409,7 +2411,7 @@ func (p *Provider) GetIPGroup(workspace, groupID string) (*rubix.IPGroup, error)
 }
 
 func (p *Provider) GetIPGroups(workspace string) ([]rubix.IPGroup, error) {
-	rows, err := p.primaryConnection.Query(
+	rows, err := p.query(
 		"SELECT ip_group, name, description, source, entries, externalUrl, jsonPath, lastSynced, entryCount FROM ip_groups WHERE workspace = ? ORDER BY name ASC",
 		workspace,
 	)
@@ -2543,7 +2545,7 @@ func (p *Provider) CreateServiceProvider(workspace string, sp rubix.ServiceProvi
 
 func (p *Provider) GetServiceProvider(workspace, serviceID string) (*rubix.ServiceProvider, error) {
 	ret := &rubix.ServiceProvider{Workspace: workspace, ServiceID: serviceID}
-	row := p.primaryConnection.QueryRow(
+	row := p.queryRow(
 		"SELECT `service_provider`, `name`, `description`, `labels`, `state`, `user_access`, `token` FROM `service_providers` WHERE `workspace` = ? AND `service_id` = ?",
 		workspace, serviceID,
 	)
@@ -2563,7 +2565,7 @@ func (p *Provider) GetServiceProvider(workspace, serviceID string) (*rubix.Servi
 }
 
 func (p *Provider) GetServiceProviders(workspace string) ([]rubix.ServiceProvider, error) {
-	rows, err := p.primaryConnection.Query(
+	rows, err := p.query(
 		"SELECT `service_id`, `service_provider`, `name`, `description`, `labels`, `state`, `user_access`, `token` FROM `service_providers` WHERE `workspace` = ? ORDER BY `name` ASC",
 		workspace,
 	)
@@ -2590,7 +2592,7 @@ func (p *Provider) GetServiceProviders(workspace string) ([]rubix.ServiceProvide
 }
 
 func (p *Provider) GetServiceProvidersByType(workspace, serviceProvider string) ([]rubix.ServiceProvider, error) {
-	rows, err := p.primaryConnection.Query(
+	rows, err := p.query(
 		"SELECT `service_id`, `service_provider`, `name`, `description`, `labels`, `state`, `user_access`, `token` FROM `service_providers` WHERE `workspace` = ? AND `service_provider` = ? ORDER BY `name` ASC",
 		workspace, serviceProvider,
 	)

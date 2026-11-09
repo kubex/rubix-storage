@@ -74,7 +74,7 @@ func (p *Provider) CreateGatewayCredential(vendor, application, name, actor stri
 		return rubix.IssuedGatewayCredential{}, err
 	}
 	var count int
-	if err = p.primaryConnection.QueryRow("SELECT COUNT(*) FROM `platform_applications` WHERE `vendor_id`=? AND `app_id`=?", vendor, application).Scan(&count); err != nil {
+	if err = p.queryRow("SELECT COUNT(*) FROM `platform_applications` WHERE `vendor_id`=? AND `app_id`=?", vendor, application).Scan(&count); err != nil {
 		return rubix.IssuedGatewayCredential{}, err
 	}
 	if count == 0 {
@@ -86,7 +86,7 @@ func (p *Provider) CreateGatewayCredential(vendor, application, name, actor stri
 	return issued, nil
 }
 func (p *Provider) GetGatewayCredentials(vendor, application string) ([]rubix.GatewayCredential, error) {
-	rows, err := p.primaryConnection.Query("SELECT "+credentialColumns+" FROM `gateway_credentials` WHERE `vendor_id`=? AND `app_id`=? ORDER BY `created_at` DESC, `id`", vendor, application)
+	rows, err := p.query("SELECT "+credentialColumns+" FROM `gateway_credentials` WHERE `vendor_id`=? AND `app_id`=? ORDER BY `created_at` DESC, `id`", vendor, application)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (p *Provider) VerifyGatewayCredential(token string) (*rubix.GatewayCredenti
 		return nil, rubix.ErrGatewayCredentialInvalid
 	}
 	var digest string
-	err := p.primaryConnection.QueryRow("SELECT `token_hash` FROM `gateway_credentials` WHERE `id`=?", token[4:26]).Scan(&digest)
+	err := p.queryRow("SELECT `token_hash` FROM `gateway_credentials` WHERE `id`=?", token[4:26]).Scan(&digest)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, rubix.ErrGatewayCredentialInvalid
 	}
@@ -116,7 +116,7 @@ func (p *Provider) VerifyGatewayCredential(token string) (*rubix.GatewayCredenti
 	if subtle.ConstantTimeCompare([]byte(digest), []byte(credentialDigest(token))) != 1 {
 		return nil, rubix.ErrGatewayCredentialInvalid
 	}
-	c, err := scanCredential(p.primaryConnection.QueryRow("SELECT "+credentialColumns+" FROM `gateway_credentials` WHERE `id`=?", token[4:26]))
+	c, err := scanCredential(p.queryRow("SELECT "+credentialColumns+" FROM `gateway_credentials` WHERE `id`=?", token[4:26]))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, rubix.ErrGatewayCredentialInvalid
 	}

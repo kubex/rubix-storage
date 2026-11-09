@@ -83,7 +83,7 @@ func (p *Provider) GetTaskRuns(taskKeys []string, notBefore time.Time) ([]rubix.
 		args = append(args, key)
 	}
 	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(taskKeys)), ",")
-	rows, err := p.primaryConnection.Query("SELECT task_key,run_id,finished_at,`value` FROM scheduled_task_runs WHERE finished_at >= ? AND task_key IN ("+placeholders+") ORDER BY finished_at DESC,run_id DESC", args...)
+	rows, err := p.query("SELECT task_key,run_id,finished_at,`value` FROM scheduled_task_runs WHERE finished_at >= ? AND task_key IN ("+placeholders+") ORDER BY finished_at DESC,run_id DESC", args...)
 	if err != nil {
 		return nil, err
 	}
