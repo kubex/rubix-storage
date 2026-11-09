@@ -171,6 +171,23 @@ type Provider interface {
 	StorePlatformApplication(application rubix.PlatformApplication) error
 	RemovePlatformApplication(vendorID, appID, releaseChannel string) error
 
+	// App Listings are an app's marketplace presentation, one per app.
+	GetAppListing(vendorID, appID string) (*rubix.AppListing, error)
+	GetAppListings() ([]rubix.AppListing, error)
+	StoreAppListing(listing rubix.AppListing) error
+	// GetAppInstallCounts is the number of workspaces each app is installed in, keyed by "vendor/app".
+	GetAppInstallCounts() (map[string]int, error)
+
+	// App Versions are the versions rubix has seen each app running, from health checks.
+	RecordAppVersion(version rubix.AppVersion) error
+	GetAppVersions(vendorID, appID, releaseChannel string) ([]rubix.AppVersion, error)
+	// GetLiveAppVersions is each app's live version on the channel, keyed by "vendor/app".
+	GetLiveAppVersions(releaseChannel string) (map[string]rubix.AppVersion, error)
+	// App Releases are vendor release notes per version, written before or after the version is seen.
+	GetAppReleases(vendorID, appID string) ([]rubix.AppRelease, error)
+	// StoreAppRelease saves a version's notes; no notes removes them.
+	StoreAppRelease(release rubix.AppRelease) error
+
 	// Platform Vendors
 	GetPlatformVendors() ([]rubix.PlatformVendor, error)
 	// StorePlatformVendor writes every vendor column, including SystemVendor; callers updating a

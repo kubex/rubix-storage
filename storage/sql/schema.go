@@ -497,5 +497,33 @@ func migrations() []migration {
 		"`created_at` bigint NOT NULL"+
 		");"))
 	queries = append(queries, migQuery("CREATE INDEX gateway_source_ips_scope ON `gateway_source_ips` (`scope`,`vendor_id`,`app_id`);"))
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `app_listings` ("+
+		"`vendor_id` varchar(64) NOT NULL,"+
+		"`app_id` varchar(64) NOT NULL,"+
+		"`data` mediumtext NOT NULL,"+
+		"`updated_by` varchar(255) NOT NULL DEFAULT '',"+
+		"`updated_at` bigint NOT NULL DEFAULT 0,"+
+		"PRIMARY KEY (`vendor_id`,`app_id`)"+
+		");"))
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `app_versions` ("+
+		"`vendor_id` varchar(64) NOT NULL,"+
+		"`app_id` varchar(64) NOT NULL,"+
+		"`release_channel` varchar(64) NOT NULL DEFAULT '',"+
+		"`version` varchar(64) NOT NULL,"+
+		"`commit_hash` varchar(64) NOT NULL DEFAULT '',"+
+		"`build_time` varchar(64) NOT NULL DEFAULT '',"+
+		"`first_seen` bigint NOT NULL,"+
+		"`last_seen` bigint NOT NULL,"+
+		"PRIMARY KEY (`vendor_id`,`app_id`,`release_channel`,`version`)"+
+		");"))
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `app_releases` ("+
+		"`vendor_id` varchar(64) NOT NULL,"+
+		"`app_id` varchar(64) NOT NULL,"+
+		"`version` varchar(64) NOT NULL,"+
+		"`notes` text NOT NULL,"+
+		"`updated_by` varchar(255) NOT NULL DEFAULT '',"+
+		"`updated_at` bigint NOT NULL DEFAULT 0,"+
+		"PRIMARY KEY (`vendor_id`,`app_id`,`version`)"+
+		");"))
 	return queries
 }
