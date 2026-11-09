@@ -187,6 +187,11 @@ type Provider interface {
 	GetAppReleases(vendorID, appID string) ([]rubix.AppRelease, error)
 	// StoreAppRelease saves a version's notes; no notes removes them.
 	StoreAppRelease(release rubix.AppRelease) error
+	// App Listing Assets are images uploaded for listings, referenced as "asset:<name>".
+	StoreAppListingAsset(asset rubix.AppListingAsset) error
+	GetAppListingAsset(vendorID, appID, name string) (*rubix.AppListingAsset, error)
+	// PruneAppListingAssets removes the app's assets whose names are not in keep.
+	PruneAppListingAssets(vendorID, appID string, keep []string) error
 
 	// Platform Vendors
 	GetPlatformVendors() ([]rubix.PlatformVendor, error)

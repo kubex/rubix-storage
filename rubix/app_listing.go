@@ -26,8 +26,65 @@ type AppListing struct {
 	Languages []string `json:"languages,omitempty"`
 	DocsURL   string   `json:"docsURL,omitempty"`
 
+	// ManagedByApp listings are synced from the app's /_kubex/listing each time
+	// a new version is seen running; SyncedVersion is the version last read.
+	ManagedByApp  bool   `json:"managedByApp,omitempty"`
+	SyncedVersion string `json:"syncedVersion,omitempty"`
+
 	UpdatedBy string    `json:"updatedBy,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt,omitzero"`
+}
+
+// AppListingAsset is an image uploaded for a listing, referenced from a
+// screenshot URL as "asset:<Name>".
+type AppListingAsset struct {
+	VendorID    string
+	AppID       string
+	Name        string
+	ContentType string
+	Data        []byte
+	UpdatedAt   time.Time
+}
+
+const (
+	AppListingAssetPrefix   = "asset:"
+	AppListingMaxAssetBytes = 5 << 20
+)
+
+// AppListingAssetTypes are the image types a listing asset may hold.
+var AppListingAssetTypes = map[string]bool{"image/png": true, "image/jpeg": true, "image/webp": true, "image/gif": true}
+
+// AssetName returns the stored asset a screenshot URL refers to, if any.
+func (s AppListingScreenshot) AssetName() (string, bool) {
+	name, ok := strings.CutPrefix(s.URL, AppListingAssetPrefix)
+	return name, ok && ValidAppListingAssetName(name)
+}
+
+// ValidAppListingAssetName is 1-100 letters, digits, dots, dashes or underscores, not starting with a dot.
+func ValidAppListingAssetName(name string) bool {
+	if name == "" || len(name) > 100 || name[0] == '.' {
+		return false
+	}
+	for _, r := range name {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '.' || r == '-' || r == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+func (a AppListingAsset) Validate() error {
+	switch {
+	case a.VendorID == "" || a.AppID == "":
+		return fmt.Errorf("%w: vendor and app are required", ErrAppListing)
+	case !ValidAppListingAssetName(a.Name):
+		return fmt.Errorf("%w: invalid image name %q", ErrAppListing, a.Name)
+	case !AppListingAssetTypes[a.ContentType]:
+		return fmt.Errorf("%w: %s must be a PNG, JPEG, WebP or GIF image", ErrAppListing, a.Name)
+	case len(a.Data) == 0 || len(a.Data) > AppListingMaxAssetBytes:
+		return fmt.Errorf("%w: %s must be up to %d MB", ErrAppListing, a.Name, AppListingMaxAssetBytes>>20)
+	}
+	return nil
 }
 
 type AppListingHighlight struct {
@@ -101,8 +158,8 @@ func (l AppListing) Validate() error {
 		}
 	}
 	for _, s := range l.Screenshots {
-		if !secureURL(s.URL) {
-			return fail("screenshot %q must be an https URL", s.URL)
+		if _, isAsset := s.AssetName(); !isAsset && !secureURL(s.URL) {
+			return fail("screenshot %q must be an https URL or an uploaded image", s.URL)
 		}
 		if len(s.Caption) > appListingMaxShort {
 			return fail("screenshot captions are up to %d characters", appListingMaxShort)

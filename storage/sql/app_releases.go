@@ -54,7 +54,7 @@ func (p *Provider) GetLiveAppVersions(releaseChannel string) (map[string]rubix.A
 }
 
 func (p *Provider) queryAppVersions(where string, args ...any) ([]rubix.AppVersion, error) {
-	rows, err := p.primaryConnection.Query("SELECT `vendor_id`,`app_id`,`release_channel`,`version`,`commit_hash`,`build_time`,`first_seen`,`last_seen` FROM `app_versions` WHERE "+where, args...)
+	rows, err := p.query("SELECT `vendor_id`,`app_id`,`release_channel`,`version`,`commit_hash`,`build_time`,`first_seen`,`last_seen` FROM `app_versions` WHERE "+where, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (p *Provider) queryAppVersions(where string, args ...any) ([]rubix.AppVersi
 
 // GetAppReleases lists an app's release notes, seen versions and queued ones alike.
 func (p *Provider) GetAppReleases(vendorID, appID string) ([]rubix.AppRelease, error) {
-	rows, err := p.primaryConnection.Query("SELECT `version`,`notes`,`updated_by`,`updated_at` FROM `app_releases` WHERE `vendor_id`=? AND `app_id`=? ORDER BY `updated_at` DESC", vendorID, appID)
+	rows, err := p.query("SELECT `version`,`notes`,`updated_by`,`updated_at` FROM `app_releases` WHERE `vendor_id`=? AND `app_id`=? ORDER BY `updated_at` DESC", vendorID, appID)
 	if err != nil {
 		return nil, err
 	}

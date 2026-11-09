@@ -525,5 +525,14 @@ func migrations() []migration {
 		"`updated_at` bigint NOT NULL DEFAULT 0,"+
 		"PRIMARY KEY (`vendor_id`,`app_id`,`version`)"+
 		");"))
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `app_listing_assets` ("+
+		"`vendor_id` varchar(64) NOT NULL,"+
+		"`app_id` varchar(64) NOT NULL,"+
+		"`name` varchar(100) NOT NULL,"+
+		"`content_type` varchar(64) NOT NULL,"+
+		"`data` mediumblob NOT NULL,"+
+		"`updated_at` bigint NOT NULL DEFAULT 0,"+
+		"PRIMARY KEY (`vendor_id`,`app_id`,`name`)"+
+		");"))
 	return queries
 }

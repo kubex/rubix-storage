@@ -14,7 +14,7 @@ import (
 // grow without schema changes.
 
 func (p *Provider) GetAppListing(vendorID, appID string) (*rubix.AppListing, error) {
-	row := p.primaryConnection.QueryRow("SELECT `data`,`updated_by`,`updated_at` FROM `app_listings` WHERE `vendor_id`=? AND `app_id`=?", vendorID, appID)
+	row := p.queryRow("SELECT `data`,`updated_by`,`updated_at` FROM `app_listings` WHERE `vendor_id`=? AND `app_id`=?", vendorID, appID)
 	listing, err := scanAppListing(row.Scan)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, rubix.ErrNoResultFound
@@ -27,7 +27,7 @@ func (p *Provider) GetAppListing(vendorID, appID string) (*rubix.AppListing, err
 }
 
 func (p *Provider) GetAppListings() ([]rubix.AppListing, error) {
-	rows, err := p.primaryConnection.Query("SELECT `vendor_id`,`app_id`,`data`,`updated_by`,`updated_at` FROM `app_listings`")
+	rows, err := p.query("SELECT `vendor_id`,`app_id`,`data`,`updated_by`,`updated_at` FROM `app_listings`")
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (p *Provider) StoreAppListing(listing rubix.AppListing) error {
 // GetAppInstallCounts is the number of workspaces each app is installed in,
 // keyed by "vendor/app".
 func (p *Provider) GetAppInstallCounts() (map[string]int, error) {
-	rows, err := p.primaryConnection.Query("SELECT `vendor_id`,`app_id`,COUNT(DISTINCT `workspace_uuid`) FROM `workspace_applications` GROUP BY `vendor_id`,`app_id`")
+	rows, err := p.query("SELECT `vendor_id`,`app_id`,COUNT(DISTINCT `workspace_uuid`) FROM `workspace_applications` GROUP BY `vendor_id`,`app_id`")
 	if err != nil {
 		return nil, err
 	}
