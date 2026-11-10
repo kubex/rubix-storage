@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/openbyte-os/sdk-go/app"
 )
 
 // AppListing is an app's marketplace presentation, written by its vendor in
@@ -25,6 +27,8 @@ type AppListing struct {
 	// Languages are display names, e.g. "English".
 	Languages []string `json:"languages,omitempty"`
 	DocsURL   string   `json:"docsURL,omitempty"`
+	// Brand styles the marketplace card cover and app page banner.
+	Brand AppListingBrand `json:"brand,omitzero"`
 
 	// ManagedByApp listings are synced from the app's /_kubex/listing each time
 	// a new version is seen running; SyncedVersion is the version last read.
@@ -85,6 +89,55 @@ func (a AppListingAsset) Validate() error {
 		return fmt.Errorf("%w: %s must be up to %d MB", ErrAppListing, a.Name, AppListingMaxAssetBytes>>20)
 	}
 	return nil
+}
+
+// AppListingBrand is the app's marketplace look. Color is #RRGGBB, Pattern is
+// one of app.ListingPatterns, and Cover and Icon are https image URLs or
+// "asset:<Name>". Icon replaces the app's icon on marketplace tiles only, and
+// Hero is the large banner shown when the app is promoted on the store front.
+type AppListingBrand struct {
+	Color   string `json:"color,omitempty"`
+	Pattern string `json:"pattern,omitempty"`
+	Cover   string `json:"cover,omitempty"`
+	Icon    string `json:"icon,omitempty"`
+	Hero    string `json:"hero,omitempty"`
+}
+
+// CoverAssetName returns the stored asset the cover refers to, if any.
+func (b AppListingBrand) CoverAssetName() (string, bool) { return assetRef(b.Cover) }
+
+// IconAssetName returns the stored asset the icon refers to, if any.
+func (b AppListingBrand) IconAssetName() (string, bool) { return assetRef(b.Icon) }
+
+// HeroAssetName returns the stored asset the hero image refers to, if any.
+func (b AppListingBrand) HeroAssetName() (string, bool) { return assetRef(b.Hero) }
+
+func assetRef(url string) (string, bool) {
+	name, ok := strings.CutPrefix(url, AppListingAssetPrefix)
+	return name, ok && ValidAppListingAssetName(name)
+}
+
+// ValidBrandColor is a six-digit hex colour, e.g. "#7557f5".
+func ValidBrandColor(c string) bool {
+	if len(c) != 7 || c[0] != '#' {
+		return false
+	}
+	for _, r := range c[1:] {
+		if !(r >= '0' && r <= '9' || r >= 'a' && r <= 'f' || r >= 'A' && r <= 'F') {
+			return false
+		}
+	}
+	return true
+}
+
+// ValidBrandPattern is one of app.ListingPatterns.
+func ValidBrandPattern(p string) bool {
+	for _, known := range app.ListingPatterns {
+		if string(known) == p {
+			return true
+		}
+	}
+	return false
 }
 
 type AppListingHighlight struct {
@@ -173,6 +226,17 @@ func (l AppListing) Validate() error {
 	for _, lang := range l.Languages {
 		if strings.TrimSpace(lang) == "" || len(lang) > 64 {
 			return fail("languages are names of up to 64 characters")
+		}
+	}
+	if b := l.Brand; b.Color != "" && !ValidBrandColor(b.Color) {
+		return fail("brand colour %q must be a hex colour like #7557f5", b.Color)
+	}
+	if b := l.Brand; b.Pattern != "" && !ValidBrandPattern(b.Pattern) {
+		return fail("brand pattern %q is not one of %v", b.Pattern, app.ListingPatterns)
+	}
+	for kind, url := range map[string]string{"cover": l.Brand.Cover, "icon": l.Brand.Icon, "hero": l.Brand.Hero} {
+		if _, isAsset := assetRef(url); url != "" && !isAsset && !secureURL(url) {
+			return fail("%s %q must be an https URL or an uploaded image", kind, url)
 		}
 	}
 	if l.DocsURL != "" && !secureURL(l.DocsURL) {

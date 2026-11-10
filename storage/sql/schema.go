@@ -534,5 +534,12 @@ func migrations() []migration {
 		"`updated_at` bigint NOT NULL DEFAULT 0,"+
 		"PRIMARY KEY (`vendor_id`,`app_id`,`name`)"+
 		");"))
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `vendor_app_order` ("+
+		"`vendor_id` varchar(64) NOT NULL,"+
+		"`app_ids` text NOT NULL,"+
+		"`updated_by` varchar(255) NOT NULL DEFAULT '',"+
+		"`updated_at` bigint NOT NULL DEFAULT 0,"+
+		"PRIMARY KEY (`vendor_id`)"+
+		");"))
 	return queries
 }

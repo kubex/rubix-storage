@@ -172,6 +172,12 @@ type Provider interface {
 	RemovePlatformApplication(vendorID, appID, releaseChannel string) error
 
 	// App Listings are an app's marketplace presentation, one per app.
+	// GetVendorAppOrders is each vendor's preferred order of its apps on its
+	// marketplace page, keyed by vendor ID. Vendors without one are absent.
+	GetVendorAppOrders() (map[string][]string, error)
+	// StoreVendorAppOrder replaces the vendor's preferred app order; an empty
+	// list removes it.
+	StoreVendorAppOrder(order rubix.VendorAppOrder) error
 	GetAppListing(vendorID, appID string) (*rubix.AppListing, error)
 	GetAppListings() ([]rubix.AppListing, error)
 	StoreAppListing(listing rubix.AppListing) error

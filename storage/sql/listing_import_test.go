@@ -73,3 +73,47 @@ func TestListingImportRoundTrip(t *testing.T) {
 		t.Fatal("non-image screenshot accepted", err)
 	}
 }
+
+func TestListingImportBrand(t *testing.T) {
+	p := newTestProvider(t)
+	defer p.Close()
+	png := []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+	fetch := func(path string) ([]byte, error) {
+		if path == "cover.png" || path == "assets/icon.png" || path == "hero.png" {
+			return png, nil
+		}
+		return nil, os.ErrNotExist
+	}
+
+	in := app.Listing{Brand: app.ListingBrand{Color: " #7557F5", Pattern: app.PatternWaves, Cover: "cover.png", Icon: "assets/icon.png", Hero: "hero.png"}}
+	imp, err := rubix.ImportListing("acme", "crm", in, fetch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := rubix.AppListingBrand{Color: "#7557f5", Pattern: "waves", Cover: "asset:cover.png", Icon: "asset:icon.png", Hero: "asset:hero.png"}
+	if imp.Listing.Brand != want || len(imp.Assets) != 3 {
+		t.Fatalf("brand: %+v assets %d", imp.Listing.Brand, len(imp.Assets))
+	}
+	if err := imp.Apply(p); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"cover.png", "icon.png", "hero.png"} {
+		if _, err := p.GetAppListingAsset("acme", "crm", name); err != nil {
+			t.Fatal(name+" not kept", err)
+		}
+	}
+	stored, err := p.GetAppListing("acme", "crm")
+	if err != nil || stored.Brand != want {
+		t.Fatalf("stored brand: %+v %v", stored, err)
+	}
+	out := rubix.ExportListing(*stored, nil, func(name string) string { return "listing/" + name })
+	if out.Brand.Cover != "listing/cover.png" || out.Brand.Icon != "listing/icon.png" || out.Brand.Hero != "listing/hero.png" || out.Brand.Pattern != app.PatternWaves {
+		t.Fatalf("export: %+v", out.Brand)
+	}
+
+	for _, bad := range []app.ListingBrand{{Color: "purple"}, {Color: "#fff"}, {Pattern: "tartan"}, {Cover: "http://cdn.example.com/c.png"}, {Icon: "javascript:alert(1)"}, {Hero: "data:image/png;base64,AA"}} {
+		if _, err := rubix.ImportListing("acme", "crm", app.Listing{Brand: bad}, nil); !errors.Is(err, rubix.ErrAppListing) {
+			t.Errorf("%+v accepted: %v", bad, err)
+		}
+	}
+}
