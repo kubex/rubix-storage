@@ -20,6 +20,7 @@ type OIDCProvider struct {
 	AssumeMFA            bool   `json:"assumeMFA"`
 	AssumeVerified       bool   `json:"assumeVerified"`
 	MaxSessionAge        int    `json:"maxSessionAge"` // Max session lifetime in seconds, 0 = use system default
+	RefreshSessions      bool   `json:"refreshSessions"`
 }
 
 func (o OIDCProvider) Configured() bool {
@@ -44,6 +45,7 @@ type MutateOIDCProviderPayload struct {
 	AssumeMFA            *bool
 	AssumeVerified       *bool
 	MaxSessionAge        *int
+	RefreshSessions      *bool
 }
 
 type MutateOIDCProviderOption func(*MutateOIDCProviderPayload)
@@ -114,4 +116,8 @@ func WithOIDCAssumeVerified(v bool) MutateOIDCProviderOption {
 
 func WithOIDCMaxSessionAge(v int) MutateOIDCProviderOption {
 	return func(p *MutateOIDCProviderPayload) { p.MaxSessionAge = &v }
+}
+
+func WithOIDCRefreshSessions(v bool) MutateOIDCProviderOption {
+	return func(p *MutateOIDCProviderPayload) { p.RefreshSessions = &v }
 }

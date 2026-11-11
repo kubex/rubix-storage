@@ -541,5 +541,6 @@ func migrations() []migration {
 		"`updated_at` bigint NOT NULL DEFAULT 0,"+
 		"PRIMARY KEY (`vendor_id`)"+
 		");"))
+	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `refreshSessions` tinyint(1) NOT NULL DEFAULT 0;"))
 	return queries
 }
