@@ -373,6 +373,26 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `user`, `vendor`, `app`, `step_id`)"+
 		");"))
 
+	// Vendor Connections
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `vendor_connections` ("+
+		"`workspace`     varchar(64)  NOT NULL,"+
+		"`user`          varchar(64)  NOT NULL DEFAULT '',"+
+		"`vendor_id`     varchar(64)  NOT NULL,"+
+		"`provider`      varchar(64)  NOT NULL,"+
+		"`external_id`   varchar(255) NOT NULL,"+
+		"`external_name` varchar(255) NOT NULL DEFAULT '',"+
+		"`access_token`  text         NOT NULL,"+
+		"`refresh_token` text         NOT NULL,"+
+		"`token_type`    varchar(32)  NOT NULL DEFAULT '',"+
+		"`scopes`        text         NOT NULL,"+
+		"`expires_at`    bigint       NOT NULL DEFAULT 0,"+
+		"`linked_by`     varchar(64)  NOT NULL DEFAULT '',"+
+		"`created_at`    bigint       NOT NULL DEFAULT 0,"+
+		"`updated_at`    bigint       NOT NULL DEFAULT 0,"+
+		"PRIMARY KEY (`workspace`, `user`, `vendor_id`, `provider`)"+
+		");"))
+	queries = append(queries, migQuery("CREATE INDEX `vendor_connections_external` ON `vendor_connections` (`workspace`, `vendor_id`, `provider`, `external_id`);"))
+
 	// Blueprints (v2 — composite key: vendor_id, app_id, blueprint_id)
 	queries = append(queries, migQuery("DROP TABLE IF EXISTS `blueprints`"))
 	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `blueprints` ("+

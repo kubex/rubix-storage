@@ -164,6 +164,15 @@ type Provider interface {
 	ResetActivationSteps(workspace, vendor, app string) error
 	GetActivationState(workspace, user, vendor, app string) ([]rubix.ActivationState, error)
 
+	// Vendor Connections link a workspace (user "") or one of its users to an
+	// account on a vendor's auth provider. Tokens are stored as given.
+	GetVendorConnections(workspace, user string) ([]rubix.VendorConnection, error)
+	// ListVendorConnections returns every link, of every user, a workspace holds with a vendor.
+	ListVendorConnections(workspace, vendorID string) ([]rubix.VendorConnection, error)
+	SetVendorConnection(connection rubix.VendorConnection) error
+	RemoveVendorConnection(workspace, user, vendorID, provider string) error
+	RemoveVendorConnections(workspace, vendorID string) error
+
 	// Platform Applications
 	GetPlatformApplications() ([]rubix.PlatformApplication, error)
 	// StorePlatformApplication writes every column, including Status; callers updating an
