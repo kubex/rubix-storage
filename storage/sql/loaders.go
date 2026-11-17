@@ -1289,8 +1289,8 @@ func (p *Provider) MutateTeam(workspace, team string, options ...rubix.MutateTea
 // --- Brands ---
 func (p *Provider) GetBrand(workspace, brand string) (*rubix.Brand, error) {
 	ret := &rubix.Brand{Workspace: workspace, ID: brand}
-	row := p.queryRow("SELECT name, description FROM brands WHERE workspace = ? AND brand = ?", workspace, brand)
-	if err := row.Scan(&ret.Name, &ret.Description); err != nil {
+	row := p.queryRow("SELECT name, description, website FROM brands WHERE workspace = ? AND brand = ?", workspace, brand)
+	if err := row.Scan(&ret.Name, &ret.Description, &ret.Website); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1300,7 +1300,7 @@ func (p *Provider) GetBrand(workspace, brand string) (*rubix.Brand, error) {
 }
 
 func (p *Provider) GetBrands(workspace string) ([]rubix.Brand, error) {
-	rows, err := p.query("SELECT brand, name, description FROM brands WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT brand, name, description, website FROM brands WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1309,7 +1309,7 @@ func (p *Provider) GetBrands(workspace string) ([]rubix.Brand, error) {
 	for rows.Next() {
 		var it rubix.Brand
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.Name, &it.Description); err != nil {
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.Website); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
@@ -1344,6 +1344,10 @@ func (p *Provider) MutateBrand(workspace, brand string, options ...rubix.MutateB
 	if payload.Description != nil {
 		fields = append(fields, "description = ?")
 		vals = append(vals, *payload.Description)
+	}
+	if payload.Website != nil {
+		fields = append(fields, "website = ?")
+		vals = append(vals, *payload.Website)
 	}
 	if len(fields) == 0 {
 		return nil

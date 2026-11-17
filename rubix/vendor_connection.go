@@ -11,6 +11,12 @@ type VendorConnection struct {
 	UserID    string `json:"userID"`
 	VendorID  string `json:"vendorID"`
 	Provider  string `json:"provider"`
+	// Account tells apart the accounts a workspace links to a provider that
+	// takes several; it is empty for a provider's only link.
+	Account string `json:"account"`
+	// Brand is the workspace brand the account is for, one account to a
+	// brand. It is empty for a provider's only link.
+	Brand string `json:"brand"`
 
 	ExternalID   string `json:"externalID"` // the vendor's workspace or user ID
 	ExternalName string `json:"externalName"`

@@ -144,6 +144,8 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `brand`)"+
 		");"))
 
+	queries = append(queries, migQuery("ALTER TABLE `brands` ADD `website` varchar(255) NOT NULL DEFAULT '';"))
+
 	queries = append(queries, migQuery("CREATE TABLE `departments` ("+
 		"`workspace`     varchar(64) NOT NULL,"+
 		"`department`          varchar(64) NOT NULL,"+
@@ -392,6 +394,33 @@ func migrations() []migration {
 		"PRIMARY KEY (`workspace`, `user`, `vendor_id`, `provider`)"+
 		");"))
 	queries = append(queries, migQuery("CREATE INDEX `vendor_connections_external` ON `vendor_connections` (`workspace`, `vendor_id`, `provider`, `external_id`);"))
+
+	// Vendor Connections (v2 — several accounts per provider, each serving
+	// brands). The key gains `account`, so the rows move to a new table.
+	queries = append(queries, migQuery("ALTER TABLE `vendor_connections` RENAME TO `vendor_connections_v1`;"))
+	queries = append(queries, migQuery("CREATE TABLE IF NOT EXISTS `vendor_connections` ("+
+		"`workspace`     varchar(64)  NOT NULL,"+
+		"`user`          varchar(64)  NOT NULL DEFAULT '',"+
+		"`vendor_id`     varchar(64)  NOT NULL,"+
+		"`provider`      varchar(64)  NOT NULL,"+
+		"`account`       varchar(191) NOT NULL DEFAULT '',"+
+		"`brands`        text         NOT NULL,"+
+		"`external_id`   varchar(255) NOT NULL,"+
+		"`external_name` varchar(255) NOT NULL DEFAULT '',"+
+		"`access_token`  text         NOT NULL,"+
+		"`refresh_token` text         NOT NULL,"+
+		"`token_type`    varchar(32)  NOT NULL DEFAULT '',"+
+		"`scopes`        text         NOT NULL,"+
+		"`expires_at`    bigint       NOT NULL DEFAULT 0,"+
+		"`linked_by`     varchar(64)  NOT NULL DEFAULT '',"+
+		"`created_at`    bigint       NOT NULL DEFAULT 0,"+
+		"`updated_at`    bigint       NOT NULL DEFAULT 0,"+
+		"PRIMARY KEY (`workspace`, `user`, `vendor_id`, `provider`, `account`)"+
+		");"))
+	queries = append(queries, migQuery("INSERT INTO `vendor_connections` (`workspace`,`user`,`vendor_id`,`provider`,`account`,`brands`,`external_id`,`external_name`,`access_token`,`refresh_token`,`token_type`,`scopes`,`expires_at`,`linked_by`,`created_at`,`updated_at`) "+
+		"SELECT `workspace`,`user`,`vendor_id`,`provider`,'','',`external_id`,`external_name`,`access_token`,`refresh_token`,`token_type`,`scopes`,`expires_at`,`linked_by`,`created_at`,`updated_at` FROM `vendor_connections_v1`;"))
+	// An account is for one brand.
+	queries = append(queries, migQuery("ALTER TABLE `vendor_connections` RENAME COLUMN `brands` TO `brand`;"))
 
 	// Blueprints (v2 — composite key: vendor_id, app_id, blueprint_id)
 	queries = append(queries, migQuery("DROP TABLE IF EXISTS `blueprints`"))

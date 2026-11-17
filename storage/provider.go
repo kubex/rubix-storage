@@ -170,7 +170,7 @@ type Provider interface {
 	// ListVendorConnections returns every link, of every user, a workspace holds with a vendor.
 	ListVendorConnections(workspace, vendorID string) ([]rubix.VendorConnection, error)
 	SetVendorConnection(connection rubix.VendorConnection) error
-	RemoveVendorConnection(workspace, user, vendorID, provider string) error
+	RemoveVendorConnection(workspace, user, vendorID, provider, account string) error
 	RemoveVendorConnections(workspace, vendorID string) error
 
 	// Platform Applications

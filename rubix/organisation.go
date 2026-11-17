@@ -6,6 +6,7 @@ type Brand struct {
 	ID          string
 	Name        string
 	Description string
+	Website     string
 }
 
 type OrganisationStatus string
@@ -66,9 +67,15 @@ type BPO struct {
 type MutateBrandPayload struct {
 	Title       *string
 	Description *string
+	Website     *string
 }
 
 type MutateBrandOption func(*MutateBrandPayload)
+
+// WithBrandWebsite sets the brand website.
+func WithBrandWebsite(website string) MutateBrandOption {
+	return func(p *MutateBrandPayload) { p.Website = &website }
+}
 
 func WithBrandName(title string) MutateBrandOption {
 	return func(p *MutateBrandPayload) { p.Title = &title }

@@ -65,7 +65,7 @@ func TestVendorConnections(t *testing.T) {
 		}
 	}
 
-	if err := p.RemoveVendorConnection("ws", "", "fortifi", "fortifi"); err != nil {
+	if err := p.RemoveVendorConnection("ws", "", "fortifi", "fortifi", ""); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ = p.GetVendorConnections("ws", "alice"); len(got) != 2 {
@@ -76,5 +76,37 @@ func TestVendorConnections(t *testing.T) {
 	}
 	if got, _ = p.GetVendorConnections("ws", "bob"); len(got) != 1 || got[0].VendorID != "ch" {
 		t.Fatalf("after removing fortifi: %+v", got)
+	}
+}
+
+func TestVendorConnectionAccounts(t *testing.T) {
+	p := newTestProvider(t)
+	defer p.Close()
+
+	first := rubix.VendorConnection{Workspace: "ws", VendorID: "ch", Provider: "pci-bridge/pcib", Account: "ACC-1", Brand: "globex", ExternalID: "ACC-1", AccessToken: "at-1"}
+	second := rubix.VendorConnection{Workspace: "ws", VendorID: "ch", Provider: "pci-bridge/pcib", Account: "ACC-2", ExternalID: "ACC-2", AccessToken: "at-2"}
+	for _, c := range []rubix.VendorConnection{first, second} {
+		if err := p.SetVendorConnection(c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	first.Brand = "acme"
+	if err := p.SetVendorConnection(first); err != nil {
+		t.Fatal(err)
+	}
+	got, err := p.GetVendorConnections("ws", "")
+	if err != nil || len(got) != 2 {
+		t.Fatalf("GetVendorConnections = %d rows, %v; want both accounts", len(got), err)
+	}
+	for _, c := range got {
+		if c.Account == "ACC-1" && c.Brand != "acme" {
+			t.Fatalf("brand = %q, want the replaced one", c.Brand)
+		}
+	}
+	if err = p.RemoveVendorConnection("ws", "", "ch", "pci-bridge/pcib", "ACC-1"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ = p.GetVendorConnections("ws", ""); len(got) != 1 || got[0].Account != "ACC-2" {
+		t.Fatalf("after removing one account: %+v", got)
 	}
 }

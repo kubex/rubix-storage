@@ -7,7 +7,7 @@ import (
 	"github.com/kubex/rubix-storage/rubix"
 )
 
-const vendorConnectionColumns = "`workspace`,`user`,`vendor_id`,`provider`,`external_id`,`external_name`,`access_token`,`refresh_token`,`token_type`,`scopes`,`expires_at`,`linked_by`,`created_at`,`updated_at`"
+const vendorConnectionColumns = "`workspace`,`user`,`vendor_id`,`provider`,`account`,`brand`,`external_id`,`external_name`,`access_token`,`refresh_token`,`token_type`,`scopes`,`expires_at`,`linked_by`,`created_at`,`updated_at`"
 
 // GetVendorConnections returns the workspace links and, when user is set, that
 // user's links.
@@ -22,7 +22,7 @@ func (p *Provider) ListVendorConnections(workspace, vendorID string) ([]rubix.Ve
 }
 
 func (p *Provider) queryVendorConnections(where string, args ...any) ([]rubix.VendorConnection, error) {
-	rows, err := p.query("SELECT "+vendorConnectionColumns+" FROM `vendor_connections` WHERE "+where+" ORDER BY `vendor_id`,`provider`,`user`", args...)
+	rows, err := p.query("SELECT "+vendorConnectionColumns+" FROM `vendor_connections` WHERE "+where+" ORDER BY `vendor_id`,`provider`,`user`,`created_at`,`account`", args...)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (p *Provider) queryVendorConnections(where string, args ...any) ([]rubix.Ve
 		var c rubix.VendorConnection
 		var scopes string
 		var expires, created, updated int64
-		if err := rows.Scan(&c.Workspace, &c.UserID, &c.VendorID, &c.Provider, &c.ExternalID, &c.ExternalName, &c.AccessToken, &c.RefreshToken, &c.TokenType, &scopes, &expires, &c.LinkedBy, &created, &updated); err != nil {
+		if err := rows.Scan(&c.Workspace, &c.UserID, &c.VendorID, &c.Provider, &c.Account, &c.Brand, &c.ExternalID, &c.ExternalName, &c.AccessToken, &c.RefreshToken, &c.TokenType, &scopes, &expires, &c.LinkedBy, &created, &updated); err != nil {
 			return nil, err
 		}
 		c.Scopes = strings.Fields(scopes)
@@ -54,13 +54,13 @@ func (p *Provider) SetVendorConnection(c rubix.VendorConnection) error {
 	if !c.ExpiresAt.IsZero() {
 		expires = c.ExpiresAt.Unix()
 	}
-	query := "INSERT INTO `vendor_connections` (" + vendorConnectionColumns + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	query := "INSERT INTO `vendor_connections` (" + vendorConnectionColumns + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	if p.SqlLite {
-		query += " ON CONFLICT(`workspace`,`user`,`vendor_id`,`provider`) DO UPDATE SET `external_id`=excluded.`external_id`,`external_name`=excluded.`external_name`,`access_token`=excluded.`access_token`,`refresh_token`=excluded.`refresh_token`,`token_type`=excluded.`token_type`,`scopes`=excluded.`scopes`,`expires_at`=excluded.`expires_at`,`updated_at`=excluded.`updated_at`"
+		query += " ON CONFLICT(`workspace`,`user`,`vendor_id`,`provider`,`account`) DO UPDATE SET `brand`=excluded.`brand`,`external_id`=excluded.`external_id`,`external_name`=excluded.`external_name`,`access_token`=excluded.`access_token`,`refresh_token`=excluded.`refresh_token`,`token_type`=excluded.`token_type`,`scopes`=excluded.`scopes`,`expires_at`=excluded.`expires_at`,`updated_at`=excluded.`updated_at`"
 	} else {
-		query += " ON DUPLICATE KEY UPDATE `external_id`=VALUES(`external_id`),`external_name`=VALUES(`external_name`),`access_token`=VALUES(`access_token`),`refresh_token`=VALUES(`refresh_token`),`token_type`=VALUES(`token_type`),`scopes`=VALUES(`scopes`),`expires_at`=VALUES(`expires_at`),`updated_at`=VALUES(`updated_at`)"
+		query += " ON DUPLICATE KEY UPDATE `brand`=VALUES(`brand`),`external_id`=VALUES(`external_id`),`external_name`=VALUES(`external_name`),`access_token`=VALUES(`access_token`),`refresh_token`=VALUES(`refresh_token`),`token_type`=VALUES(`token_type`),`scopes`=VALUES(`scopes`),`expires_at`=VALUES(`expires_at`),`updated_at`=VALUES(`updated_at`)"
 	}
-	_, err := p.primaryConnection.Exec(query, c.Workspace, c.UserID, c.VendorID, c.Provider, c.ExternalID, c.ExternalName, c.AccessToken, c.RefreshToken, c.TokenType, strings.Join(c.Scopes, " "), expires, c.LinkedBy, now, now)
+	_, err := p.primaryConnection.Exec(query, c.Workspace, c.UserID, c.VendorID, c.Provider, c.Account, c.Brand, c.ExternalID, c.ExternalName, c.AccessToken, c.RefreshToken, c.TokenType, strings.Join(c.Scopes, " "), expires, c.LinkedBy, now, now)
 	if err == nil {
 		p.update()
 	}
@@ -69,8 +69,8 @@ func (p *Provider) SetVendorConnection(c rubix.VendorConnection) error {
 
 // RemoveVendorConnection removes one link; an empty user removes the workspace
 // link and leaves user links in place.
-func (p *Provider) RemoveVendorConnection(workspace, user, vendorID, provider string) error {
-	_, err := p.primaryConnection.Exec("DELETE FROM `vendor_connections` WHERE `workspace` = ? AND `user` = ? AND `vendor_id` = ? AND `provider` = ?", workspace, user, vendorID, provider)
+func (p *Provider) RemoveVendorConnection(workspace, user, vendorID, provider, account string) error {
+	_, err := p.primaryConnection.Exec("DELETE FROM `vendor_connections` WHERE `workspace` = ? AND `user` = ? AND `vendor_id` = ? AND `provider` = ? AND `account` = ?", workspace, user, vendorID, provider, account)
 	if err == nil {
 		p.update()
 	}
