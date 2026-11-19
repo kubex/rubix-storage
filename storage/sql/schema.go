@@ -591,5 +591,10 @@ func migrations() []migration {
 		"PRIMARY KEY (`vendor_id`)"+
 		");"))
 	queries = append(queries, migQuery("ALTER TABLE `workspace_oidc_providers` ADD `refreshSessions` tinyint(1) NOT NULL DEFAULT 0;"))
+	queries = append(queries, migQuery("ALTER TABLE `brands` ADD `icon` varchar(64) NOT NULL DEFAULT '';"))
+	queries = append(queries, migQuery("ALTER TABLE `departments` ADD `icon` varchar(64) NOT NULL DEFAULT '';"))
+	queries = append(queries, migQuery("ALTER TABLE `channels` ADD `icon` varchar(64) NOT NULL DEFAULT '';"))
+	queries = append(queries, migQuery("ALTER TABLE `distributors` ADD `icon` varchar(64) NOT NULL DEFAULT '';"))
+	queries = append(queries, migQuery("ALTER TABLE `bpos` ADD `icon` varchar(64) NOT NULL DEFAULT '';"))
 	return queries
 }

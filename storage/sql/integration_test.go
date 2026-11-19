@@ -196,11 +196,11 @@ func TestIntegration_SQLite_EndToEnd(t *testing.T) {
 	if err := p.CreateBrand(ws, "acme", "ACME", "ACME Corp"); err != nil {
 		t.Fatalf("CreateBrand: %v", err)
 	}
-	if err := p.MutateBrand(ws, "acme", rubix.WithBrandDescription("Updated")); err != nil {
+	if err := p.MutateBrand(ws, "acme", rubix.WithBrandDescription("Updated"), rubix.WithBrandIcon("store")); err != nil {
 		t.Fatalf("MutateBrand: %v", err)
 	}
 	b, err := p.GetBrand(ws, "acme")
-	if err != nil || b.Description != "Updated" {
+	if err != nil || b.Description != "Updated" || b.Icon != "store" {
 		t.Fatalf("GetBrand: %+v err=%v", b, err)
 	}
 	if err := p.CreateDepartment(ws, "support", "Support", "Customer support"); err != nil {

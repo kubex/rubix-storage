@@ -1289,8 +1289,8 @@ func (p *Provider) MutateTeam(workspace, team string, options ...rubix.MutateTea
 // --- Brands ---
 func (p *Provider) GetBrand(workspace, brand string) (*rubix.Brand, error) {
 	ret := &rubix.Brand{Workspace: workspace, ID: brand}
-	row := p.queryRow("SELECT name, description, website FROM brands WHERE workspace = ? AND brand = ?", workspace, brand)
-	if err := row.Scan(&ret.Name, &ret.Description, &ret.Website); err != nil {
+	row := p.queryRow("SELECT name, description, website, icon FROM brands WHERE workspace = ? AND brand = ?", workspace, brand)
+	if err := row.Scan(&ret.Name, &ret.Description, &ret.Website, &ret.Icon); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1300,7 +1300,7 @@ func (p *Provider) GetBrand(workspace, brand string) (*rubix.Brand, error) {
 }
 
 func (p *Provider) GetBrands(workspace string) ([]rubix.Brand, error) {
-	rows, err := p.query("SELECT brand, name, description, website FROM brands WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT brand, name, description, website, icon FROM brands WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1309,7 +1309,7 @@ func (p *Provider) GetBrands(workspace string) ([]rubix.Brand, error) {
 	for rows.Next() {
 		var it rubix.Brand
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.Website); err != nil {
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.Website, &it.Icon); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
@@ -1349,6 +1349,10 @@ func (p *Provider) MutateBrand(workspace, brand string, options ...rubix.MutateB
 		fields = append(fields, "website = ?")
 		vals = append(vals, *payload.Website)
 	}
+	if payload.Icon != nil {
+		fields = append(fields, "icon = ?")
+		vals = append(vals, *payload.Icon)
+	}
 	if len(fields) == 0 {
 		return nil
 	}
@@ -1367,8 +1371,8 @@ func (p *Provider) MutateBrand(workspace, brand string, options ...rubix.MutateB
 // --- Departments ---
 func (p *Provider) GetDepartment(workspace, department string) (*rubix.Department, error) {
 	ret := &rubix.Department{Workspace: workspace, ID: department}
-	row := p.queryRow("SELECT name, description, status FROM departments WHERE workspace = ? AND department = ?", workspace, department)
-	if err := row.Scan(&ret.Name, &ret.Description, &ret.Status); err != nil {
+	row := p.queryRow("SELECT name, description, icon, status FROM departments WHERE workspace = ? AND department = ?", workspace, department)
+	if err := row.Scan(&ret.Name, &ret.Description, &ret.Icon, &ret.Status); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1378,7 +1382,7 @@ func (p *Provider) GetDepartment(workspace, department string) (*rubix.Departmen
 }
 
 func (p *Provider) GetDepartments(workspace string) ([]rubix.Department, error) {
-	rows, err := p.query("SELECT department, name, description, status FROM departments WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT department, name, description, icon, status FROM departments WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1387,7 +1391,7 @@ func (p *Provider) GetDepartments(workspace string) ([]rubix.Department, error) 
 	for rows.Next() {
 		var it rubix.Department
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.Status); err != nil {
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.Icon, &it.Status); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
@@ -1427,6 +1431,10 @@ func (p *Provider) MutateDepartment(workspace, department string, options ...rub
 		fields = append(fields, "status = ?")
 		vals = append(vals, *payload.Status)
 	}
+	if payload.Icon != nil {
+		fields = append(fields, "icon = ?")
+		vals = append(vals, *payload.Icon)
+	}
 	if len(fields) == 0 {
 		return nil
 	}
@@ -1445,9 +1453,9 @@ func (p *Provider) MutateDepartment(workspace, department string, options ...rub
 // --- Channels ---
 func (p *Provider) GetChannel(workspace, channel string) (*rubix.Channel, error) {
 	ret := &rubix.Channel{Workspace: workspace, ID: channel}
-	row := p.queryRow("SELECT department, name, description, maxLevel, status FROM channels WHERE workspace = ? AND channel = ?", workspace, channel)
+	row := p.queryRow("SELECT department, name, description, maxLevel, icon, status FROM channels WHERE workspace = ? AND channel = ?", workspace, channel)
 	var desc sql.NullString
-	if err := row.Scan(&ret.DepartmentID, &ret.Name, &desc, &ret.MaxLevel, &ret.Status); err != nil {
+	if err := row.Scan(&ret.DepartmentID, &ret.Name, &desc, &ret.MaxLevel, &ret.Icon, &ret.Status); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1458,7 +1466,7 @@ func (p *Provider) GetChannel(workspace, channel string) (*rubix.Channel, error)
 }
 
 func (p *Provider) GetChannels(workspace string) ([]rubix.Channel, error) {
-	rows, err := p.query("SELECT channel, department, name, description, maxLevel, status FROM channels WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT channel, department, name, description, maxLevel, icon, status FROM channels WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1468,7 +1476,7 @@ func (p *Provider) GetChannels(workspace string) ([]rubix.Channel, error) {
 		var it rubix.Channel
 		var desc sql.NullString
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.DepartmentID, &it.Name, &desc, &it.MaxLevel, &it.Status); err != nil {
+		if err := rows.Scan(&it.ID, &it.DepartmentID, &it.Name, &desc, &it.MaxLevel, &it.Icon, &it.Status); err != nil {
 			return nil, err
 		}
 		it.Description = desc.String
@@ -1513,6 +1521,10 @@ func (p *Provider) MutateChannel(workspace, channel string, options ...rubix.Mut
 		fields = append(fields, "status = ?")
 		vals = append(vals, *payload.Status)
 	}
+	if payload.Icon != nil {
+		fields = append(fields, "icon = ?")
+		vals = append(vals, *payload.Icon)
+	}
 	if len(fields) == 0 {
 		return nil
 	}
@@ -1531,8 +1543,8 @@ func (p *Provider) MutateChannel(workspace, channel string, options ...rubix.Mut
 // --- Distributors ---
 func (p *Provider) GetDistributor(workspace, distributor string) (*rubix.Distributor, error) {
 	ret := &rubix.Distributor{Workspace: workspace, ID: distributor}
-	row := p.queryRow("SELECT name, description, website_url, logo_url FROM distributors WHERE workspace = ? AND distributor = ?", workspace, distributor)
-	if err := row.Scan(&ret.Name, &ret.Description, &ret.WebsiteURL, &ret.LogoURL); err != nil {
+	row := p.queryRow("SELECT name, description, website_url, logo_url, icon FROM distributors WHERE workspace = ? AND distributor = ?", workspace, distributor)
+	if err := row.Scan(&ret.Name, &ret.Description, &ret.WebsiteURL, &ret.LogoURL, &ret.Icon); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1542,7 +1554,7 @@ func (p *Provider) GetDistributor(workspace, distributor string) (*rubix.Distrib
 }
 
 func (p *Provider) GetDistributors(workspace string) ([]rubix.Distributor, error) {
-	rows, err := p.query("SELECT distributor, name, description, website_url, logo_url FROM distributors WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT distributor, name, description, website_url, logo_url, icon FROM distributors WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1551,7 +1563,7 @@ func (p *Provider) GetDistributors(workspace string) ([]rubix.Distributor, error
 	for rows.Next() {
 		var it rubix.Distributor
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.WebsiteURL, &it.LogoURL); err != nil {
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.WebsiteURL, &it.LogoURL, &it.Icon); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
@@ -1595,6 +1607,10 @@ func (p *Provider) MutateDistributor(workspace, distributor string, options ...r
 		fields = append(fields, "logo_url = ?")
 		vals = append(vals, *payload.LogoURL)
 	}
+	if payload.Icon != nil {
+		fields = append(fields, "icon = ?")
+		vals = append(vals, *payload.Icon)
+	}
 	if len(fields) == 0 {
 		return nil
 	}
@@ -1613,8 +1629,8 @@ func (p *Provider) MutateDistributor(workspace, distributor string, options ...r
 // --- BPOs ---
 func (p *Provider) GetBPO(workspace, bpo string) (*rubix.BPO, error) {
 	ret := &rubix.BPO{Workspace: workspace, ID: bpo}
-	row := p.queryRow("SELECT name, description, website_url, logo_url FROM bpos WHERE workspace = ? AND bpo = ?", workspace, bpo)
-	if err := row.Scan(&ret.Name, &ret.Description, &ret.WebsiteURL, &ret.LogoURL); err != nil {
+	row := p.queryRow("SELECT name, description, website_url, logo_url, icon FROM bpos WHERE workspace = ? AND bpo = ?", workspace, bpo)
+	if err := row.Scan(&ret.Name, &ret.Description, &ret.WebsiteURL, &ret.LogoURL, &ret.Icon); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rubix.ErrNoResultFound
 		}
@@ -1624,7 +1640,7 @@ func (p *Provider) GetBPO(workspace, bpo string) (*rubix.BPO, error) {
 }
 
 func (p *Provider) GetBPOs(workspace string) ([]rubix.BPO, error) {
-	rows, err := p.query("SELECT bpo, name, description, website_url, logo_url FROM bpos WHERE workspace = ? ORDER BY name ASC", workspace)
+	rows, err := p.query("SELECT bpo, name, description, website_url, logo_url, icon FROM bpos WHERE workspace = ? ORDER BY name ASC", workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1633,7 +1649,7 @@ func (p *Provider) GetBPOs(workspace string) ([]rubix.BPO, error) {
 	for rows.Next() {
 		var it rubix.BPO
 		it.Workspace = workspace
-		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.WebsiteURL, &it.LogoURL); err != nil {
+		if err := rows.Scan(&it.ID, &it.Name, &it.Description, &it.WebsiteURL, &it.LogoURL, &it.Icon); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
@@ -1676,6 +1692,10 @@ func (p *Provider) MutateBPO(workspace, bpo string, options ...rubix.MutateBPOOp
 	if payload.LogoURL != nil {
 		fields = append(fields, "logo_url = ?")
 		vals = append(vals, *payload.LogoURL)
+	}
+	if payload.Icon != nil {
+		fields = append(fields, "icon = ?")
+		vals = append(vals, *payload.Icon)
 	}
 	if len(fields) == 0 {
 		return nil

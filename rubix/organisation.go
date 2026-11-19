@@ -7,6 +7,7 @@ type Brand struct {
 	Name        string
 	Description string
 	Website     string
+	Icon        string
 }
 
 type OrganisationStatus string
@@ -22,6 +23,7 @@ type Department struct {
 	ID          string
 	Name        string
 	Description string
+	Icon        string
 	Status      OrganisationStatus
 }
 
@@ -37,6 +39,7 @@ type Channel struct {
 	// MaxLevel sets the highest level that can be assigned within this channel
 	// 0 means no level restriction is configured
 	MaxLevel int
+	Icon     string
 	Status   OrganisationStatus
 }
 
@@ -50,6 +53,7 @@ type Distributor struct {
 	Description string
 	WebsiteURL  string
 	LogoURL     string
+	Icon        string
 }
 
 // BPO represents a BPO within a workspace
@@ -60,6 +64,7 @@ type BPO struct {
 	Description string
 	WebsiteURL  string
 	LogoURL     string
+	Icon        string
 }
 
 // Mutate payloads and options for simple metadata updates
@@ -68,9 +73,15 @@ type MutateBrandPayload struct {
 	Title       *string
 	Description *string
 	Website     *string
+	Icon        *string
 }
 
 type MutateBrandOption func(*MutateBrandPayload)
+
+// WithBrandIcon sets the lucide icon name.
+func WithBrandIcon(icon string) MutateBrandOption {
+	return func(p *MutateBrandPayload) { p.Icon = &icon }
+}
 
 // WithBrandWebsite sets the brand website.
 func WithBrandWebsite(website string) MutateBrandOption {
@@ -88,10 +99,16 @@ func WithBrandDescription(description string) MutateBrandOption {
 type MutateDepartmentPayload struct {
 	Title       *string
 	Description *string
+	Icon        *string
 	Status      *OrganisationStatus
 }
 
 type MutateDepartmentOption func(*MutateDepartmentPayload)
+
+// WithDepartmentIcon sets the lucide icon name.
+func WithDepartmentIcon(icon string) MutateDepartmentOption {
+	return func(p *MutateDepartmentPayload) { p.Icon = &icon }
+}
 
 func WithDepartmentName(title string) MutateDepartmentOption {
 	return func(p *MutateDepartmentPayload) { p.Title = &title }
@@ -110,9 +127,15 @@ type MutateDistributorPayload struct {
 	Description *string
 	WebsiteURL  *string
 	LogoURL     *string
+	Icon        *string
 }
 
 type MutateDistributorOption func(*MutateDistributorPayload)
+
+// WithDistributorIcon sets the lucide icon name.
+func WithDistributorIcon(icon string) MutateDistributorOption {
+	return func(p *MutateDistributorPayload) { p.Icon = &icon }
+}
 
 func WithDistributorName(title string) MutateDistributorOption {
 	return func(p *MutateDistributorPayload) { p.Title = &title }
@@ -135,9 +158,15 @@ type MutateBPOPayload struct {
 	Description *string
 	WebsiteURL  *string
 	LogoURL     *string
+	Icon        *string
 }
 
 type MutateBPOOption func(*MutateBPOPayload)
+
+// WithBPOIcon sets the lucide icon name.
+func WithBPOIcon(icon string) MutateBPOOption {
+	return func(p *MutateBPOPayload) { p.Icon = &icon }
+}
 
 func WithBPOName(title string) MutateBPOOption {
 	return func(p *MutateBPOPayload) { p.Title = &title }
@@ -159,10 +188,16 @@ type MutateChannelPayload struct {
 	Title       *string
 	Description *string
 	MaxLevel    *int
+	Icon        *string
 	Status      *OrganisationStatus
 }
 
 type MutateChannelOption func(*MutateChannelPayload)
+
+// WithChannelIcon sets the lucide icon name.
+func WithChannelIcon(icon string) MutateChannelOption {
+	return func(p *MutateChannelPayload) { p.Icon = &icon }
+}
 
 func WithChannelName(title string) MutateChannelOption {
 	return func(p *MutateChannelPayload) { p.Title = &title }
